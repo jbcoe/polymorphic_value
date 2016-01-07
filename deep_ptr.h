@@ -18,9 +18,7 @@ class deep_ptr
     virtual ~inner() = default;
   };
 
-  template <typename U>
-  struct inner_impl : inner
-  {
+  template <typename U> struct inner_impl : inner {
     inner_impl(const inner_impl&) = delete;
     inner_impl& operator=(const inner_impl&) = delete;
 
@@ -57,20 +55,19 @@ class deep_ptr
   template <typename U,
             typename V = std::enable_if_t<std::is_same<T, U>::value ||
                                           std::is_base_of<T, U>::value>>
-  void do_copy_construct(const deep_ptr<U>& u)
-  {
-    if (!u.engaged_) return;
-    reinterpret_cast<const typename deep_ptr<U>::inner*>(&u.buffer_)->copy(&buffer_);
+  void do_copy_construct(const deep_ptr<U> &u) {
+    if (!u.engaged_)
+      return;
+    reinterpret_cast<const typename deep_ptr<U>::inner *>(&u.buffer_)
+        ->copy(&buffer_);
     engaged_ = true;
   }
-  
+
   template <typename U,
             typename V = std::enable_if_t<std::is_same<T, U>::value ||
                                           std::is_base_of<T, U>::value>>
-  void do_move_construct(deep_ptr<U>&& u)
-  {
-    if (u.engaged_)
-    {
+  void do_move_construct(deep_ptr<U> &&u) {
+    if (u.engaged_) {
       buffer_ = u.buffer_;
     }
 
@@ -81,42 +78,37 @@ class deep_ptr
   template <typename U,
             typename V = std::enable_if_t<std::is_same<T, U>::value ||
                                           std::is_base_of<T, U>::value>>
-  deep_ptr& do_assign(const deep_ptr<U>& u)
-  {
-    if (reinterpret_cast<const void*>(&u) == reinterpret_cast<const void*>(this)) return *this;
+  deep_ptr &do_assign(const deep_ptr<U> &u) {
+    if (reinterpret_cast<const void *>(&u) ==
+        reinterpret_cast<const void *>(this))
+      return *this;
 
-    if (engaged_)
-    {
-      reinterpret_cast<const inner*>(&buffer_)->~inner();
+    if (engaged_) {
+      reinterpret_cast<const inner *>(&buffer_)->~inner();
     }
 
-    if (!u.engaged_)
-    {
+    if (!u.engaged_) {
       engaged_ = false;
-    }
-    else
-    {
-      reinterpret_cast<const typename deep_ptr<U>::inner*>(&u.buffer_)->copy(&buffer_);
+    } else {
+      reinterpret_cast<const typename deep_ptr<U>::inner *>(&u.buffer_)
+          ->copy(&buffer_);
       engaged_ = true;
     }
 
     return *this;
   }
-  
+
   template <typename U,
             typename V = std::enable_if_t<std::is_same<T, U>::value ||
                                           std::is_base_of<T, U>::value>>
-  deep_ptr& do_move_assign(deep_ptr<U>&& u)
-  {
-    if (engaged_)
-    {
-      reinterpret_cast<const inner*>(&buffer_)->~inner();
+  deep_ptr &do_move_assign(deep_ptr<U> &&u) {
+    if (engaged_) {
+      reinterpret_cast<const inner *>(&buffer_)->~inner();
     }
 
     engaged_ = u.engaged_;
 
-    if (u.engaged_)
-    {
+    if (u.engaged_) {
       buffer_ = u.buffer_;
     }
 
@@ -141,11 +133,11 @@ public:
 
   deep_ptr(std::nullptr_t) : deep_ptr() {}
 
-  template <typename U>
-  deep_ptr(U* u)
-  {
-    if (!u)
-    {
+  template <typename U,
+            typename V = std::enable_if_t<std::is_same<T, U>::value ||
+                                          std::is_base_of<T, U>::value>>
+  deep_ptr(U *u) {
+    if (!u) {
       engaged_ = false;
       return;
     }
@@ -166,8 +158,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
-  deep_ptr(const deep_ptr<U>& u)
-  {
+  deep_ptr(const deep_ptr<U> &u) {
     do_copy_construct(u);
   }
 
@@ -183,8 +174,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
-  deep_ptr(deep_ptr<U>&& u)
-  {
+  deep_ptr(deep_ptr<U> &&u) {
     do_move_construct(std::move(u));
   }
 
@@ -200,8 +190,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
-  deep_ptr& operator=(const deep_ptr<U>& u)
-  {
+  deep_ptr &operator=(const deep_ptr<U> &u) {
     return do_assign(u);
   }
 
@@ -217,8 +206,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
-  deep_ptr& operator=(deep_ptr<U>&& u)
-  {
+  deep_ptr &operator=(deep_ptr<U> &&u) {
     return do_move_assign(std::move(u));
   }
 
