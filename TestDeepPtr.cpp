@@ -360,6 +360,17 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
     {
       REQUIRE(dptr1.get() != nullptr);
     }
+    
+    THEN("The assigned-from object 'value' is the assigned-to object value")
+    {
+      REQUIRE(dptr1->value() == dptr2->value());
+    }
+    
+    THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
+    {
+      REQUIRE(dptr1.get() != dptr2.get());
+    }
+  
   }
 
   GIVEN("A pointer-constructed deep_ptr assigned to a pointer-constructed deep_ptr")
@@ -387,14 +398,14 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
       REQUIRE(dptr1.get() != nullptr);
     }
 
-    THEN("The assigned-to object is distinct from the assigned-from object")
-    {
-      REQUIRE(dptr1.get() != p);
-    }
-    
-    THEN("The assigned-to object 'value' == the assigned-from object 'value'")
+    THEN("The assigned-from object 'value' is the assigned-to object value")
     {
       REQUIRE(dptr1->value() == dptr2->value());
+    }
+    
+    THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
+    {
+      REQUIRE(dptr1.get() != dptr2.get());
     }
   }
 

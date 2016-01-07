@@ -84,6 +84,10 @@ public:
     engaged_ = true;
   }
 
+  //
+  // Copy-constructors
+  //
+
   deep_ptr(const deep_ptr& p)
   {
     if (!p.engaged_) return;
@@ -100,7 +104,11 @@ public:
     reinterpret_cast<const typename deep_ptr<U>::inner*>(&u.buffer_)->copy(&buffer_);
     engaged_ = true;
   }
-  
+         
+  //
+  // Move-constructors
+  //
+
   deep_ptr(deep_ptr&& p)
   {
     if (p.engaged_) 
@@ -125,6 +133,10 @@ public:
     engaged_ = u.engaged_;
     u.engaged_ = false;
   }
+                      
+  //
+  // Assignment
+  //
 
   deep_ptr& operator=(const deep_ptr& p)
   {
@@ -145,24 +157,6 @@ public:
       engaged_ = true;
     }
 
-    return *this;
-  }
-  
-  deep_ptr& operator=(deep_ptr&& p)
-  {
-    if (engaged_)
-    {
-      reinterpret_cast<const inner*>(&buffer_)->~inner();
-    }
-
-    engaged_ = p.engaged_;
-
-    if (p.engaged_)
-    {
-      buffer_ = p.buffer_;
-    }
-
-    p.engaged_ = false;
     return *this;
   }
   
@@ -190,6 +184,29 @@ public:
 
     return *this;
   }
+  
+  //
+  // Move-assignment
+  //
+
+  deep_ptr& operator=(deep_ptr&& p)
+  {
+    if (engaged_)
+    {
+      reinterpret_cast<const inner*>(&buffer_)->~inner();
+    }
+
+    engaged_ = p.engaged_;
+
+    if (p.engaged_)
+    {
+      buffer_ = p.buffer_;
+    }
+
+    p.engaged_ = false;
+    return *this;
+  }
+  
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<U, T>::value &&
@@ -212,6 +229,10 @@ public:
     return *this;
   }
   
+  //
+  // Acessors
+  //
+
   const operator bool() const
   {
     return engaged_;
@@ -237,6 +258,10 @@ public:
     return *get();
   }
 
+  //
+  // Non-const accessors
+  //                    
+  
   T* operator->()
   {
     return get();
