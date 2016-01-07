@@ -1,55 +1,41 @@
 #include <type_traits>
 #include <cassert>
 
-template <typename T>
-class deep_ptr
-{
+template <typename T> class deep_ptr {
 
   template <typename U> friend class deep_ptr;
 
-  struct inner
-  {
-    virtual void copy(void* buffer) const = 0;
+  struct inner {
+    virtual void copy(void *buffer) const = 0;
 
-    virtual const T* get() const = 0;
+    virtual const T *get() const = 0;
 
-    virtual T* get() = 0;
+    virtual T *get() = 0;
 
     virtual ~inner() = default;
   };
 
   template <typename U> struct inner_impl : inner {
-    inner_impl(const inner_impl&) = delete;
-    inner_impl& operator=(const inner_impl&) = delete;
+    inner_impl(const inner_impl &) = delete;
+    inner_impl &operator=(const inner_impl &) = delete;
 
-    inner_impl(U* u) : u_(u)
-    {
-    }
+    inner_impl(U *u) : u_(u) {}
 
-    void copy(void* buffer) const override
-    {
+    void copy(void *buffer) const override {
       new (buffer) inner_impl(new U(*u_));
     }
 
-    const T* get() const override
-    {
-      return u_;
-    }
+    const T *get() const override { return u_; }
 
-    T* get() override
-    {
-      return u_;
-    }
+    T *get() override { return u_; }
 
-    ~inner_impl()
-    {
-      delete u_;
-    }
+    ~inner_impl() { delete u_; }
 
-    U* u_;
+    U *u_;
   };
 
-  std::aligned_storage_t<sizeof(inner_impl<void>), alignof(inner_impl<void>)> buffer_;
+  std::aligned_storage_t<sizeof(inner_impl<void>), alignof(inner_impl<void>)>
+      buffer_;
   bool engaged_ = false;
 
   template <typename U,
@@ -117,11 +103,9 @@ class deep_ptr
   }
 
 public:
-  ~deep_ptr()
-  {
-    if (engaged_)
-    {
-      reinterpret_cast<inner*>(&buffer_)->~inner();
+  ~deep_ptr() {
+    if (engaged_) {
+      reinterpret_cast<inner *>(&buffer_)->~inner();
     }
   }
 
@@ -150,10 +134,7 @@ public:
   // Copy-constructors
   //
 
-  deep_ptr(const deep_ptr& p)
-  {
-    do_copy_construct(p);
-  }
+  deep_ptr(const deep_ptr &p) { do_copy_construct(p); }
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
@@ -166,10 +147,7 @@ public:
   // Move-constructors
   //
 
-  deep_ptr(deep_ptr&& p)
-  {
-    do_move_construct(std::move(p));
-  }
+  deep_ptr(deep_ptr &&p) { do_move_construct(std::move(p)); }
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
@@ -182,10 +160,7 @@ public:
   // Assignment
   //
 
-  deep_ptr& operator=(const deep_ptr& p)
-  {
-    return do_assign(p);
-  }
+  deep_ptr &operator=(const deep_ptr &p) { return do_assign(p); }
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
@@ -198,10 +173,7 @@ public:
   // Move-assignment
   //
 
-  deep_ptr& operator=(deep_ptr&& p)
-  {
-    return do_move_assign(std::move(p));
-  }
+  deep_ptr &operator=(deep_ptr &&p) { return do_move_assign(std::move(p)); }
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
@@ -214,27 +186,18 @@ public:
   // Acessors
   //
 
-  const operator bool() const
-  {
-    return engaged_;
-  }
+  const operator bool() const { return engaged_; }
 
-  const T* operator->() const
-  {
-    return get();
-  }
+  const T *operator->() const { return get(); }
 
-  const T* get() const
-  {
-    if (!engaged_)
-    {
+  const T *get() const {
+    if (!engaged_) {
       return nullptr;
     }
-    return reinterpret_cast<const inner*>(&buffer_)->get();
+    return reinterpret_cast<const inner *>(&buffer_)->get();
   }
 
-  const T& operator*() const
-  {
+  const T &operator*() const {
     assert(engaged_);
     return *get();
   }
@@ -243,22 +206,16 @@ public:
   // Non-const accessors
   //
 
-  T* operator->()
-  {
-    return get();
-  }
+  T *operator->() { return get(); }
 
-  T* get()
-  {
-    if (!engaged_)
-    {
+  T *get() {
+    if (!engaged_) {
       return nullptr;
     }
-    return reinterpret_cast<inner*>(&buffer_)->get();
+    return reinterpret_cast<inner *>(&buffer_)->get();
   }
 
-  T& operator*()
-  {
+  T &operator*() {
     assert(engaged_);
     return *get();
   }
