@@ -183,7 +183,7 @@ public:
   }
 
   //
-  // Acessors
+  // Accessors
   //
 
   const operator bool() const { return engaged_; }
