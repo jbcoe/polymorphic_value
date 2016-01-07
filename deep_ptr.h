@@ -5,6 +5,8 @@ template <typename T>
 class deep_ptr
 {
 
+  template <typename U> friend class deep_ptr;
+
   struct inner
   {
     virtual void copy(void* buffer) const = 0;
@@ -72,6 +74,14 @@ public:
 
     new (&buffer_) inner_impl<U>(u);
     engaged_ = true;
+  }
+
+  template <typename U,
+            typename V = std::enable_if_t<!std::is_same<U, T>::value &&
+                                          std::is_base_of<T, U>::value>>
+  deep_ptr(const deep_ptr<U> &u) : engaged_(u.engaged_)
+  {
+    reinterpret_cast<const typename deep_ptr<U>::inner*>(&u.buffer_)->copy(&buffer_);
   }
 
   ~deep_ptr()
