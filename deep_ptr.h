@@ -101,25 +101,30 @@ public:
 
   deep_ptr& operator=(const deep_ptr& p)
   {
+    if (&p == this) return *this;
+
+    if (engaged_)
+    {
+      reinterpret_cast<const inner*>(&buffer_)->~inner();
+    }
+
     if (!p.engaged_)
     {
-      if (engaged_)
-      {
-        reinterpret_cast<inner*>(&buffer_)->~inner();
-      }
       engaged_ = false;
     }
     else
     {
-      reinterpret_cast<inner*>(&p.buffer_)->copy(&buffer_);
+      reinterpret_cast<const inner*>(&p.buffer_)->copy(&buffer_);
       engaged_ = true;
     }
+
+    return *this;
   }
 
   deep_ptr(deep_ptr&& p)
   {
     buffer_ = p.buffer_;
-    engaged_ = true;
+    engaged_ = p.engaged_;
     p.engaged_ = false;
   }
 

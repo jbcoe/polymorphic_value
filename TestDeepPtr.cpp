@@ -233,3 +233,119 @@ TEST_CASE("derived deep_ptr copy constructor", "[deep_ptr.constructors]")
     }
   }
 }
+
+TEST_CASE("deep_ptr move constructor","[deep_ptr.constructors]")
+{
+  GIVEN("A deep_ptr move-constructed from a default-constructed deep_ptr")
+  {
+    deep_ptr<BaseType> original_dptr;
+    deep_ptr<BaseType> dptr(std::move(original_dptr));
+
+    THEN("The original pointer is null")
+    {
+      REQUIRE(original_dptr.get()==nullptr);
+      REQUIRE(original_dptr.operator->()==nullptr);
+      REQUIRE(!(bool)original_dptr);
+    }
+
+    THEN("The move-constructed pointer is null")
+    {
+      REQUIRE(dptr.get()==nullptr);
+      REQUIRE(dptr.operator->()==nullptr);
+      REQUIRE(!(bool)dptr);
+    }
+  }
+  
+  GIVEN("A deep_ptr move-constructed from a default-constructed deep_ptr")
+  {
+    int derived_type_value = 7;
+    deep_ptr<BaseType> original_dptr(new DerivedType(derived_type_value));
+    auto original_pointer = original_dptr.get();
+    CHECK(DerivedType::object_count == 1);
+
+    deep_ptr<BaseType> dptr(std::move(original_dptr));
+    CHECK(DerivedType::object_count == 1);
+
+    THEN("The original pointer is null")
+    {
+      REQUIRE(original_dptr.get()==nullptr);
+      REQUIRE(original_dptr.operator->()==nullptr);
+      REQUIRE(!(bool)original_dptr);
+    }
+
+    THEN("The move-constructed pointer is the original pointer")
+    {
+      REQUIRE(dptr.get()==original_pointer);
+      REQUIRE(dptr.operator->()==original_pointer);
+      REQUIRE((bool)dptr);
+    }
+
+    THEN("The move-constructed pointer value is the constructed value")
+    {
+      REQUIRE(dptr->value() == derived_type_value);
+    }
+  }
+}
+
+TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
+{
+  GIVEN("A default-constructed deep_ptr assigned to a default-constructed deep_ptr")
+  {
+    deep_ptr<BaseType> dptr1;
+    deep_ptr<BaseType> dptr2;
+
+    REQUIRE(DerivedType::object_count == 0);
+    
+    dptr1 = dptr2;
+
+    REQUIRE(DerivedType::object_count == 0);
+  }
+  
+  GIVEN("A default-constructed deep_ptr assigned to a pointer-constructed deep_ptr")
+  {
+    int v1 = 7;
+    
+    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    deep_ptr<BaseType> dptr2;
+  
+    REQUIRE(DerivedType::object_count == 1);
+
+    dptr1 = dptr2;
+
+    REQUIRE(DerivedType::object_count == 0);
+  }
+
+  GIVEN("A pointer-constructed deep_ptr assigned to a default-constructed deep_ptr")
+  {
+    int v1 = 7;
+    
+    deep_ptr<BaseType> dptr1;
+    deep_ptr<BaseType> dptr2(new DerivedType(v1));
+
+    REQUIRE(DerivedType::object_count == 1);
+    
+    dptr1 = dptr2;
+    
+    REQUIRE(DerivedType::object_count == 2);
+  }
+  
+  GIVEN("A pointer-constructed deep_ptr assigned to a pointer-constructed deep_ptr")
+  {
+    int v1 = 7;
+    int v2 = 87;
+
+    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    deep_ptr<BaseType> dptr2(new DerivedType(v2));
+
+    REQUIRE(DerivedType::object_count == 2);
+    
+    dptr1 = dptr2;
+    
+    REQUIRE(DerivedType::object_count == 2);
+  }
+}
+
+TEST_CASE("deep_ptr move assignment","[deep_ptr.assignment]")
+{
+  //REQUIRE("tests are written" == 0);
+}
