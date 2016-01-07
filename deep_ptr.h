@@ -55,13 +55,21 @@ class deep_ptr
   bool engaged_ = false;
 
 public:
-  deep_ptr()
+  ~deep_ptr()
   {
+    if (engaged_)
+    {
+      reinterpret_cast<inner*>(&buffer_)->~inner();
+    }
   }
 
-  deep_ptr(std::nullptr_t) : deep_ptr()
-  {
-  }
+  //
+  // Constructors
+  //
+
+  deep_ptr() {}
+
+  deep_ptr(std::nullptr_t) : deep_ptr() {}
 
   template <typename U>
   deep_ptr(U* u)
@@ -76,27 +84,46 @@ public:
     engaged_ = true;
   }
 
-  template <typename U,
-            typename V = std::enable_if_t<!std::is_same<U, T>::value &&
-                                          std::is_base_of<T, U>::value>>
-  deep_ptr(const deep_ptr<U> &u) : engaged_(u.engaged_)
-  {
-    reinterpret_cast<const typename deep_ptr<U>::inner*>(&u.buffer_)->copy(&buffer_);
-  }
-
-  ~deep_ptr()
-  {
-    if (engaged_)
-    {
-      reinterpret_cast<inner*>(&buffer_)->~inner();
-    }
-  }
-
   deep_ptr(const deep_ptr& p)
   {
     if (!p.engaged_) return;
     reinterpret_cast<const inner*>(&p.buffer_)->copy(&buffer_);
     engaged_ = true;
+  }
+
+  template <typename U,
+            typename V = std::enable_if_t<!std::is_same<U, T>::value &&
+                                          std::is_base_of<T, U>::value>>
+  deep_ptr(const deep_ptr<U>& u)
+  {
+    if (!u.engaged_) return;
+    reinterpret_cast<const typename deep_ptr<U>::inner*>(&u.buffer_)->copy(&buffer_);
+    engaged_ = true;
+  }
+  
+  deep_ptr(deep_ptr&& p)
+  {
+    if (p.engaged_) 
+    {
+      buffer_ = p.buffer_;
+    }
+   
+    engaged_ = p.engaged_;
+    p.engaged_ = false;
+  }
+ 
+  template <typename U,
+            typename V = std::enable_if_t<!std::is_same<U, T>::value &&
+                                          std::is_base_of<T, U>::value>>
+  deep_ptr(deep_ptr<U>&& u)
+  {
+    if (u.engaged_) 
+    {
+      buffer_ = u.buffer_;
+    }
+   
+    engaged_ = u.engaged_;
+    u.engaged_ = false;
   }
 
   deep_ptr& operator=(const deep_ptr& p)
@@ -120,33 +147,72 @@ public:
 
     return *this;
   }
-
-  deep_ptr(deep_ptr&& p)
-  {
-    buffer_ = p.buffer_;
-    engaged_ = p.engaged_;
-    p.engaged_ = false;
-  }
-
+  
   deep_ptr& operator=(deep_ptr&& p)
   {
     if (engaged_)
     {
       reinterpret_cast<const inner*>(&buffer_)->~inner();
     }
-    
+
     engaged_ = p.engaged_;
-    
+
     if (p.engaged_)
     {
       buffer_ = p.buffer_;
     }
-    
+
     p.engaged_ = false;
     return *this;
   }
+  
+  template <typename U,
+            typename V = std::enable_if_t<!std::is_same<U, T>::value &&
+                                          std::is_base_of<T, U>::value>>
+  deep_ptr& operator=(const deep_ptr<U>& pu)
+  {
+    if (&pu == this) return *this;
 
-  const operator bool() const 
+    if (engaged_)
+    {
+      reinterpret_cast<const inner*>(&buffer_)->~inner();
+    }
+
+    if (!pu.engaged_)
+    {
+      engaged_ = false;
+    }
+    else
+    {
+      reinterpret_cast<const typename deep_ptr<U>::inner*>(&pu.buffer_)->copy(&buffer_);
+      engaged_ = true;
+    }
+
+    return *this;
+  }
+
+  template <typename U,
+            typename V = std::enable_if_t<!std::is_same<U, T>::value &&
+                                          std::is_base_of<T, U>::value>>
+  deep_ptr& operator=(deep_ptr<U>&& u)
+  {
+    if (engaged_)
+    {
+      reinterpret_cast<const inner*>(&buffer_)->~inner();
+    }
+
+    engaged_ = u.engaged_;
+
+    if (u.engaged_)
+    {
+      buffer_ = u.buffer_;
+    }
+
+    u.engaged_ = false;
+    return *this;
+  }
+  
+  const operator bool() const
   {
     return engaged_;
   }
