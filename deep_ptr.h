@@ -124,6 +124,11 @@ public:
     return *this;
   }
 
+  const operator bool() const 
+  {
+    return engaged_;
+  }
+
   const T* operator->() const
   {
     return get();
