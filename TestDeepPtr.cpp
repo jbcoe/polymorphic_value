@@ -18,7 +18,7 @@ struct DerivedType : BaseType
   {
     ++object_count;
   }
-  
+
   DerivedType(const DerivedType& d)
   {
     value_ = d.value_;
@@ -36,7 +36,7 @@ struct DerivedType : BaseType
   }
 
   int value() const override { return value_; }
-  
+
   void set_value(int i) override { value_ = i; }
 
   static size_t object_count;
@@ -155,7 +155,7 @@ TEST_CASE("deep_ptr copy constructor","[deep_ptr.constructors]")
   {
     deep_ptr<BaseType> original_dptr;
     deep_ptr<BaseType> dptr(original_dptr);
-    
+
     THEN("get returns nullptr")
     {
       REQUIRE(dptr.get() == nullptr);
@@ -171,15 +171,15 @@ TEST_CASE("deep_ptr copy constructor","[deep_ptr.constructors]")
       REQUIRE((bool)dptr == false);
     }
   }
-  
+
   GIVEN("A deep_ptr copied from a pointer-constructed deep_ptr")
-  {                                                                      
+  {
     REQUIRE(DerivedType::object_count == 0);
-    
+
     int derived_type_value = 7;
     deep_ptr<BaseType> original_dptr(new DerivedType(derived_type_value));
     deep_ptr<BaseType> dptr(original_dptr);
-    
+
     THEN("get returns a distinct non-null pointer")
     {
       REQUIRE(dptr.get() != nullptr);
@@ -200,7 +200,7 @@ TEST_CASE("deep_ptr copy constructor","[deep_ptr.constructors]")
     {
       REQUIRE(DerivedType::object_count == 2);
     }
-    
+
     WHEN("Changes are made to the original deep pointer after copying")
     {
       int new_value = 99;
@@ -215,3 +215,21 @@ TEST_CASE("deep_ptr copy constructor","[deep_ptr.constructors]")
   }
 }
 
+TEST_CASE("derived deep_ptr copy constructor", "[deep_ptr.constructors]")
+{
+  GIVEN("A deep_ptr to a BaseType copy-constructed from a deep_ptr to a derived type")
+  {
+    int derived_type_value = 7;
+    CHECK(DerivedType::object_count == 0);
+
+    deep_ptr<DerivedType> derived(new DerivedType(derived_type_value));
+    CHECK(DerivedType::object_count == 1);
+
+    deep_ptr<BaseType> base(derived);
+    
+    THEN("object count is 2")
+    {
+      REQUIRE(DerivedType::object_count == 2);
+    }
+  }
+}
