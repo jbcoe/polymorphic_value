@@ -130,11 +130,18 @@ public:
 
   deep_ptr& operator=(deep_ptr&& p)
   {
+    if (engaged_)
+    {
+      reinterpret_cast<const inner*>(&buffer_)->~inner();
+    }
+    
     engaged_ = p.engaged_;
+    
     if (p.engaged_)
     {
       buffer_ = p.buffer_;
     }
+    
     p.engaged_ = false;
     return *this;
   }

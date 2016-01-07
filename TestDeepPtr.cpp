@@ -226,7 +226,7 @@ TEST_CASE("derived deep_ptr copy constructor", "[deep_ptr.constructors]")
     CHECK(DerivedType::object_count == 1);
 
     deep_ptr<BaseType> base(derived);
-    
+
     THEN("object count is 2")
     {
       REQUIRE(DerivedType::object_count == 2);
@@ -255,7 +255,7 @@ TEST_CASE("deep_ptr move constructor","[deep_ptr.constructors]")
       REQUIRE(!(bool)dptr);
     }
   }
-  
+
   GIVEN("A deep_ptr move-constructed from a default-constructed deep_ptr")
   {
     int derived_type_value = 7;
@@ -289,63 +289,252 @@ TEST_CASE("deep_ptr move constructor","[deep_ptr.constructors]")
 
 TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
 {
-  GIVEN("A default-constructed deep_ptr assigned to a default-constructed deep_ptr")
+  GIVEN("A default-constructed deep_ptr assigned-to a default-constructed deep_ptr")
   {
     deep_ptr<BaseType> dptr1;
-    deep_ptr<BaseType> dptr2;
+    const deep_ptr<BaseType> dptr2;
+    const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 0);
-    
+
     dptr1 = dptr2;
 
     REQUIRE(DerivedType::object_count == 0);
+
+    THEN("The assigned-from object is unchanged")
+    {
+      REQUIRE(dptr2.get() == p);
+    }
+
+    THEN("The assigned-to object is null")
+    {
+      REQUIRE(dptr1.get() == nullptr);
+    }
   }
-  
+
   GIVEN("A default-constructed deep_ptr assigned to a pointer-constructed deep_ptr")
   {
     int v1 = 7;
-    
+
     deep_ptr<BaseType> dptr1(new DerivedType(v1));
-    deep_ptr<BaseType> dptr2;
-  
+    const deep_ptr<BaseType> dptr2;
+    const auto p = dptr2.get();
+
     REQUIRE(DerivedType::object_count == 1);
 
     dptr1 = dptr2;
 
     REQUIRE(DerivedType::object_count == 0);
+
+    THEN("The assigned-from object is unchanged")
+    {
+      REQUIRE(dptr2.get() == p);
+    }
+
+    THEN("The assigned-to object is null")
+    {
+      REQUIRE(dptr1.get() == nullptr);
+    }
   }
 
   GIVEN("A pointer-constructed deep_ptr assigned to a default-constructed deep_ptr")
   {
     int v1 = 7;
-    
+
     deep_ptr<BaseType> dptr1;
-    deep_ptr<BaseType> dptr2(new DerivedType(v1));
+    const deep_ptr<BaseType> dptr2(new DerivedType(v1));
+    const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 1);
-    
+
     dptr1 = dptr2;
-    
+
     REQUIRE(DerivedType::object_count == 2);
+
+    THEN("The assigned-from object is unchanged")
+    {
+      REQUIRE(dptr2.get() == p);
+    }
+
+    THEN("The assigned-to object is non-null")
+    {
+      REQUIRE(dptr1.get() != nullptr);
+    }
   }
-  
+
   GIVEN("A pointer-constructed deep_ptr assigned to a pointer-constructed deep_ptr")
   {
     int v1 = 7;
     int v2 = 87;
 
     deep_ptr<BaseType> dptr1(new DerivedType(v1));
-    deep_ptr<BaseType> dptr2(new DerivedType(v2));
+    const deep_ptr<BaseType> dptr2(new DerivedType(v2));
+    const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 2);
-    
+
     dptr1 = dptr2;
-    
+
     REQUIRE(DerivedType::object_count == 2);
+
+    THEN("The assigned-from object is unchanged")
+    {
+      REQUIRE(dptr2.get() == p);
+    }
+
+    THEN("The assigned-to object is non-null")
+    {
+      REQUIRE(dptr1.get() != nullptr);
+    }
+
+    THEN("The assigned-to object is distinct from the assigned-from object")
+    {
+      REQUIRE(dptr1.get() != p);
+    }
+    
+    THEN("The assigned-to object 'value' == the assigned-from object 'value'")
+    {
+      REQUIRE(dptr1->value() == dptr2->value());
+    }
+  }
+
+  GIVEN("A pointer-constructed deep_ptr assigned to itself")
+  {
+    int v1 = 7;
+
+    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    const auto p = dptr1.get();
+
+    REQUIRE(DerivedType::object_count == 1);
+
+    dptr1 = dptr1;
+
+    REQUIRE(DerivedType::object_count == 1);
+
+    THEN("The assigned-from object is unchanged")
+    {
+      REQUIRE(dptr1.get() == p);
+    }
   }
 }
 
-TEST_CASE("deep_ptr move assignment","[deep_ptr.assignment]")
+TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
 {
-  //REQUIRE("tests are written" == 0);
+  GIVEN("A default-constructed deep_ptr move-assigned-to a default-constructed deep_ptr")
+  {
+    deep_ptr<BaseType> dptr1;
+    deep_ptr<BaseType> dptr2;
+    const auto p = dptr2.get();
+
+    REQUIRE(DerivedType::object_count == 0);
+
+    dptr1 = std::move(dptr2);
+
+    REQUIRE(DerivedType::object_count == 0);
+
+    THEN("The move-assigned-from object is null")
+    {
+      REQUIRE(dptr1.get() == nullptr);
+    }
+    
+    THEN("The move-assigned-to object is null")
+    {
+      REQUIRE(dptr1.get() == nullptr);
+    }
+  }
+
+  GIVEN("A default-constructed deep_ptr move-assigned to a pointer-constructed deep_ptr")
+  {
+    int v1 = 7;
+
+    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    deep_ptr<BaseType> dptr2;
+    const auto p = dptr2.get();
+
+    REQUIRE(DerivedType::object_count == 1);
+
+    dptr1 = std::move(dptr2);
+
+    REQUIRE(DerivedType::object_count == 0);
+
+    THEN("The move-assigned-from object is null")
+    {
+      REQUIRE(dptr1.get() == nullptr);
+    }
+    
+    THEN("The move-assigned-to object is null")
+    {
+      REQUIRE(dptr1.get() == nullptr);
+    }
+  }
+
+  GIVEN("A pointer-constructed deep_ptr move-assigned to a default-constructed deep_ptr")
+  {
+    int v1 = 7;
+
+    deep_ptr<BaseType> dptr1;
+    deep_ptr<BaseType> dptr2(new DerivedType(v1));
+    const auto p = dptr2.get();
+
+    REQUIRE(DerivedType::object_count == 1);
+
+    dptr1 = std::move(dptr2);
+
+    REQUIRE(DerivedType::object_count == 1);
+
+    THEN("The move-assigned-from object is null")
+    {
+      REQUIRE(dptr2.get() == nullptr);
+    }
+    
+    THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
+    {
+      REQUIRE(dptr1.get() == p);
+    }
+  }
+
+  GIVEN("A pointer-constructed deep_ptr move-assigned to a pointer-constructed deep_ptr")
+  {
+    int v1 = 7;
+    int v2 = 87;
+
+    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    deep_ptr<BaseType> dptr2(new DerivedType(v2));
+    const auto p = dptr2.get();
+
+    REQUIRE(DerivedType::object_count == 2);
+
+    dptr1 = std::move(dptr2);
+
+    REQUIRE(DerivedType::object_count == 1);
+
+    THEN("The move-assigned-from object is null")
+    {
+      REQUIRE(dptr2.get() == nullptr);
+    }
+
+    THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
+    {
+      REQUIRE(dptr1.get() == p);
+    }
+  }
+
+  GIVEN("A pointer-constructed deep_ptr move-assigned to itself")
+  {
+    int v1 = 7;
+
+    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    const auto p = dptr1.get();
+
+    REQUIRE(DerivedType::object_count == 1);
+
+    dptr1 = std::move(dptr1);
+
+    REQUIRE(DerivedType::object_count == 0);
+
+    THEN("The move-assigned-from object is null")
+    {
+      REQUIRE(dptr1.get() == nullptr);
+    }
+  }
 }
