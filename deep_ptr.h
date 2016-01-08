@@ -1,9 +1,21 @@
 #include <type_traits>
 #include <cassert>
 
+template <typename T> class deep_ptr;
+template <typename T, typename ...Ts> deep_ptr<T> make_deep_ptr(Ts&& ...ts);
+
 template <typename T> class deep_ptr {
 
   template <typename U> friend class deep_ptr;
+  
+  // make_deep_ptr friendship is more permissive than we would ideally like but
+  // we cannot restrict make_deep_ptr by partial specialization.  
+  //
+  // C++ Standard(§14.5.3/9): Friend declarations shall not declare partial
+  // specializations.
+  //
+  template <typename T_, typename ...Ts> friend deep_ptr<T_> make_deep_ptr(Ts&&
+      ...ts);
 
   struct inner {
     virtual void copy(void *buffer) const = 0;
@@ -102,6 +114,19 @@ template <typename T> class deep_ptr {
     return *this;
   }
 
+  template <typename U,
+            typename V = std::enable_if_t<std::is_same<T, U>::value ||
+                                          std::is_base_of<T, U>::value>>
+  deep_ptr(U *u) {
+    if (!u) {
+      engaged_ = false;
+      return;
+    }
+
+    new (&buffer_) inner_impl<U>(u);
+    engaged_ = true;
+  }
+
 public:
   ~deep_ptr() {
     if (engaged_) {
@@ -116,19 +141,6 @@ public:
   deep_ptr() {}
 
   deep_ptr(std::nullptr_t) : deep_ptr() {}
-
-  template <typename U,
-            typename V = std::enable_if_t<std::is_same<T, U>::value ||
-                                          std::is_base_of<T, U>::value>>
-  deep_ptr(U *u) {
-    if (!u) {
-      engaged_ = false;
-      return;
-    }
-
-    new (&buffer_) inner_impl<U>(u);
-    engaged_ = true;
-  }
 
   //
   // Copy-constructors
@@ -220,3 +232,9 @@ public:
     return *get();
   }
 };
+
+template <typename T, typename ...Ts>
+deep_ptr<T> make_deep_ptr(Ts&& ...ts)
+{
+  return deep_ptr<T>(new T(std::forward<Ts>(ts)...));
+}

@@ -92,7 +92,7 @@ TEST_CASE("Pointer constructor","[deep_ptr.constructors]")
   GIVEN("A pointer-constructed deep_ptr")
   {
     int derived_type_value = 7;
-    deep_ptr<BaseType> dptr(new DerivedType(derived_type_value));
+    deep_ptr<BaseType> dptr = make_deep_ptr<DerivedType>(derived_type_value);
 
     THEN("get returns a non-null pointer")
     {
@@ -112,7 +112,7 @@ TEST_CASE("Pointer constructor","[deep_ptr.constructors]")
   GIVEN("A pointer-constructed const deep_ptr")
   {
     int derived_type_value = 7;
-    const deep_ptr<BaseType> cdptr(new DerivedType(derived_type_value));
+    const deep_ptr<BaseType> cdptr = make_deep_ptr<DerivedType>(derived_type_value);
 
     THEN("get returns a non-null pointer")
     {
@@ -141,7 +141,7 @@ TEST_CASE("deep_ptr destructor","[deep_ptr.destructor]")
     {
       // begin and end scope to force destruction
       {
-        deep_ptr<BaseType> tmp(new DerivedType());
+        deep_ptr<BaseType> tmp = make_deep_ptr<DerivedType>();
         REQUIRE(DerivedType::object_count == 1);
       }
       REQUIRE(DerivedType::object_count == 0);
@@ -177,7 +177,7 @@ TEST_CASE("deep_ptr copy constructor","[deep_ptr.constructors]")
     REQUIRE(DerivedType::object_count == 0);
 
     int derived_type_value = 7;
-    deep_ptr<BaseType> original_dptr(new DerivedType(derived_type_value));
+    deep_ptr<BaseType> original_dptr = make_deep_ptr<DerivedType>(derived_type_value);
     deep_ptr<BaseType> dptr(original_dptr);
 
     THEN("get returns a distinct non-null pointer")
@@ -222,7 +222,7 @@ TEST_CASE("derived deep_ptr copy constructor", "[deep_ptr.constructors]")
     int derived_type_value = 7;
     CHECK(DerivedType::object_count == 0);
 
-    deep_ptr<DerivedType> derived(new DerivedType(derived_type_value));
+    deep_ptr<DerivedType> derived = make_deep_ptr<DerivedType>(derived_type_value);
     CHECK(DerivedType::object_count == 1);
 
     deep_ptr<BaseType> base(derived);
@@ -259,7 +259,7 @@ TEST_CASE("deep_ptr move constructor","[deep_ptr.constructors]")
   GIVEN("A deep_ptr move-constructed from a default-constructed deep_ptr")
   {
     int derived_type_value = 7;
-    deep_ptr<BaseType> original_dptr(new DerivedType(derived_type_value));
+    deep_ptr<BaseType> original_dptr = make_deep_ptr<DerivedType>(derived_type_value);
     auto original_pointer = original_dptr.get();
     CHECK(DerivedType::object_count == 1);
 
@@ -316,7 +316,7 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
   {
     int v1 = 7;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    deep_ptr<BaseType> dptr1 = make_deep_ptr<DerivedType>(v1);
     const deep_ptr<BaseType> dptr2;
     const auto p = dptr2.get();
 
@@ -342,7 +342,7 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
     int v1 = 7;
 
     deep_ptr<BaseType> dptr1;
-    const deep_ptr<BaseType> dptr2(new DerivedType(v1));
+    const deep_ptr<BaseType> dptr2 = make_deep_ptr<DerivedType>(v1);
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -378,8 +378,8 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
     int v1 = 7;
     int v2 = 87;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
-    const deep_ptr<BaseType> dptr2(new DerivedType(v2));
+    deep_ptr<BaseType> dptr1 = make_deep_ptr<DerivedType>(v1);
+    const deep_ptr<BaseType> dptr2 = make_deep_ptr<DerivedType>(v2);
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 2);
@@ -413,7 +413,7 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
   {
     int v1 = 7;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    deep_ptr<BaseType> dptr1 = make_deep_ptr<DerivedType>(v1);
     const auto p = dptr1.get();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -458,7 +458,7 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
   {
     int v1 = 7;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    deep_ptr<BaseType> dptr1 = make_deep_ptr<DerivedType>(v1);
     deep_ptr<BaseType> dptr2;
     const auto p = dptr2.get();
 
@@ -484,7 +484,7 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
     int v1 = 7;
 
     deep_ptr<BaseType> dptr1;
-    deep_ptr<BaseType> dptr2(new DerivedType(v1));
+    deep_ptr<BaseType> dptr2 = make_deep_ptr<DerivedType>(v1);
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -509,8 +509,8 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
     int v1 = 7;
     int v2 = 87;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
-    deep_ptr<BaseType> dptr2(new DerivedType(v2));
+    deep_ptr<BaseType> dptr1 = make_deep_ptr<DerivedType>(v1);
+    deep_ptr<BaseType> dptr2 = make_deep_ptr<DerivedType>(v2);
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 2);
@@ -534,7 +534,7 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
   {
     int v1 = 7;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    deep_ptr<BaseType> dptr1 = make_deep_ptr<DerivedType>(v1);
     const auto p = dptr1.get();
 
     REQUIRE(DerivedType::object_count == 1);
