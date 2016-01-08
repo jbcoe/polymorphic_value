@@ -14,8 +14,8 @@ template <typename T> class deep_ptr {
   // C++ Standard(§14.5.3/9): Friend declarations shall not declare partial
   // specializations.
   //
-  template <typename T_, typename ...Ts> friend deep_ptr<T_> make_deep_ptr(Ts&&
-      ...ts);
+  template <typename T_, typename... Ts>
+  friend deep_ptr<T_> make_deep_ptr(Ts &&... ts);
 
   struct inner {
     virtual void copy(void *buffer) const = 0;
