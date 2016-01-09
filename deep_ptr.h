@@ -3,6 +3,7 @@
 
 template <typename T> class deep_ptr;
 template <typename T, typename ...Ts> deep_ptr<T> make_deep_ptr(Ts&& ...ts);
+template <typename T, typename U> deep_ptr<T> deep_ptr_cast(U* u);
 
 template <typename T> class deep_ptr {
 
@@ -16,6 +17,9 @@ template <typename T> class deep_ptr {
   //
   template <typename T_, typename... Ts>
   friend deep_ptr<T_> make_deep_ptr(Ts &&... ts);
+  
+  template <typename T_, typename U>
+  friend deep_ptr<T_> deep_ptr_cast(U* u);
 
   struct inner {
     virtual void copy(void *buffer) const = 0;
@@ -238,3 +242,10 @@ deep_ptr<T> make_deep_ptr(Ts&& ...ts)
 {
   return deep_ptr<T>(new T(std::forward<Ts>(ts)...));
 }
+  
+template <typename T, typename U>
+deep_ptr<T> deep_ptr_cast(U* u)
+{
+  return deep_ptr<T>(u);
+}
+

@@ -360,17 +360,17 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
     {
       REQUIRE(dptr1.get() != nullptr);
     }
-    
+
     THEN("The assigned-from object 'value' is the assigned-to object value")
     {
       REQUIRE(dptr1->value() == dptr2->value());
     }
-    
+
     THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
     {
       REQUIRE(dptr1.get() != dptr2.get());
     }
-  
+
   }
 
   GIVEN("A pointer-constructed deep_ptr assigned to a pointer-constructed deep_ptr")
@@ -402,7 +402,7 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
     {
       REQUIRE(dptr1->value() == dptr2->value());
     }
-    
+
     THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
     {
       REQUIRE(dptr1.get() != dptr2.get());
@@ -447,7 +447,7 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
     {
       REQUIRE(dptr1.get() == nullptr);
     }
-    
+
     THEN("The move-assigned-to object is null")
     {
       REQUIRE(dptr1.get() == nullptr);
@@ -472,7 +472,7 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
     {
       REQUIRE(dptr1.get() == nullptr);
     }
-    
+
     THEN("The move-assigned-to object is null")
     {
       REQUIRE(dptr1.get() == nullptr);
@@ -497,7 +497,7 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
     {
       REQUIRE(dptr2.get() == nullptr);
     }
-    
+
     THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
     {
       REQUIRE(dptr1.get() == p);
@@ -549,3 +549,19 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
     }
   }
 }
+
+TEST_CASE("cast from a raw pointer", "[deep_ptr.deep_ptr_cast]")
+{
+  GIVEN("A unique_ptr to a derived object")
+  {
+    int derived_type_value = 7;
+    auto ptr = std::make_unique<DerivedType>(derived_type_value);
+
+    THEN("A deep_ptr to a copy_constructed DerivedType can be constructed using deep_ptr_cast")
+    {
+      auto dptr = deep_ptr_cast<DerivedType>(ptr.release());
+      REQUIRE(dptr->value() == derived_type_value);
+    }
+  }
+}
+
