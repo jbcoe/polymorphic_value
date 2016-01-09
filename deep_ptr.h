@@ -5,6 +5,34 @@ template <typename T> class deep_ptr;
 template <typename T, typename ...Ts> deep_ptr<T> make_deep_ptr(Ts&& ...ts);
 template <typename T, typename U> deep_ptr<T> deep_ptr_cast(U* u);
 
+struct deleter {
+  virtual void do_delete(const void *ptr) const = 0;
+  virtual std::unique_ptr<deleter> clone_self() const = 0;
+};
+
+template <typename U> struct default_deleter : deleter {
+  void do_delete(const void *ptr) const override {
+    delete static_cast<const U *>(ptr);
+  }
+  std::unique_ptr<deleter> clone_self() const override {
+    return std::make_unique<default_deleter<U>>(*this);
+  }
+};
+
+struct cloner {
+  virtual void clone(const void *ptr, void** output) const = 0;
+  virtual std::unique_ptr<cloner> clone_self() const = 0;
+};
+
+template <typename U> struct default_cloner : cloner {
+  void clone(const void *ptr, void** output) const override {
+    *output = new U(*static_cast<const U *>(ptr));
+  }
+  std::unique_ptr<cloner> clone_self() const override {
+    return std::make_unique<default_cloner<U>>(*this);
+  }
+};
+
 template <typename T> class deep_ptr {
 
   template <typename U> friend class deep_ptr;
@@ -17,104 +45,59 @@ template <typename T> class deep_ptr {
   //
   template <typename T_, typename... Ts>
   friend deep_ptr<T_> make_deep_ptr(Ts &&... ts);
-  
+
   template <typename T_, typename U>
   friend deep_ptr<T_> deep_ptr_cast(U* u);
 
-  struct inner {
-    virtual void copy(void *buffer) const = 0;
-
-    virtual const T *get() const = 0;
-
-    virtual T *get() = 0;
-
-    virtual ~inner() = default;
-  };
-
-  template <typename U> struct inner_impl : inner {
-    inner_impl(const inner_impl &) = delete;
-    inner_impl &operator=(const inner_impl &) = delete;
-
-    inner_impl(U *u) : u_(u) {}
-
-    void copy(void *buffer) const override {
-      new (buffer) inner_impl(new U(*u_));
-    }
-
-    const T *get() const override { return u_; }
-
-    T *get() override { return u_; }
-
-    ~inner_impl() { delete u_; }
-
-    U *u_;
-  };
-
-  std::aligned_storage_t<sizeof(inner_impl<void>), alignof(inner_impl<void>)>
-      buffer_;
-  bool engaged_ = false;
+  T* ptr_ = nullptr;
+  std::unique_ptr<deleter> deleter_;
+  std::unique_ptr<cloner> cloner_;
 
   template <typename U,
             typename V = std::enable_if_t<std::is_same<T, U>::value ||
                                           std::is_base_of<T, U>::value>>
   void do_copy_construct(const deep_ptr<U> &u) {
-    if (!u.engaged_)
-      return;
-    reinterpret_cast<const typename deep_ptr<U>::inner *>(&u.buffer_)
-        ->copy(&buffer_);
-    engaged_ = true;
-  }
-
-  template <typename U,
-            typename V = std::enable_if_t<std::is_same<T, U>::value ||
-                                          std::is_base_of<T, U>::value>>
-  void do_move_construct(deep_ptr<U> &&u) {
-    if (u.engaged_) {
-      buffer_ = u.buffer_;
+    if (!u.ptr_) {
+      ptr_ = nullptr;
+      return;  
     }
 
-    engaged_ = u.engaged_;
-    u.engaged_ = false;
+    deleter_ = u.deleter_->clone_self();
+    cloner_ = u.cloner_->clone_self();
+    
+    assert(u.cloner_);
+    u.cloner_->clone(u.ptr_, &ptr_);
   }
 
   template <typename U,
             typename V = std::enable_if_t<std::is_same<T, U>::value ||
                                           std::is_base_of<T, U>::value>>
   deep_ptr &do_assign(const deep_ptr<U> &u) {
-    if (reinterpret_cast<const void *>(&u) ==
-        reinterpret_cast<const void *>(this))
-      return *this;
+    // protect against self-assignment
+    //if (static_cast<const T*>(&u.ptr_) == static_cast<const T*>(ptr_)) {
+    //  return *this;
+    //}
 
-    if (engaged_) {
-      reinterpret_cast<const inner *>(&buffer_)->~inner();
-    }
-
-    if (!u.engaged_) {
-      engaged_ = false;
-    } else {
-      reinterpret_cast<const typename deep_ptr<U>::inner *>(&u.buffer_)
-          ->copy(&buffer_);
-      engaged_ = true;
-    }
-
+    do_copy_construct(u);
+    
     return *this;
   }
 
   template <typename U,
             typename V = std::enable_if_t<std::is_same<T, U>::value ||
                                           std::is_base_of<T, U>::value>>
+  void do_move_construct(deep_ptr<U> &&u) {
+    deleter_ = std::move(u.deleter_);
+    cloner_ = std::move(u.cloner_);
+    ptr_ = u.ptr_;
+    u.ptr_ = nullptr;
+  }
+
+  template <typename U,
+            typename V = std::enable_if_t<std::is_same<T, U>::value ||
+                                          std::is_base_of<T, U>::value>>
   deep_ptr &do_move_assign(deep_ptr<U> &&u) {
-    if (engaged_) {
-      reinterpret_cast<const inner *>(&buffer_)->~inner();
-    }
-
-    engaged_ = u.engaged_;
-
-    if (u.engaged_) {
-      buffer_ = u.buffer_;
-    }
-
-    u.engaged_ = false;
+    do_move_construct(std::move(u));
     return *this;
   }
 
@@ -123,19 +106,19 @@ template <typename T> class deep_ptr {
                                           std::is_base_of<T, U>::value>>
   deep_ptr(U *u) {
     if (!u) {
-      engaged_ = false;
       return;
     }
 
-    new (&buffer_) inner_impl<U>(u);
-    engaged_ = true;
+    deleter_ = std::make_unique<default_deleter<U>>();
+    cloner_ = std::make_unique<default_cloner<U>>();
+    ptr_ = u;
   }
 
 public:
   ~deep_ptr() {
-    if (engaged_) {
-      reinterpret_cast<inner *>(&buffer_)->~inner();
-    }
+    if (!ptr_) { return; }
+    assert(deleter_);
+    deleter_->do_delete(ptr_);
   }
 
   //
@@ -202,19 +185,16 @@ public:
   // Accessors
   //
 
-  const operator bool() const { return engaged_; }
+  const operator bool() const { return ptr_; }
 
   const T *operator->() const { return get(); }
 
   const T *get() const {
-    if (!engaged_) {
-      return nullptr;
-    }
-    return reinterpret_cast<const inner *>(&buffer_)->get();
+    return ptr_;
   }
 
   const T &operator*() const {
-    assert(engaged_);
+    assert(ptr_);
     return *get();
   }
 
@@ -225,14 +205,11 @@ public:
   T *operator->() { return get(); }
 
   T *get() {
-    if (!engaged_) {
-      return nullptr;
-    }
-    return reinterpret_cast<inner *>(&buffer_)->get();
+    return ptr_;
   }
 
   T &operator*() {
-    assert(engaged_);
+    assert(ptr_);
     return *get();
   }
 };
@@ -242,7 +219,7 @@ deep_ptr<T> make_deep_ptr(Ts&& ...ts)
 {
   return deep_ptr<T>(new T(std::forward<Ts>(ts)...));
 }
-  
+
 template <typename T, typename U>
 deep_ptr<T> deep_ptr_cast(U* u)
 {
