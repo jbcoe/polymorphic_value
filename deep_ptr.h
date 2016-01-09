@@ -11,7 +11,7 @@ template <typename T> class deep_ptr {
   // make_deep_ptr friendship is more permissive than we would ideally like but
   // we cannot restrict make_deep_ptr by partial specialization.
   //
-  // C++ Standard(§14.5.3/9): Friend declarations shall not declare partial
+  // C++ Standard(§14.5.4/8): Friend declarations shall not declare partial
   // specializations.
   //
   template <typename T_, typename... Ts>
