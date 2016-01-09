@@ -565,3 +565,31 @@ TEST_CASE("cast from a raw pointer", "[deep_ptr.deep_ptr_cast]")
   }
 }
 
+struct BaseA { int a_ = 0; virtual ~BaseA() = default; };
+struct BaseB { int b_ = 42; virtual ~BaseB() = default; };
+struct IntermediateBaseA : BaseA { int ia_ = 3; };
+struct IntermediateBaseB : BaseB { int ib_ = 101; };
+struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int value_ = 0; MultiplyDerived(int value) : value_(value) {}; };
+
+TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[deep_ptr.constructors]")
+{
+  GIVEN("A value-constructed multiply-derived-class deep_ptr")
+  {
+    int derived_type_value = 7;
+    auto dptr = make_deep_ptr<MultiplyDerived>(derived_type_value);
+
+    THEN("When copied to a deep_ptr to an intermediate base type, data is accessible as expected")
+    {
+      deep_ptr<IntermediateBaseA> dptr_IA = dptr;
+      REQUIRE(dptr_IA->ia_ == 3);
+      REQUIRE(dptr_IA->a_ == 0);
+    }
+
+    THEN("When copied to a deep_ptr to an intermediate base type, data is accessible as expected")
+    {
+      deep_ptr<IntermediateBaseB> dptr_IB = dptr;
+      REQUIRE(dptr_IB->ib_ == 101);
+      REQUIRE(dptr_IB->b_ == 42);
+    }
+  }
+}
