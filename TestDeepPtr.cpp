@@ -91,8 +91,8 @@ TEST_CASE("Pointer constructor","[deep_ptr.constructors]")
 {
   GIVEN("A pointer-constructed deep_ptr")
   {
-    int derived_type_value = 7;
-    deep_ptr<BaseType> dptr(new DerivedType(derived_type_value));
+    int v = 7;
+    deep_ptr<BaseType> dptr(new DerivedType(v));
 
     THEN("get returns a non-null pointer")
     {
@@ -101,7 +101,7 @@ TEST_CASE("Pointer constructor","[deep_ptr.constructors]")
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(dptr->value() == derived_type_value);
+      REQUIRE(dptr->value() == v);
     }
 
     THEN("operator bool returns true")
@@ -111,8 +111,8 @@ TEST_CASE("Pointer constructor","[deep_ptr.constructors]")
   }
   GIVEN("A pointer-constructed const deep_ptr")
   {
-    int derived_type_value = 7;
-    const deep_ptr<BaseType> cdptr(new DerivedType(derived_type_value));
+    int v = 7;
+    const deep_ptr<BaseType> cdptr(new DerivedType(v));
 
     THEN("get returns a non-null pointer")
     {
@@ -121,7 +121,7 @@ TEST_CASE("Pointer constructor","[deep_ptr.constructors]")
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(cdptr->value() == derived_type_value);
+      REQUIRE(cdptr->value() == v);
     }
 
     THEN("operator bool returns true")
@@ -176,8 +176,8 @@ TEST_CASE("deep_ptr copy constructor","[deep_ptr.constructors]")
   {
     REQUIRE(DerivedType::object_count == 0);
 
-    int derived_type_value = 7;
-    deep_ptr<BaseType> original_dptr(new DerivedType(derived_type_value));
+    int v = 7;
+    deep_ptr<BaseType> original_dptr(new DerivedType(v));
     deep_ptr<BaseType> dptr(original_dptr);
 
     THEN("get returns a distinct non-null pointer")
@@ -188,7 +188,7 @@ TEST_CASE("deep_ptr copy constructor","[deep_ptr.constructors]")
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(dptr->value() == derived_type_value);
+      REQUIRE(dptr->value() == v);
     }
 
     THEN("operator bool returns true")
@@ -209,7 +209,7 @@ TEST_CASE("deep_ptr copy constructor","[deep_ptr.constructors]")
       THEN("They are not reflected in the copy (copy is distinct)")
       {
         REQUIRE(dptr->value() != new_value);
-        REQUIRE(dptr->value() == derived_type_value);
+        REQUIRE(dptr->value() == v);
       }
     }
   }
@@ -239,8 +239,8 @@ TEST_CASE("deep_ptr move constructor","[deep_ptr.constructors]")
 
   GIVEN("A deep_ptr move-constructed from a default-constructed deep_ptr")
   {
-    int derived_type_value = 7;
-    deep_ptr<BaseType> original_dptr(new DerivedType(derived_type_value));
+    int v = 7;
+    deep_ptr<BaseType> original_dptr(new DerivedType(v));
     auto original_pointer = original_dptr.get();
     CHECK(DerivedType::object_count == 1);
 
@@ -263,7 +263,7 @@ TEST_CASE("deep_ptr move constructor","[deep_ptr.constructors]")
 
     THEN("The move-constructed pointer value is the constructed value")
     {
-      REQUIRE(dptr->value() == derived_type_value);
+      REQUIRE(dptr->value() == v);
     }
   }
 }
@@ -513,9 +513,9 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
 
   GIVEN("A pointer-constructed deep_ptr move-assigned to itself")
   {
-    int derived_type_value = 7;
+    int v = 7;
 
-    deep_ptr<BaseType> dptr(new DerivedType(derived_type_value));
+    deep_ptr<BaseType> dptr(new DerivedType(v));
     const auto p = dptr.get();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -530,13 +530,104 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
   }
 }
 
+TEST_CASE("Derived types", "[deep_ptr.derived_types]")
+{
+  GIVEN("A deep_ptr<BaseType> constructed from make_deep_ptr<DerivedType>")
+  {
+    int v = 7;
+    auto dptr = make_deep_ptr<DerivedType>(v);
+
+    WHEN("A deep_ptr<BaseType> is copy-constructed")
+    {
+      deep_ptr<BaseType> bptr(dptr);
+
+      THEN("get returns a non-null pointer")
+      {
+        REQUIRE(bptr.get() != nullptr);
+      }
+
+      THEN("Operator-> calls the pointee method")
+      {
+        REQUIRE(bptr->value() == v);
+      }
+
+      THEN("operator bool returns true")
+      {
+        REQUIRE((bool)bptr == true);
+      }
+    }
+
+    WHEN("A deep_ptr<BaseType> is assigned")
+    {
+      deep_ptr<BaseType> bptr;
+      bptr = dptr;
+
+      THEN("get returns a non-null pointer")
+      {
+        REQUIRE(bptr.get() != nullptr);
+      }
+
+      THEN("Operator-> calls the pointee method")
+      {
+        REQUIRE(bptr->value() == v);
+      }
+
+      THEN("operator bool returns true")
+      {
+        REQUIRE((bool)bptr == true);
+      }
+    }
+
+    WHEN("A deep_ptr<BaseType> is move-constructed")
+    {
+      deep_ptr<BaseType> bptr(std::move(dptr));
+
+      THEN("get returns a non-null pointer")
+      {
+        REQUIRE(bptr.get() != nullptr);
+      }
+
+      THEN("Operator-> calls the pointee method")
+      {
+        REQUIRE(bptr->value() == v);
+      }
+
+      THEN("operator bool returns true")
+      {
+        REQUIRE((bool)bptr == true);
+      }
+    }
+
+    WHEN("A deep_ptr<BaseType> is move-assigned")
+    {
+      deep_ptr<BaseType> bptr;
+      bptr = std::move(dptr);
+
+      THEN("get returns a non-null pointer")
+      {
+        REQUIRE(bptr.get() != nullptr);
+      }
+
+      THEN("Operator-> calls the pointee method")
+      {
+        REQUIRE(bptr->value() == v);
+      }
+
+      THEN("operator bool returns true")
+      {
+        REQUIRE((bool)bptr == true);
+      }
+    }
+  }
+}
+
 TEST_CASE("make_deep_ptr return type can be converted to base-type", "[deep_ptr.make_deep_ptr]")
 {
   GIVEN("A deep_ptr<BaseType> constructed from make_deep_ptr<DerivedType>")
   {
-    int derived_type_value = 7;
-    deep_ptr<BaseType> dptr = make_deep_ptr<DerivedType>(derived_type_value);
-    
+    int v = 7;
+    deep_ptr<BaseType> dptr = make_deep_ptr<DerivedType>(v);
+
     THEN("get returns a non-null pointer")
     {
       REQUIRE(dptr.get() != nullptr);
@@ -544,12 +635,125 @@ TEST_CASE("make_deep_ptr return type can be converted to base-type", "[deep_ptr.
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(dptr->value() == derived_type_value);
+      REQUIRE(dptr->value() == v);
     }
 
     THEN("operator bool returns true")
     {
       REQUIRE((bool)dptr == true);
+    }
+  }
+}
+
+TEST_CASE("release","[deep_ptr.release]")
+{
+  GIVEN("An empty deep_ptr")
+  {
+    deep_ptr<DerivedType> dptr;
+
+    WHEN("release is called")
+    {
+      auto p = dptr.release();
+
+      THEN("The deep_ptr remains empty and the returned pointer is null")
+      {
+        REQUIRE(!dptr);
+        REQUIRE(dptr.get()==nullptr);
+        REQUIRE(p==nullptr);
+      }
+    }
+  }
+
+  GIVEN("A non-empty deep_ptr")
+  {
+    int v = 7;
+    deep_ptr<DerivedType> dptr(new DerivedType(v));
+    CHECK(DerivedType::object_count == 1);
+
+    const auto op =dptr.get();
+
+
+    WHEN("release is called")
+    {
+      auto p = dptr.release();
+      std::unique_ptr<DerivedType> cleanup(p);
+      CHECK(DerivedType::object_count == 1);
+
+      THEN("The deep_ptr is empty and the returned pointer is the previous pointer value")
+      {
+        REQUIRE(!dptr);
+        REQUIRE(dptr.get()==nullptr);
+        REQUIRE(p==op);
+      }
+    }
+    CHECK(DerivedType::object_count == 0);
+  }
+}
+
+TEST_CASE("reset","[deep_ptr.reset]")
+{
+  GIVEN("An empty deep_ptr")
+  {
+    deep_ptr<DerivedType> dptr;
+
+    WHEN("reset to null")
+    {
+      dptr.reset();
+
+      THEN("The deep_ptr remains empty")
+      {
+        REQUIRE(!dptr);
+        REQUIRE(dptr.get()==nullptr);
+      }
+    }
+
+    WHEN("reset to non-null")
+    {
+      int v = 7;
+      dptr.reset(new DerivedType(v));
+
+      CHECK(DerivedType::object_count == 1);
+
+      THEN("The deep_ptr is non-empty and owns the pointer")
+      {
+        REQUIRE(dptr);
+        REQUIRE(dptr.get()!=nullptr);
+        REQUIRE(dptr->value() == v);
+      }
+    }
+  }
+  CHECK(DerivedType::object_count == 0);
+
+  GIVEN("A non-empty deep_ptr")
+  {
+    int v1 = 7;
+    deep_ptr<DerivedType> dptr(new DerivedType(v1));
+    CHECK(DerivedType::object_count == 1);
+
+    WHEN("reset to null")
+    {
+      dptr.reset();
+      CHECK(DerivedType::object_count == 0);
+
+      THEN("The deep_ptr is empty")
+      {
+        REQUIRE(!dptr);
+        REQUIRE(dptr.get()==nullptr);
+      }
+    }
+
+    WHEN("reset to non-null")
+    {
+      int v2 = 7;
+      dptr.reset(new DerivedType(v2));
+      CHECK(DerivedType::object_count == 1);
+
+      THEN("The deep_ptr is non-empty and owns the pointer")
+      {
+        REQUIRE(dptr);
+        REQUIRE(dptr.get()!=nullptr);
+        REQUIRE(dptr->value() == v2);
+      }
     }
   }
 }
@@ -564,8 +768,8 @@ TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[deep_ptr.co
 {
   GIVEN("A value-constructed multiply-derived-class deep_ptr")
   {
-    int derived_type_value = 7;
-    deep_ptr<MultiplyDerived> dptr(new MultiplyDerived(derived_type_value));
+    int v = 7;
+    deep_ptr<MultiplyDerived> dptr(new MultiplyDerived(v));
 
     THEN("When copied to a deep_ptr to an intermediate base type, data is accessible as expected")
     {

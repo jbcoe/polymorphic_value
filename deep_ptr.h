@@ -4,6 +4,7 @@
 template <typename T> struct control_block {
   virtual ~control_block() = default;
   virtual std::unique_ptr<control_block> clone() const = 0;
+  virtual T* release() = 0;
   virtual T *ptr() = 0;
 };
 
@@ -18,6 +19,12 @@ public:
 
   std::unique_ptr<control_block<T>> clone() const override {
     return std::make_unique<control_block_impl>(new U(*p_));
+  }
+
+  T *release() override {
+    T *p = p_;
+    p_ = nullptr;
+    return p;
   }
 
   T *ptr() override { return p_; }
@@ -36,6 +43,8 @@ public:
     return std::make_unique<delegating_control_block>(delegate_->clone());
   }
 
+  T* release() override { return delegate_->release(); }
+  
   T *ptr() override { return delegate_->ptr(); }
 };
 
@@ -172,9 +181,8 @@ public:
     if (!ptr_) {
       return nullptr;
     }
-    auto p = ptr_;
-    cb_->release();
-    return p;
+    ptr_ = nullptr;
+    return cb_->release();
   }
 
   template <typename U = T,
