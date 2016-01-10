@@ -1,107 +1,53 @@
 #include <type_traits>
 #include <cassert>
 
-struct deleter {
-  virtual ~deleter() = default;
-  virtual void do_delete(const void *ptr) const = 0;
-  virtual std::unique_ptr<deleter> clone_self() const = 0;
+template <typename T> struct control_block {
+  virtual ~control_block() = default;
+  virtual std::unique_ptr<control_block> clone() const = 0;
+  virtual T *ptr() = 0;
 };
 
-template <typename U> struct default_deleter : deleter {
-  void do_delete(const void *ptr) const override {
-    delete static_cast<const U *>(ptr);
+template <typename T, typename U>
+class control_block_impl : public control_block<T> {
+  U *p_ = nullptr;
+
+public:
+  explicit control_block_impl(U *p) : p_(p) {}
+
+  ~control_block_impl() { delete p_; }
+
+  std::unique_ptr<control_block<T>> clone() const override {
+    return std::make_unique<control_block_impl>(new U(*p_));
   }
-  std::unique_ptr<deleter> clone_self() const override {
-    return std::make_unique<default_deleter<U>>(*this);
-  }
+
+  T *ptr() override { return p_; }
 };
 
-struct cloner {
-  virtual ~cloner() = default;
-  virtual void* clone(const void *ptr) const = 0;
-  virtual std::unique_ptr<cloner> clone_self() const = 0;
-};
+template <typename T, typename U>
+class delegating_control_block : public control_block<T> {
 
-template <typename U> struct default_cloner : cloner {
-  void* clone(const void *ptr) const override {
-    return new U(*static_cast<const U*>(ptr));
+  std::unique_ptr<control_block<U>> delegate_;
+
+public:
+  explicit delegating_control_block(std::unique_ptr<control_block<U>> b)
+      : delegate_(std::move(b)) {}
+
+  std::unique_ptr<control_block<T>> clone() const override {
+    return std::make_unique<delegating_control_block>(delegate_->clone());
   }
-  std::unique_ptr<cloner> clone_self() const override {
-    return std::make_unique<default_cloner<U>>(*this);
-  }
+
+  T *ptr() override { return delegate_->ptr(); }
 };
 
 template <typename T> class deep_ptr {
 
   template <typename U> friend class deep_ptr;
-  
-  T* ptr_ = nullptr;
-  std::unique_ptr<deleter> deleter_;
-  std::unique_ptr<cloner> cloner_;
 
-  template <typename U,
-            typename V = std::enable_if_t<std::is_same<T, U>::value ||
-                                          std::is_base_of<T, U>::value>>
-  void do_copy_construct(const deep_ptr<U> &p) {
-    if (!p.ptr_) {
-      ptr_ = nullptr;
-      return;
-    }
-
-    deleter_ = p.deleter_->clone_self();
-    cloner_ = p.cloner_->clone_self();
-
-    assert(p.cloner_);
-    ptr_ = static_cast<T*>(p.cloner_->clone(p.ptr_));
-  }
-
-  template <typename U,
-            typename V = std::enable_if_t<std::is_same<T, U>::value ||
-                                          std::is_base_of<T, U>::value>>
-  deep_ptr &do_assign(const deep_ptr<U> &p) {
-
-    if (ptr_) {
-      assert(deleter_);
-      deleter_->do_delete(ptr_);
-    }
-
-    do_copy_construct(p);
-
-    return *this;
-  }
-
-  template <typename U,
-            typename V = std::enable_if_t<std::is_same<T, U>::value ||
-                                          std::is_base_of<T, U>::value>>
-  void do_move_construct(deep_ptr<U> &&p) {
-    if (ptr_) {
-      assert(deleter_);
-      deleter_->do_delete(ptr_);
-    }
-
-    deleter_ = std::move(p.deleter_);
-    cloner_ = std::move(p.cloner_);
-    ptr_ = p.ptr_;
-
-    p.ptr_ = nullptr;
-  }
-
-  template <typename U,
-            typename V = std::enable_if_t<std::is_same<T, U>::value ||
-                                          std::is_base_of<T, U>::value>>
-  deep_ptr &do_move_assign(deep_ptr<U> &&u) {
-    do_move_construct(std::move(u));
-    return *this;
-  }
+  T *ptr_ = nullptr;
+  std::unique_ptr<control_block<T>> cb_;
 
 public:
-  ~deep_ptr() {
-    if (!ptr_) {
-      return;
-    }
-    assert(deleter_);
-    deleter_->do_delete(ptr_);
-  }
+  ~deep_ptr() = default;
 
   //
   // Constructors
@@ -112,43 +58,57 @@ public:
   deep_ptr(std::nullptr_t) : deep_ptr() {}
 
   template <typename U,
-            typename V = std::enable_if_t<std::is_same<T, U>::value ||
-                                          std::is_base_of<T, U>::value>>
+            typename V = std::enable_if_t<std::is_base_of<T, U>::value>>
   explicit deep_ptr(U *u) {
     if (!u) {
       return;
     }
 
-    deleter_ = std::make_unique<default_deleter<U>>();
-    cloner_ = std::make_unique<default_cloner<U>>();
+    cb_ = std::make_unique<control_block_impl<T,U>>(u);
     ptr_ = u;
   }
-  
+
   //
   // Copy-constructors
   //
 
   deep_ptr(const deep_ptr &p) {
-    do_copy_construct(p);
+    if (!p) {
+      return;
+    }
+    auto tmp_cb = p.cb_->clone();
+    ptr_ = tmp_cb->ptr();
+    cb_ = std::move(tmp_cb);
   }
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
   deep_ptr(const deep_ptr<U> &p) {
-    do_copy_construct(p);
+    deep_ptr<U> tmp(p);
+    ptr_ = tmp.ptr_;
+    cb_ = std::make_unique<delegating_control_block<T,U>>(std::move(tmp.cb_));
   }
-  
+
   //
   // Move-constructors
   //
 
-  deep_ptr(deep_ptr &&p) { do_move_construct(std::move(p)); }
+  deep_ptr(deep_ptr &&p)
+  {
+    ptr_ = p.ptr_;
+    cb_ = std::move(p.cb_);
+    p.ptr_ = nullptr;
+  }
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
-  deep_ptr(deep_ptr<U> &&p) { do_move_construct(std::move(p)); }
+  deep_ptr(deep_ptr<U> &&p) {
+    ptr_ = p.ptr_;
+    cb_ = std::make_unique<delegating_control_block<T,U>>(std::move(p.cb_));
+    p.ptr_ = nullptr;
+  }
 
   //
   // Assignment
@@ -158,26 +118,54 @@ public:
     if (&p == this) {
       return *this;
     }
-    return do_assign(p);
+
+    if(!p)
+    {
+      cb_.reset();
+      ptr_ = nullptr;
+      return *this;
+    }
+
+    auto tmp_cb = p.cb_->clone();
+    ptr_ = tmp_cb->ptr();
+    cb_ = std::move(tmp_cb);
+    return *this;
   }
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
   deep_ptr &operator=(const deep_ptr<U> &p) {
-    return do_assign(p);
+    deep_ptr<U> tmp(p);
+    *this = std::move(tmp);
+    return *this;
   }
-  
+
   //
   // Move-assignment
   //
 
-  deep_ptr &operator=(deep_ptr &&p) { return do_move_assign(std::move(p)); }
+  deep_ptr &operator=(deep_ptr &&p)
+  {                  
+    if (&p == this) {
+      return *this;
+    }
+    
+    cb_ = std::move(p.cb_);
+    ptr_ = p.ptr_;
+    p.ptr_ = nullptr;
+    return *this;
+  }
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
-  deep_ptr &operator=(deep_ptr<U> &&p) { return do_move_assign(std::move(p)); }
+  deep_ptr &operator=(deep_ptr<U> &&p) {
+    cb_ = std::make_unique<delegating_control_block<T,U>>(std::move(p.cb_));
+    ptr_ = p.ptr_;
+    p.ptr_ = nullptr;
+    return *this;
+  }
 
   //
   // Accessors
@@ -187,9 +175,7 @@ public:
 
   const T *operator->() const { return get(); }
 
-  const T *get() const {
-    return ptr_;
-  }
+  const T *get() const { return ptr_; }
 
   const T &operator*() const {
     assert(ptr_);
@@ -202,9 +188,7 @@ public:
 
   T *operator->() { return get(); }
 
-  T *get() {
-    return ptr_;
-  }
+  T *get() { return ptr_; }
 
   T &operator*() {
     assert(ptr_);
@@ -212,9 +196,7 @@ public:
   }
 };
 
-template <typename T, typename ...Ts>
-deep_ptr<T> make_deep_ptr(Ts&& ...ts)
-{
+template <typename T, typename... Ts> deep_ptr<T> make_deep_ptr(Ts &&... ts) {
   return deep_ptr<T>(new T(std::forward<Ts>(ts)...));
 }
 
