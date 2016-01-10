@@ -1,2 +1,3 @@
-# cmake build and ctest run
+sudo: required
+dist: trusty
 script: cmake . && cmake --build . && ctest
