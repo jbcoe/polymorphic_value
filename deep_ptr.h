@@ -64,7 +64,7 @@ public:
       return;
     }
 
-    cb_ = std::make_unique<control_block_impl<T,U>>(u);
+    cb_ = std::make_unique<control_block_impl<T, U>>(u);
     ptr_ = u;
   }
 
@@ -87,15 +87,14 @@ public:
   deep_ptr(const deep_ptr<U> &p) {
     deep_ptr<U> tmp(p);
     ptr_ = tmp.ptr_;
-    cb_ = std::make_unique<delegating_control_block<T,U>>(std::move(tmp.cb_));
+    cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(tmp.cb_));
   }
 
   //
   // Move-constructors
   //
 
-  deep_ptr(deep_ptr &&p)
-  {
+  deep_ptr(deep_ptr &&p) {
     ptr_ = p.ptr_;
     cb_ = std::move(p.cb_);
     p.ptr_ = nullptr;
@@ -106,7 +105,7 @@ public:
                                           std::is_base_of<T, U>::value>>
   deep_ptr(deep_ptr<U> &&p) {
     ptr_ = p.ptr_;
-    cb_ = std::make_unique<delegating_control_block<T,U>>(std::move(p.cb_));
+    cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
     p.ptr_ = nullptr;
   }
 
@@ -119,8 +118,7 @@ public:
       return *this;
     }
 
-    if(!p)
-    {
+    if (!p) {
       cb_.reset();
       ptr_ = nullptr;
       return *this;
@@ -145,12 +143,11 @@ public:
   // Move-assignment
   //
 
-  deep_ptr &operator=(deep_ptr &&p)
-  {                  
+  deep_ptr &operator=(deep_ptr &&p) {
     if (&p == this) {
       return *this;
     }
-    
+
     cb_ = std::move(p.cb_);
     ptr_ = p.ptr_;
     p.ptr_ = nullptr;
@@ -161,36 +158,51 @@ public:
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
   deep_ptr &operator=(deep_ptr<U> &&p) {
-    cb_ = std::make_unique<delegating_control_block<T,U>>(std::move(p.cb_));
+    cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
     ptr_ = p.ptr_;
     p.ptr_ = nullptr;
     return *this;
   }
 
   //
-  // Accessors
+  // Modifiers
   //
 
-  const operator bool() const { return ptr_; }
+  T *release() {
+    if (!ptr_) {
+      return nullptr;
+    }
+    auto p = ptr_;
+    cb_->release();
+    return p;
+  }
 
-  const T *operator->() const { return get(); }
+  template <typename U = T,
+            typename V = std::enable_if_t<std::is_base_of<T, U>::value>>
+  void reset(U *u = nullptr) {
+    if (static_cast<T *>(u) == ptr_) {
+      return;
+    }
+    deep_ptr<U> tmp(u);
+    *this = std::move(tmp);
+  }
 
-  const T *get() const { return ptr_; }
-
-  const T &operator*() const {
-    assert(ptr_);
-    return *get();
+  void swap(deep_ptr &p) {
+    std::swap(ptr_, p.ptr_);
+    std::swap(cb_, p.cb_);
   }
 
   //
-  // Non-const accessors
+  // Accessors
   //
 
-  T *operator->() { return get(); }
+  operator bool() const { return ptr_; }
 
-  T *get() { return ptr_; }
+  T *operator->() const { return get(); }
 
-  T &operator*() {
+  T *get() const { return ptr_; }
+
+  T &operator*() const {
     assert(ptr_);
     return *get();
   }
