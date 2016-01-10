@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.0)
-
-set(CMAKE_CXX_STANDARD 14)
+cmake_minimum_required(VERSION 2.8)
 
 project(deep_ptr)
+
+set(CMAKE_CXX_FLAGS "-std=c++14")
 
 include_directories(externals/catch/include)
 add_executable(TestDeepPtr TestDeepPtr.cpp)
