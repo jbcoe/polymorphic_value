@@ -1,1 +1,2 @@
+# cmake build and ctest run
 script: cmake . && cmake --build . && ctest
