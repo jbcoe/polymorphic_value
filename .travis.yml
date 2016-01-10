@@ -1,3 +1,0 @@
-sudo: required
-dist: trusty
-script: cmake . -DCMAKE_CXX_FLAGS=-c++1y && cmake --build . && ctest
