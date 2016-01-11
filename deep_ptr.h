@@ -4,7 +4,7 @@
 template <typename T> struct control_block {
   virtual ~control_block() = default;
   virtual std::unique_ptr<control_block> clone() const = 0;
-  virtual T* release() = 0;
+  virtual T *release() = 0;
   virtual T *ptr() = 0;
 };
 
@@ -94,6 +94,7 @@ template <typename T> class deep_ptr {
   std::unique_ptr<control_block<T>> cb_;
 
 public:
+  
   ~deep_ptr() = default;
 
   //
@@ -254,14 +255,106 @@ public:
   }
 };
 
+//
+// deep_ptr creation
+//
 template <typename T, typename... Ts> deep_ptr<T> make_deep_ptr(Ts &&... ts) {
   return deep_ptr<T>(new T(std::forward<Ts>(ts)...));
 }
 
 //
+// deep_ptr comparisons
+//
+
+template <typename T, typename U>
+bool operator==(const deep_ptr<T> &t, const deep_ptr<U> &u) noexcept {
+  return t.get() == u.get();
+}
+
+template <typename T, typename U>
+bool operator!=(const deep_ptr<T> &t, const deep_ptr<U> &u) noexcept {
+  return t.get() != u.get();
+}
+
+template <typename T, typename U>
+bool operator<(const deep_ptr<T> &t, const deep_ptr<U> &u) noexcept {
+  return t.get() < u.get();
+}
+
+template <typename T, typename U>
+bool operator>(const deep_ptr<T> &t, const deep_ptr<U> &u) noexcept {
+  return t.get() > u.get();
+}
+
+template <typename T, typename U>
+bool operator<=(const deep_ptr<T> &t, const deep_ptr<U> &u) noexcept {
+  return t.get() <= u.get();
+}
+
+template <typename T, typename U>
+bool operator>=(const deep_ptr<T> &t, const deep_ptr<U> &u) noexcept {
+  return t.get() >= u.get();
+}
+
+
+template <typename T>
+bool operator==(const deep_ptr<T> &t, std::nullptr_t) noexcept {
+  return t.get() == nullptr;
+}
+template <typename T>
+bool operator==(std::nullptr_t, const deep_ptr<T> &t) noexcept {
+  return nullptr == t.get();
+}
+
+template <typename T>
+bool operator!=(const deep_ptr<T> &t, std::nullptr_t) noexcept {
+  return t.get() != nullptr;
+}
+template <typename T>
+bool operator!=(std::nullptr_t, const deep_ptr<T> &t) noexcept {
+  return nullptr != t.get();
+}
+
+template <typename T>
+bool operator<(const deep_ptr<T> &t, std::nullptr_t) noexcept {
+  return t.get() < nullptr;
+}
+template <typename T>
+bool operator<(std::nullptr_t, const deep_ptr<T> &t) noexcept {
+  return nullptr < t.get();
+}
+
+template <typename T>
+bool operator>(const deep_ptr<T> &t, std::nullptr_t) noexcept {
+  return t.get() > nullptr;
+}
+template <typename T>
+bool operator>(std::nullptr_t, const deep_ptr<T> &t) noexcept {
+  return nullptr > t.get();
+}
+
+template <typename T>
+bool operator<=(const deep_ptr<T> &t, std::nullptr_t) noexcept {
+  return t.get() <= nullptr;
+}
+template <typename T>
+bool operator<=(std::nullptr_t, const deep_ptr<T> &t) noexcept {
+  return nullptr <= t.get();
+}
+
+template <typename T>
+bool operator>=(const deep_ptr<T> &t, std::nullptr_t) noexcept {
+  return t.get() >= nullptr;
+}
+template <typename T>
+bool operator>=(std::nullptr_t, const deep_ptr<T> &t) noexcept {
+  return nullptr >= t.get();
+}
+
+//
 // Casts
 //
-//
+
 namespace std {
 
 template <typename T, typename U> deep_ptr<U> static_pointer_cast(const deep_ptr<T>& p)
@@ -297,3 +390,4 @@ template <typename T, typename U> deep_ptr<U> const_pointer_cast(const deep_ptr<
 }
 
 } // end namespace std
+
