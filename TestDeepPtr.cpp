@@ -803,10 +803,9 @@ TEST_CASE("Comparisons", "[deep_ptr.comparisons]")
   }
 }
 
-struct BaseA { int a_ = 0; virtual ~BaseA() = default; };
-struct BaseB { int b_ = 42; virtual ~BaseB() = default; };
-struct IntermediateBaseA : BaseA { int ia_ = 3; };
-struct IntermediateBaseB : BaseB { int ib_ = 101; };
+struct Base { int v_ = 42; virtual ~Base() = default; };
+struct IntermediateBaseA : virtual Base { int a_ = 3; };
+struct IntermediateBaseB : virtual Base { int b_ = 101; };
 struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int value_ = 0; MultiplyDerived(int value) : value_(value) {}; };
 
 TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[deep_ptr.constructors]")
@@ -819,15 +818,15 @@ TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[deep_ptr.co
     THEN("When copied to a deep_ptr to an intermediate base type, data is accessible as expected")
     {
       deep_ptr<IntermediateBaseA> dptr_IA = dptr;
-      REQUIRE(dptr_IA->ia_ == 3);
-      REQUIRE(dptr_IA->a_ == 0);
+      REQUIRE(dptr_IA->a_ == 3);
+      REQUIRE(dptr_IA->v_ == 42);
     }
 
     THEN("When copied to a deep_ptr to an intermediate base type, data is accessible as expected")
     {
       deep_ptr<IntermediateBaseB> dptr_IB = dptr;
-      REQUIRE(dptr_IB->ib_ == 101);
-      REQUIRE(dptr_IB->b_ == 42);
+      REQUIRE(dptr_IB->b_ == 101);
+      REQUIRE(dptr_IB->v_ == 42);
     }
   }
 }
