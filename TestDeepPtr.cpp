@@ -5,7 +5,7 @@
 
 struct BaseType
 {
-  virtual int value() const = 0;
+  virtual int value() = 0; // intentionally non-const
   virtual void set_value(int) = 0;
   virtual ~BaseType() = default;
 };
@@ -35,7 +35,7 @@ struct DerivedType : BaseType
     --object_count;
   }
 
-  int value() const override { return value_; }
+  int value() override { return value_; }
 
   void set_value(int i) override { value_ = i; }
 
@@ -783,7 +783,7 @@ TEST_CASE("Comparisons", "[deep_ptr.comparisons]")
   {
     int v = 7;
     deep_ptr<BaseType> dptr(new DerivedType(v));
-    
+
     THEN("Comparisons give same results as raw-pointer comparisons")
     {
       REQUIRE( (dptr == nullptr) == (dptr.get() == nullptr) );
@@ -799,6 +799,138 @@ TEST_CASE("Comparisons", "[deep_ptr.comparisons]")
       REQUIRE( (nullptr > dptr) == (nullptr > dptr.get()) );
       REQUIRE( (nullptr <= dptr) == (nullptr <= dptr.get()) );
       REQUIRE( (nullptr >= dptr) == (nullptr >= dptr.get()) );
+    }
+  }
+}
+
+struct AlternativeBaseType {
+  virtual ~AlternativeBaseType() = default;
+  virtual int alternative_value() = 0;
+};
+
+class AlternativeDerivedType : public BaseType, public AlternativeBaseType {
+  int value_;
+public:
+  AlternativeDerivedType(int value) : value_(value) {}
+
+  int value() override { return value_; }
+  void set_value(int v) override { value_ = v; }
+  int alternative_value() override { return value_; }
+};
+
+TEST_CASE("cast operations", "[deep_ptr.casts]")
+{
+  GIVEN("A pointer-constructed deep_ptr<BaseType>")
+  {
+    int v = 7;
+    deep_ptr<BaseType> dptr(new DerivedType(v));
+    REQUIRE(DerivedType::object_count == 1);
+
+    WHEN("static_pointer_cast to the derived type is called")
+    {
+      auto st_dptr = std::static_pointer_cast<DerivedType>(dptr);
+
+      THEN("The static-cast pointer is non-null")
+      {
+        REQUIRE(st_dptr);
+      }
+      THEN("The static-cast pointer has the required value")
+      {
+        REQUIRE(st_dptr->value() == v);
+      }
+      THEN("The static-cast pointer is distinct from the original pointer")
+      {
+        REQUIRE(st_dptr.get() != dptr.get());
+      }
+      THEN("Object count is increased")
+      {
+        REQUIRE(DerivedType::object_count == 2);
+      }
+    }
+    WHEN("dynamic_pointer_cast to the derived type is called")
+    {
+      auto dyn_dptr = std::dynamic_pointer_cast<DerivedType>(dptr);
+
+      THEN("The dynamic-cast pointer is non-null")
+      {
+        REQUIRE(dyn_dptr);
+      }
+      THEN("The dynamic-cast pointer has the required value")
+      {
+        REQUIRE(dyn_dptr->value() == v);
+      }
+      THEN("The dynamic-cast pointer is distinct from the original pointer")
+      {
+        REQUIRE(dyn_dptr.get() != dptr.get());
+      }
+      THEN("Object count is increased")
+      {
+        REQUIRE(DerivedType::object_count == 2);
+      }
+    }
+    WHEN("dynamic_pointer_cast to the wrong derived type is called")
+    {
+      auto dyn_dptr = std::dynamic_pointer_cast<AlternativeDerivedType>(dptr);
+
+      THEN("The dynamic-cast pointer is null")
+      {
+        REQUIRE(!dyn_dptr);
+      }
+      THEN("Object count is unchanged")
+      {
+        REQUIRE(DerivedType::object_count == 1);
+      }
+    }
+  }
+  GIVEN("A pointer-constructed deep_ptr<const DerivedType>")
+  {
+    int v = 7;
+    deep_ptr<const DerivedType> cdptr(new DerivedType(v));
+    REQUIRE(DerivedType::object_count == 1);
+
+    WHEN("static_pointer_cast to the derived type is called")
+    {
+      auto dptr = std::const_pointer_cast<DerivedType>(cdptr);
+
+      THEN("The static-cast pointer is non-null")
+      {
+        REQUIRE(dptr);
+      }
+      THEN("The static-cast pointer has the required value")
+      {
+        REQUIRE(dptr->value() == v);
+      }
+      THEN("The static-cast pointer is distinct from the original pointer")
+      {
+        REQUIRE(dptr.get() != cdptr.get());
+      }
+      THEN("Object count is increased")
+      {
+        REQUIRE(DerivedType::object_count == 2);
+      }
+    }
+  }
+  GIVEN("An AlternativeDerivedType-pointer-constructed deep_ptr<BaseType>")
+  {
+    int v = 7;
+    deep_ptr<BaseType> dptr(new AlternativeDerivedType(v));
+
+    WHEN("dynamic_pointer_cast to AlternativeBaseType is called")
+    {
+      auto dyn_dptr = std::dynamic_pointer_cast<AlternativeBaseType>(dptr);
+
+      THEN("The dynamic-cast pointer is non-null")
+      {
+        REQUIRE(dyn_dptr);
+      }
+      THEN("The dynamic-cast pointer has the required value")
+      {
+        REQUIRE(dyn_dptr->alternative_value() == v);
+      }
+      THEN("The dynamic-cast pointer is distinct from the original pointer")
+      {
+        REQUIRE(dyn_dptr.get() != dynamic_cast<AlternativeBaseType*>(dptr.get()));
+      }
     }
   }
 }
