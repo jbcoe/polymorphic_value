@@ -54,16 +54,36 @@ class downcasting_delegating_control_block : public control_block<T> {
   std::unique_ptr<control_block<U>> delegate_;
 
 public:
-  explicit downcasting_delegating_control_block(std::unique_ptr<control_block<U>> b)
+  explicit downcasting_delegating_control_block(
+      std::unique_ptr<control_block<U>> b)
       : delegate_(std::move(b)) {}
 
   std::unique_ptr<control_block<T>> clone() const override {
-    return std::make_unique<delegating_control_block>(delegate_->clone());
+    return std::make_unique<downcasting_delegating_control_block>(delegate_->clone());
   }
 
-  T* release() override { return delegate_->release(); }
+  T* release() override { return static_cast<T*>(delegate_->release()); }
 
-  T *ptr() override { return static_cast<T>(delegate_->ptr()); }
+  T *ptr() override { return static_cast<T*>(delegate_->ptr()); }
+};
+
+template <typename T, typename U>
+class dynamic_casting_delegating_control_block : public control_block<T> {
+
+  std::unique_ptr<control_block<U>> delegate_;
+
+public:
+  explicit dynamic_casting_delegating_control_block(
+      std::unique_ptr<control_block<U>> b)
+      : delegate_(std::move(b)) {}
+
+  std::unique_ptr<control_block<T>> clone() const override {
+    return std::make_unique<dynamic_casting_delegating_control_block>(delegate_->clone());
+  }
+
+  T* release() override { return dynamic_cast<T*>(delegate_->release()); }
+
+  T *ptr() override { return dynamic_cast<T*>(delegate_->ptr()); }
 };
 
 template <typename T, typename U>
@@ -76,25 +96,26 @@ public:
       : delegate_(std::move(b)) {}
 
   std::unique_ptr<control_block<T>> clone() const override {
-    return std::make_unique<delegating_control_block>(delegate_->clone());
+    return std::make_unique<const_casting_delegating_control_block>(delegate_->clone());
   }
 
-  T* release() override { return delegate_->release(); }
+  T* release() override { return const_cast<T*>(delegate_->release()); }
 
-  T *ptr() override { return const_cast<T>(delegate_->ptr()); }
+  T *ptr() override { return const_cast<T*>(delegate_->ptr()); }
 };
 
 template <typename T> class deep_ptr {
 
   template <typename U> friend class deep_ptr;
-  template <typename T_, typename U> friend deep_ptr<U> std::const_pointer_cast(const deep_ptr<T_>& p);
-  template <typename T_, typename U> friend deep_ptr<U> std::static_pointer_cast(const deep_ptr<T_>& p);
+  template <typename T_, typename U> friend deep_ptr<T_> std::const_pointer_cast(const deep_ptr<U>& p);
+  template <typename T_, typename U> friend deep_ptr<T_> std::dynamic_pointer_cast(const deep_ptr<U>& p);
+  template <typename T_, typename U> friend deep_ptr<T_> std::static_pointer_cast(const deep_ptr<U>& p);
 
   T *ptr_ = nullptr;
   std::unique_ptr<control_block<T>> cb_;
 
 public:
-  
+
   ~deep_ptr() = default;
 
   //
@@ -357,36 +378,44 @@ bool operator>=(std::nullptr_t, const deep_ptr<T> &t) noexcept {
 
 namespace std {
 
-template <typename T, typename U> deep_ptr<U> static_pointer_cast(const deep_ptr<T>& p)
-{
-  deep_ptr<T> tmp(p);
-  deep_ptr<U> u;
+template <typename T, typename U>
+deep_ptr<T> static_pointer_cast(const deep_ptr<U> &p) {
+  deep_ptr<U> tmp(p);
+  deep_ptr<T> t;
 
-  u.ptr_ = static_cast<U*>(tmp.ptr_);
-  u.cb_ = std::make_unique<downcasting_delegating_control_block<U,T>>(std::move(tmp.cb_));
+  t.ptr_ = static_cast<T *>(tmp.ptr_);
+  t.cb_ = std::make_unique<downcasting_delegating_control_block<T, U>>(
+      std::move(tmp.cb_));
 
-  return u;
+  return t;
 }
 
-template <typename T, typename U> deep_ptr<U> dynamic_pointer_cast(const deep_ptr<T>& p)
-{
-  auto pu = dynamic_cast<U*>(p.get());
-  if (!pu) {
+template <typename T, typename U>
+deep_ptr<T> dynamic_pointer_cast(const deep_ptr<U> &p) {
+  if (!dynamic_cast<T *>(p.get())) {
     return nullptr;
   }
 
-  return static_pointer_cast<U>(p);
+  deep_ptr<U> tmp(p);
+  deep_ptr<T> t;
+
+  t.ptr_ = dynamic_cast<T *>(tmp.ptr_);
+  t.cb_ = std::make_unique<dynamic_casting_delegating_control_block<T, U>>(
+      std::move(tmp.cb_));
+
+  return t;
 }
 
-template <typename T, typename U> deep_ptr<U> const_pointer_cast(const deep_ptr<T>& p)
-{
-  deep_ptr<T> tmp(p);
-  deep_ptr<U> u;
+template <typename T, typename U>
+deep_ptr<T> const_pointer_cast(const deep_ptr<U> &p) {
+  deep_ptr<U> tmp(p);
+  deep_ptr<T> t;
 
-  u.ptr_ = static_cast<U*>(tmp.ptr_);
-  u.cb_ = std::make_unique<const_casting_delegating_control_block<U,T>>(std::move(tmp.cb_));
+  t.ptr_ = const_cast<T *>(tmp.ptr_);
+  t.cb_ = std::make_unique<const_casting_delegating_control_block<T, U>>(
+      std::move(tmp.cb_));
 
-  return u;
+  return t;
 }
 
 } // end namespace std
