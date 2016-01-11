@@ -56,6 +56,7 @@ template <typename T> class deep_ptr {
   std::unique_ptr<control_block<T>> cb_;
 
 public:
+  
   ~deep_ptr() = default;
 
   //

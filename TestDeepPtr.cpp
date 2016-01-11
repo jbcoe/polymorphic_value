@@ -758,6 +758,51 @@ TEST_CASE("reset","[deep_ptr.reset]")
   }
 }
 
+TEST_CASE("Comparisons", "[deep_ptr.comparisons]")
+{
+  GIVEN("Two pointer-constructed deep_ptr")
+  {
+    int v1 = 0;
+    int v2 = 1;
+
+    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    deep_ptr<BaseType> dptr2(new DerivedType(v2));
+
+    THEN("Comparisons give same results as raw-pointer comparisons")
+    {
+      REQUIRE( (dptr1 == dptr2) == (dptr1.get() == dptr2.get()) );
+      REQUIRE( (dptr1 != dptr2) == (dptr1.get() != dptr2.get()) );
+      REQUIRE( (dptr1 < dptr2) == (dptr1.get() < dptr2.get()) );
+      REQUIRE( (dptr1 > dptr2) == (dptr1.get() > dptr2.get()) );
+      REQUIRE( (dptr1 <= dptr2) == (dptr1.get() <= dptr2.get()) );
+      REQUIRE( (dptr1 >= dptr2) == (dptr1.get() >= dptr2.get()) );
+    }
+  }
+
+  GIVEN("A nullptr_t and a pointer constructed deep_ptr")
+  {
+    int v = 7;
+    deep_ptr<BaseType> dptr(new DerivedType(v));
+    
+    THEN("Comparisons give same results as raw-pointer comparisons")
+    {
+      REQUIRE( (dptr == nullptr) == (dptr.get() == nullptr) );
+      REQUIRE( (dptr != nullptr) == (dptr.get() != nullptr) );
+      REQUIRE( (dptr < nullptr) == (dptr.get() < nullptr) );
+      REQUIRE( (dptr > nullptr) == (dptr.get() > nullptr) );
+      REQUIRE( (dptr <= nullptr) == (dptr.get() <= nullptr) );
+      REQUIRE( (dptr >= nullptr) == (dptr.get() >= nullptr) );
+
+      REQUIRE((nullptr == dptr) == (nullptr == dptr.get()));
+      REQUIRE( (nullptr != dptr) == (nullptr != dptr.get()) );
+      REQUIRE( (nullptr < dptr) == (nullptr < dptr.get()) );
+      REQUIRE( (nullptr > dptr) == (nullptr > dptr.get()) );
+      REQUIRE( (nullptr <= dptr) == (nullptr <= dptr.get()) );
+      REQUIRE( (nullptr >= dptr) == (nullptr >= dptr.get()) );
+    }
+  }
+}
+
 struct BaseA { int a_ = 0; virtual ~BaseA() = default; };
 struct BaseB { int b_ = 42; virtual ~BaseB() = default; };
 struct IntermediateBaseA : BaseA { int ia_ = 3; };
