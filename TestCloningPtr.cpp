@@ -48,41 +48,41 @@ TEST_CASE("Default constructor","[cloning_ptr.constructors]")
 {
   GIVEN("A default constructed cloning_ptr to BaseType")
   {
-    cloning_ptr<BaseType> dptr;
+    cloning_ptr<BaseType> cptr;
 
     THEN("get returns nullptr")
     {
-      REQUIRE(dptr.get() == nullptr);
+      REQUIRE(cptr.get() == nullptr);
     }
 
     THEN("operator-> returns nullptr")
     {
-      REQUIRE(dptr.operator->() == nullptr);
+      REQUIRE(cptr.operator->() == nullptr);
     }
 
     THEN("operator bool returns false")
     {
-      REQUIRE((bool)dptr == false);
+      REQUIRE((bool)cptr == false);
     }
   }
 
   GIVEN("A default constructed const cloning_ptr to BaseType")
   {
-    const cloning_ptr<BaseType> cdptr;
+    const cloning_ptr<BaseType> ccptr;
 
     THEN("get returns nullptr")
     {
-      REQUIRE(cdptr.get() == nullptr);
+      REQUIRE(ccptr.get() == nullptr);
     }
 
     THEN("operator-> returns nullptr")
     {
-      REQUIRE(cdptr.operator->() == nullptr);
+      REQUIRE(ccptr.operator->() == nullptr);
     }
 
     THEN("operator bool returns false")
     {
-      REQUIRE((bool)cdptr == false);
+      REQUIRE((bool)ccptr == false);
     }
   }
 }
@@ -92,41 +92,41 @@ TEST_CASE("Pointer constructor","[cloning_ptr.constructors]")
   GIVEN("A pointer-constructed cloning_ptr")
   {
     int v = 7;
-    cloning_ptr<BaseType> dptr(new DerivedType(v));
+    cloning_ptr<BaseType> cptr(new DerivedType(v));
 
     THEN("get returns a non-null pointer")
     {
-      REQUIRE(dptr.get() != nullptr);
+      REQUIRE(cptr.get() != nullptr);
     }
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(dptr->value() == v);
+      REQUIRE(cptr->value() == v);
     }
 
     THEN("operator bool returns true")
     {
-      REQUIRE((bool)dptr == true);
+      REQUIRE((bool)cptr == true);
     }
   }
   GIVEN("A pointer-constructed const cloning_ptr")
   {
     int v = 7;
-    const cloning_ptr<BaseType> cdptr(new DerivedType(v));
+    const cloning_ptr<BaseType> ccptr(new DerivedType(v));
 
     THEN("get returns a non-null pointer")
     {
-      REQUIRE(cdptr.get() != nullptr);
+      REQUIRE(ccptr.get() != nullptr);
     }
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(cdptr->value() == v);
+      REQUIRE(ccptr->value() == v);
     }
 
     THEN("operator bool returns true")
     {
-      REQUIRE((bool)cdptr == true);
+      REQUIRE((bool)ccptr == true);
     }
   }
 }
@@ -153,22 +153,22 @@ TEST_CASE("cloning_ptr copy constructor","[cloning_ptr.constructors]")
 {
   GIVEN("A cloning_ptr copied from a default-constructed cloning_ptr")
   {
-    cloning_ptr<BaseType> original_dptr;
-    cloning_ptr<BaseType> dptr(original_dptr);
+    cloning_ptr<BaseType> original_cptr;
+    cloning_ptr<BaseType> cptr(original_cptr);
 
     THEN("get returns nullptr")
     {
-      REQUIRE(dptr.get() == nullptr);
+      REQUIRE(cptr.get() == nullptr);
     }
 
     THEN("operator-> returns nullptr")
     {
-      REQUIRE(dptr.operator->() == nullptr);
+      REQUIRE(cptr.operator->() == nullptr);
     }
 
     THEN("operator bool returns false")
     {
-      REQUIRE((bool)dptr == false);
+      REQUIRE((bool)cptr == false);
     }
   }
 
@@ -177,23 +177,23 @@ TEST_CASE("cloning_ptr copy constructor","[cloning_ptr.constructors]")
     REQUIRE(DerivedType::object_count == 0);
 
     int v = 7;
-    cloning_ptr<BaseType> original_dptr(new DerivedType(v));
-    cloning_ptr<BaseType> dptr(original_dptr);
+    cloning_ptr<BaseType> original_cptr(new DerivedType(v));
+    cloning_ptr<BaseType> cptr(original_cptr);
 
     THEN("get returns a distinct non-null pointer")
     {
-      REQUIRE(dptr.get() != nullptr);
-      REQUIRE(dptr.get() != original_dptr.get());
+      REQUIRE(cptr.get() != nullptr);
+      REQUIRE(cptr.get() != original_cptr.get());
     }
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(dptr->value() == v);
+      REQUIRE(cptr->value() == v);
     }
 
     THEN("operator bool returns true")
     {
-      REQUIRE((bool)dptr == true);
+      REQUIRE((bool)cptr == true);
     }
 
     THEN("object count is two")
@@ -204,12 +204,12 @@ TEST_CASE("cloning_ptr copy constructor","[cloning_ptr.constructors]")
     WHEN("Changes are made to the original cloning pointer after copying")
     {
       int new_value = 99;
-      original_dptr->set_value(new_value);
-      REQUIRE(original_dptr->value() == new_value);
+      original_cptr->set_value(new_value);
+      REQUIRE(original_cptr->value() == new_value);
       THEN("They are not reflected in the copy (copy is distinct)")
       {
-        REQUIRE(dptr->value() != new_value);
-        REQUIRE(dptr->value() == v);
+        REQUIRE(cptr->value() != new_value);
+        REQUIRE(cptr->value() == v);
       }
     }
   }
@@ -219,51 +219,51 @@ TEST_CASE("cloning_ptr move constructor","[cloning_ptr.constructors]")
 {
   GIVEN("A cloning_ptr move-constructed from a default-constructed cloning_ptr")
   {
-    cloning_ptr<BaseType> original_dptr;
-    cloning_ptr<BaseType> dptr(std::move(original_dptr));
+    cloning_ptr<BaseType> original_cptr;
+    cloning_ptr<BaseType> cptr(std::move(original_cptr));
 
     THEN("The original pointer is null")
     {
-      REQUIRE(original_dptr.get()==nullptr);
-      REQUIRE(original_dptr.operator->()==nullptr);
-      REQUIRE(!(bool)original_dptr);
+      REQUIRE(original_cptr.get()==nullptr);
+      REQUIRE(original_cptr.operator->()==nullptr);
+      REQUIRE(!(bool)original_cptr);
     }
 
     THEN("The move-constructed pointer is null")
     {
-      REQUIRE(dptr.get()==nullptr);
-      REQUIRE(dptr.operator->()==nullptr);
-      REQUIRE(!(bool)dptr);
+      REQUIRE(cptr.get()==nullptr);
+      REQUIRE(cptr.operator->()==nullptr);
+      REQUIRE(!(bool)cptr);
     }
   }
 
   GIVEN("A cloning_ptr move-constructed from a default-constructed cloning_ptr")
   {
     int v = 7;
-    cloning_ptr<BaseType> original_dptr(new DerivedType(v));
-    auto original_pointer = original_dptr.get();
+    cloning_ptr<BaseType> original_cptr(new DerivedType(v));
+    auto original_pointer = original_cptr.get();
     CHECK(DerivedType::object_count == 1);
 
-    cloning_ptr<BaseType> dptr(std::move(original_dptr));
+    cloning_ptr<BaseType> cptr(std::move(original_cptr));
     CHECK(DerivedType::object_count == 1);
 
     THEN("The original pointer is null")
     {
-      REQUIRE(original_dptr.get()==nullptr);
-      REQUIRE(original_dptr.operator->()==nullptr);
-      REQUIRE(!(bool)original_dptr);
+      REQUIRE(original_cptr.get()==nullptr);
+      REQUIRE(original_cptr.operator->()==nullptr);
+      REQUIRE(!(bool)original_cptr);
     }
 
     THEN("The move-constructed pointer is the original pointer")
     {
-      REQUIRE(dptr.get()==original_pointer);
-      REQUIRE(dptr.operator->()==original_pointer);
-      REQUIRE((bool)dptr);
+      REQUIRE(cptr.get()==original_pointer);
+      REQUIRE(cptr.operator->()==original_pointer);
+      REQUIRE((bool)cptr);
     }
 
     THEN("The move-constructed pointer value is the constructed value")
     {
-      REQUIRE(dptr->value() == v);
+      REQUIRE(cptr->value() == v);
     }
   }
 }
@@ -272,24 +272,24 @@ TEST_CASE("cloning_ptr assignment","[cloning_ptr.assignment]")
 {
   GIVEN("A default-constructed cloning_ptr assigned-to a default-constructed cloning_ptr")
   {
-    cloning_ptr<BaseType> dptr1;
-    const cloning_ptr<BaseType> dptr2;
-    const auto p = dptr2.get();
+    cloning_ptr<BaseType> cptr1;
+    const cloning_ptr<BaseType> cptr2;
+    const auto p = cptr2.get();
 
     REQUIRE(DerivedType::object_count == 0);
 
-    dptr1 = dptr2;
+    cptr1 = cptr2;
 
     REQUIRE(DerivedType::object_count == 0);
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(dptr2.get() == p);
+      REQUIRE(cptr2.get() == p);
     }
 
     THEN("The assigned-to object is null")
     {
-      REQUIRE(dptr1.get() == nullptr);
+      REQUIRE(cptr1.get() == nullptr);
     }
   }
 
@@ -297,24 +297,24 @@ TEST_CASE("cloning_ptr assignment","[cloning_ptr.assignment]")
   {
     int v1 = 7;
 
-    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
-    const cloning_ptr<BaseType> dptr2;
-    const auto p = dptr2.get();
+    cloning_ptr<BaseType> cptr1(new DerivedType(v1));
+    const cloning_ptr<BaseType> cptr2;
+    const auto p = cptr2.get();
 
     REQUIRE(DerivedType::object_count == 1);
 
-    dptr1 = dptr2;
+    cptr1 = cptr2;
 
     REQUIRE(DerivedType::object_count == 0);
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(dptr2.get() == p);
+      REQUIRE(cptr2.get() == p);
     }
 
     THEN("The assigned-to object is null")
     {
-      REQUIRE(dptr1.get() == nullptr);
+      REQUIRE(cptr1.get() == nullptr);
     }
   }
 
@@ -322,34 +322,34 @@ TEST_CASE("cloning_ptr assignment","[cloning_ptr.assignment]")
   {
     int v1 = 7;
 
-    cloning_ptr<BaseType> dptr1;
-    const cloning_ptr<BaseType> dptr2(new DerivedType(v1));
-    const auto p = dptr2.get();
+    cloning_ptr<BaseType> cptr1;
+    const cloning_ptr<BaseType> cptr2(new DerivedType(v1));
+    const auto p = cptr2.get();
 
     REQUIRE(DerivedType::object_count == 1);
 
-    dptr1 = dptr2;
+    cptr1 = cptr2;
 
     REQUIRE(DerivedType::object_count == 2);
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(dptr2.get() == p);
+      REQUIRE(cptr2.get() == p);
     }
 
     THEN("The assigned-to object is non-null")
     {
-      REQUIRE(dptr1.get() != nullptr);
+      REQUIRE(cptr1.get() != nullptr);
     }
 
     THEN("The assigned-from object 'value' is the assigned-to object value")
     {
-      REQUIRE(dptr1->value() == dptr2->value());
+      REQUIRE(cptr1->value() == cptr2->value());
     }
 
     THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
     {
-      REQUIRE(dptr1.get() != dptr2.get());
+      REQUIRE(cptr1.get() != cptr2.get());
     }
 
   }
@@ -359,34 +359,34 @@ TEST_CASE("cloning_ptr assignment","[cloning_ptr.assignment]")
     int v1 = 7;
     int v2 = 87;
 
-    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
-    const cloning_ptr<BaseType> dptr2(new DerivedType(v2));
-    const auto p = dptr2.get();
+    cloning_ptr<BaseType> cptr1(new DerivedType(v1));
+    const cloning_ptr<BaseType> cptr2(new DerivedType(v2));
+    const auto p = cptr2.get();
 
     REQUIRE(DerivedType::object_count == 2);
 
-    dptr1 = dptr2;
+    cptr1 = cptr2;
 
     REQUIRE(DerivedType::object_count == 2);
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(dptr2.get() == p);
+      REQUIRE(cptr2.get() == p);
     }
 
     THEN("The assigned-to object is non-null")
     {
-      REQUIRE(dptr1.get() != nullptr);
+      REQUIRE(cptr1.get() != nullptr);
     }
 
     THEN("The assigned-from object 'value' is the assigned-to object value")
     {
-      REQUIRE(dptr1->value() == dptr2->value());
+      REQUIRE(cptr1->value() == cptr2->value());
     }
 
     THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
     {
-      REQUIRE(dptr1.get() != dptr2.get());
+      REQUIRE(cptr1.get() != cptr2.get());
     }
   }
 
@@ -394,18 +394,18 @@ TEST_CASE("cloning_ptr assignment","[cloning_ptr.assignment]")
   {
     int v1 = 7;
 
-    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
-    const auto p = dptr1.get();
+    cloning_ptr<BaseType> cptr1(new DerivedType(v1));
+    const auto p = cptr1.get();
 
     REQUIRE(DerivedType::object_count == 1);
 
-    dptr1 = dptr1;
+    cptr1 = cptr1;
 
     REQUIRE(DerivedType::object_count == 1);
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(dptr1.get() == p);
+      REQUIRE(cptr1.get() == p);
     }
   }
 }
@@ -414,24 +414,24 @@ TEST_CASE("cloning_ptr move-assignment","[cloning_ptr.assignment]")
 {
   GIVEN("A default-constructed cloning_ptr move-assigned-to a default-constructed cloning_ptr")
   {
-    cloning_ptr<BaseType> dptr1;
-    cloning_ptr<BaseType> dptr2;
-    const auto p = dptr2.get();
+    cloning_ptr<BaseType> cptr1;
+    cloning_ptr<BaseType> cptr2;
+    const auto p = cptr2.get();
 
     REQUIRE(DerivedType::object_count == 0);
 
-    dptr1 = std::move(dptr2);
+    cptr1 = std::move(cptr2);
 
     REQUIRE(DerivedType::object_count == 0);
 
     THEN("The move-assigned-from object is null")
     {
-      REQUIRE(dptr1.get() == nullptr);
+      REQUIRE(cptr1.get() == nullptr);
     }
 
     THEN("The move-assigned-to object is null")
     {
-      REQUIRE(dptr1.get() == nullptr);
+      REQUIRE(cptr1.get() == nullptr);
     }
   }
 
@@ -439,24 +439,24 @@ TEST_CASE("cloning_ptr move-assignment","[cloning_ptr.assignment]")
   {
     int v1 = 7;
 
-    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
-    cloning_ptr<BaseType> dptr2;
-    const auto p = dptr2.get();
+    cloning_ptr<BaseType> cptr1(new DerivedType(v1));
+    cloning_ptr<BaseType> cptr2;
+    const auto p = cptr2.get();
 
     REQUIRE(DerivedType::object_count == 1);
 
-    dptr1 = std::move(dptr2);
+    cptr1 = std::move(cptr2);
 
     REQUIRE(DerivedType::object_count == 0);
 
     THEN("The move-assigned-from object is null")
     {
-      REQUIRE(dptr1.get() == nullptr);
+      REQUIRE(cptr1.get() == nullptr);
     }
 
     THEN("The move-assigned-to object is null")
     {
-      REQUIRE(dptr1.get() == nullptr);
+      REQUIRE(cptr1.get() == nullptr);
     }
   }
 
@@ -464,24 +464,24 @@ TEST_CASE("cloning_ptr move-assignment","[cloning_ptr.assignment]")
   {
     int v1 = 7;
 
-    cloning_ptr<BaseType> dptr1;
-    cloning_ptr<BaseType> dptr2(new DerivedType(v1));
-    const auto p = dptr2.get();
+    cloning_ptr<BaseType> cptr1;
+    cloning_ptr<BaseType> cptr2(new DerivedType(v1));
+    const auto p = cptr2.get();
 
     REQUIRE(DerivedType::object_count == 1);
 
-    dptr1 = std::move(dptr2);
+    cptr1 = std::move(cptr2);
 
     REQUIRE(DerivedType::object_count == 1);
 
     THEN("The move-assigned-from object is null")
     {
-      REQUIRE(dptr2.get() == nullptr);
+      REQUIRE(cptr2.get() == nullptr);
     }
 
     THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
     {
-      REQUIRE(dptr1.get() == p);
+      REQUIRE(cptr1.get() == p);
     }
   }
 
@@ -490,24 +490,24 @@ TEST_CASE("cloning_ptr move-assignment","[cloning_ptr.assignment]")
     int v1 = 7;
     int v2 = 87;
 
-    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
-    cloning_ptr<BaseType> dptr2(new DerivedType(v2));
-    const auto p = dptr2.get();
+    cloning_ptr<BaseType> cptr1(new DerivedType(v1));
+    cloning_ptr<BaseType> cptr2(new DerivedType(v2));
+    const auto p = cptr2.get();
 
     REQUIRE(DerivedType::object_count == 2);
 
-    dptr1 = std::move(dptr2);
+    cptr1 = std::move(cptr2);
 
     REQUIRE(DerivedType::object_count == 1);
 
     THEN("The move-assigned-from object is null")
     {
-      REQUIRE(dptr2.get() == nullptr);
+      REQUIRE(cptr2.get() == nullptr);
     }
 
     THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
     {
-      REQUIRE(dptr1.get() == p);
+      REQUIRE(cptr1.get() == p);
     }
   }
 
@@ -515,17 +515,17 @@ TEST_CASE("cloning_ptr move-assignment","[cloning_ptr.assignment]")
   {
     int v = 7;
 
-    cloning_ptr<BaseType> dptr(new DerivedType(v));
-    const auto p = dptr.get();
+    cloning_ptr<BaseType> cptr(new DerivedType(v));
+    const auto p = cptr.get();
 
     REQUIRE(DerivedType::object_count == 1);
 
-    dptr = std::move(dptr);
+    cptr = std::move(cptr);
 
     THEN("The cloning_ptr is unaffected")
     {
       REQUIRE(DerivedType::object_count == 1);
-      REQUIRE(dptr.get() == p);
+      REQUIRE(cptr.get() == p);
     }
   }
 }
@@ -535,11 +535,11 @@ TEST_CASE("Derived types", "[cloning_ptr.derived_types]")
   GIVEN("A cloning_ptr<BaseType> constructed from make_cloning_ptr<DerivedType>")
   {
     int v = 7;
-    auto dptr = make_cloning_ptr<DerivedType>(v);
+    auto cptr = make_cloning_ptr<DerivedType>(v);
 
     WHEN("A cloning_ptr<BaseType> is copy-constructed")
     {
-      cloning_ptr<BaseType> bptr(dptr);
+      cloning_ptr<BaseType> bptr(cptr);
 
       THEN("get returns a non-null pointer")
       {
@@ -560,7 +560,7 @@ TEST_CASE("Derived types", "[cloning_ptr.derived_types]")
     WHEN("A cloning_ptr<BaseType> is assigned")
     {
       cloning_ptr<BaseType> bptr;
-      bptr = dptr;
+      bptr = cptr;
 
       THEN("get returns a non-null pointer")
       {
@@ -580,7 +580,7 @@ TEST_CASE("Derived types", "[cloning_ptr.derived_types]")
 
     WHEN("A cloning_ptr<BaseType> is move-constructed")
     {
-      cloning_ptr<BaseType> bptr(std::move(dptr));
+      cloning_ptr<BaseType> bptr(std::move(cptr));
 
       THEN("get returns a non-null pointer")
       {
@@ -601,7 +601,7 @@ TEST_CASE("Derived types", "[cloning_ptr.derived_types]")
     WHEN("A cloning_ptr<BaseType> is move-assigned")
     {
       cloning_ptr<BaseType> bptr;
-      bptr = std::move(dptr);
+      bptr = std::move(cptr);
 
       THEN("get returns a non-null pointer")
       {
@@ -626,21 +626,21 @@ TEST_CASE("make_cloning_ptr return type can be converted to base-type", "[clonin
   GIVEN("A cloning_ptr<BaseType> constructed from make_cloning_ptr<DerivedType>")
   {
     int v = 7;
-    cloning_ptr<BaseType> dptr = make_cloning_ptr<DerivedType>(v);
+    cloning_ptr<BaseType> cptr = make_cloning_ptr<DerivedType>(v);
 
     THEN("get returns a non-null pointer")
     {
-      REQUIRE(dptr.get() != nullptr);
+      REQUIRE(cptr.get() != nullptr);
     }
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(dptr->value() == v);
+      REQUIRE(cptr->value() == v);
     }
 
     THEN("operator bool returns true")
     {
-      REQUIRE((bool)dptr == true);
+      REQUIRE((bool)cptr == true);
     }
   }
 }
@@ -649,16 +649,16 @@ TEST_CASE("release","[cloning_ptr.release]")
 {
   GIVEN("An empty cloning_ptr")
   {
-    cloning_ptr<DerivedType> dptr;
+    cloning_ptr<DerivedType> cptr;
 
     WHEN("release is called")
     {
-      auto p = dptr.release();
+      auto p = cptr.release();
 
       THEN("The cloning_ptr remains empty and the returned pointer is null")
       {
-        REQUIRE(!dptr);
-        REQUIRE(dptr.get()==nullptr);
+        REQUIRE(!cptr);
+        REQUIRE(cptr.get()==nullptr);
         REQUIRE(p==nullptr);
       }
     }
@@ -667,22 +667,22 @@ TEST_CASE("release","[cloning_ptr.release]")
   GIVEN("A non-empty cloning_ptr")
   {
     int v = 7;
-    cloning_ptr<DerivedType> dptr(new DerivedType(v));
+    cloning_ptr<DerivedType> cptr(new DerivedType(v));
     CHECK(DerivedType::object_count == 1);
 
-    const auto op =dptr.get();
+    const auto op =cptr.get();
 
 
     WHEN("release is called")
     {
-      auto p = dptr.release();
+      auto p = cptr.release();
       std::unique_ptr<DerivedType> cleanup(p);
       CHECK(DerivedType::object_count == 1);
 
       THEN("The cloning_ptr is empty and the returned pointer is the previous pointer value")
       {
-        REQUIRE(!dptr);
-        REQUIRE(dptr.get()==nullptr);
+        REQUIRE(!cptr);
+        REQUIRE(cptr.get()==nullptr);
         REQUIRE(p==op);
       }
     }
@@ -694,31 +694,31 @@ TEST_CASE("reset","[cloning_ptr.reset]")
 {
   GIVEN("An empty cloning_ptr")
   {
-    cloning_ptr<DerivedType> dptr;
+    cloning_ptr<DerivedType> cptr;
 
     WHEN("reset to null")
     {
-      dptr.reset();
+      cptr.reset();
 
       THEN("The cloning_ptr remains empty")
       {
-        REQUIRE(!dptr);
-        REQUIRE(dptr.get()==nullptr);
+        REQUIRE(!cptr);
+        REQUIRE(cptr.get()==nullptr);
       }
     }
 
     WHEN("reset to non-null")
     {
       int v = 7;
-      dptr.reset(new DerivedType(v));
+      cptr.reset(new DerivedType(v));
 
       CHECK(DerivedType::object_count == 1);
 
       THEN("The cloning_ptr is non-empty and owns the pointer")
       {
-        REQUIRE(dptr);
-        REQUIRE(dptr.get()!=nullptr);
-        REQUIRE(dptr->value() == v);
+        REQUIRE(cptr);
+        REQUIRE(cptr.get()!=nullptr);
+        REQUIRE(cptr->value() == v);
       }
     }
   }
@@ -727,32 +727,32 @@ TEST_CASE("reset","[cloning_ptr.reset]")
   GIVEN("A non-empty cloning_ptr")
   {
     int v1 = 7;
-    cloning_ptr<DerivedType> dptr(new DerivedType(v1));
+    cloning_ptr<DerivedType> cptr(new DerivedType(v1));
     CHECK(DerivedType::object_count == 1);
 
     WHEN("reset to null")
     {
-      dptr.reset();
+      cptr.reset();
       CHECK(DerivedType::object_count == 0);
 
       THEN("The cloning_ptr is empty")
       {
-        REQUIRE(!dptr);
-        REQUIRE(dptr.get()==nullptr);
+        REQUIRE(!cptr);
+        REQUIRE(cptr.get()==nullptr);
       }
     }
 
     WHEN("reset to non-null")
     {
       int v2 = 7;
-      dptr.reset(new DerivedType(v2));
+      cptr.reset(new DerivedType(v2));
       CHECK(DerivedType::object_count == 1);
 
       THEN("The cloning_ptr is non-empty and owns the pointer")
       {
-        REQUIRE(dptr);
-        REQUIRE(dptr.get()!=nullptr);
-        REQUIRE(dptr->value() == v2);
+        REQUIRE(cptr);
+        REQUIRE(cptr.get()!=nullptr);
+        REQUIRE(cptr->value() == v2);
       }
     }
   }
@@ -765,40 +765,40 @@ TEST_CASE("Comparisons", "[cloning_ptr.comparisons]")
     int v1 = 0;
     int v2 = 1;
 
-    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
-    cloning_ptr<BaseType> dptr2(new DerivedType(v2));
+    cloning_ptr<BaseType> cptr1(new DerivedType(v1));
+    cloning_ptr<BaseType> cptr2(new DerivedType(v2));
 
     THEN("Comparisons give same results as raw-pointer comparisons")
     {
-      REQUIRE( (dptr1 == dptr2) == (dptr1.get() == dptr2.get()) );
-      REQUIRE( (dptr1 != dptr2) == (dptr1.get() != dptr2.get()) );
-      REQUIRE( (dptr1 < dptr2) == (dptr1.get() < dptr2.get()) );
-      REQUIRE( (dptr1 > dptr2) == (dptr1.get() > dptr2.get()) );
-      REQUIRE( (dptr1 <= dptr2) == (dptr1.get() <= dptr2.get()) );
-      REQUIRE( (dptr1 >= dptr2) == (dptr1.get() >= dptr2.get()) );
+      REQUIRE( (cptr1 == cptr2) == (cptr1.get() == cptr2.get()) );
+      REQUIRE( (cptr1 != cptr2) == (cptr1.get() != cptr2.get()) );
+      REQUIRE( (cptr1 < cptr2) == (cptr1.get() < cptr2.get()) );
+      REQUIRE( (cptr1 > cptr2) == (cptr1.get() > cptr2.get()) );
+      REQUIRE( (cptr1 <= cptr2) == (cptr1.get() <= cptr2.get()) );
+      REQUIRE( (cptr1 >= cptr2) == (cptr1.get() >= cptr2.get()) );
     }
   }
 
   GIVEN("A nullptr_t and a pointer constructed cloning_ptr")
   {
     int v = 7;
-    cloning_ptr<BaseType> dptr(new DerivedType(v));
+    cloning_ptr<BaseType> cptr(new DerivedType(v));
 
     THEN("Comparisons give same results as raw-pointer comparisons")
     {
-      REQUIRE( (dptr == nullptr) == (dptr.get() == nullptr) );
-      REQUIRE( (dptr != nullptr) == (dptr.get() != nullptr) );
-      REQUIRE( (dptr < nullptr) == (dptr.get() < nullptr) );
-      REQUIRE( (dptr > nullptr) == (dptr.get() > nullptr) );
-      REQUIRE( (dptr <= nullptr) == (dptr.get() <= nullptr) );
-      REQUIRE( (dptr >= nullptr) == (dptr.get() >= nullptr) );
+      REQUIRE( (cptr == nullptr) == (cptr.get() == nullptr) );
+      REQUIRE( (cptr != nullptr) == (cptr.get() != nullptr) );
+      REQUIRE( (cptr < nullptr) == (cptr.get() < nullptr) );
+      REQUIRE( (cptr > nullptr) == (cptr.get() > nullptr) );
+      REQUIRE( (cptr <= nullptr) == (cptr.get() <= nullptr) );
+      REQUIRE( (cptr >= nullptr) == (cptr.get() >= nullptr) );
 
-      REQUIRE((nullptr == dptr) == (nullptr == dptr.get()));
-      REQUIRE( (nullptr != dptr) == (nullptr != dptr.get()) );
-      REQUIRE( (nullptr < dptr) == (nullptr < dptr.get()) );
-      REQUIRE( (nullptr > dptr) == (nullptr > dptr.get()) );
-      REQUIRE( (nullptr <= dptr) == (nullptr <= dptr.get()) );
-      REQUIRE( (nullptr >= dptr) == (nullptr >= dptr.get()) );
+      REQUIRE((nullptr == cptr) == (nullptr == cptr.get()));
+      REQUIRE( (nullptr != cptr) == (nullptr != cptr.get()) );
+      REQUIRE( (nullptr < cptr) == (nullptr < cptr.get()) );
+      REQUIRE( (nullptr > cptr) == (nullptr > cptr.get()) );
+      REQUIRE( (nullptr <= cptr) == (nullptr <= cptr.get()) );
+      REQUIRE( (nullptr >= cptr) == (nullptr >= cptr.get()) );
     }
   }
 }
@@ -823,24 +823,24 @@ TEST_CASE("cast operations", "[cloning_ptr.casts]")
   GIVEN("A pointer-constructed cloning_ptr<BaseType>")
   {
     int v = 7;
-    cloning_ptr<BaseType> dptr(new DerivedType(v));
+    cloning_ptr<BaseType> cptr(new DerivedType(v));
     REQUIRE(DerivedType::object_count == 1);
 
     WHEN("static_pointer_cast to the derived type is called")
     {
-      auto st_dptr = std::static_pointer_cast<DerivedType>(dptr);
+      auto st_cptr = std::static_pointer_cast<DerivedType>(cptr);
 
       THEN("The static-cast pointer is non-null")
       {
-        REQUIRE(st_dptr);
+        REQUIRE(st_cptr);
       }
       THEN("The static-cast pointer has the required value")
       {
-        REQUIRE(st_dptr->value() == v);
+        REQUIRE(st_cptr->value() == v);
       }
       THEN("The static-cast pointer is distinct from the original pointer")
       {
-        REQUIRE(st_dptr.get() != dptr.get());
+        REQUIRE(st_cptr.get() != cptr.get());
       }
       THEN("Object count is increased")
       {
@@ -849,19 +849,19 @@ TEST_CASE("cast operations", "[cloning_ptr.casts]")
     }
     WHEN("dynamic_pointer_cast to the derived type is called")
     {
-      auto dyn_dptr = std::dynamic_pointer_cast<DerivedType>(dptr);
+      auto dyn_cptr = std::dynamic_pointer_cast<DerivedType>(cptr);
 
       THEN("The dynamic-cast pointer is non-null")
       {
-        REQUIRE(dyn_dptr);
+        REQUIRE(dyn_cptr);
       }
       THEN("The dynamic-cast pointer has the required value")
       {
-        REQUIRE(dyn_dptr->value() == v);
+        REQUIRE(dyn_cptr->value() == v);
       }
       THEN("The dynamic-cast pointer is distinct from the original pointer")
       {
-        REQUIRE(dyn_dptr.get() != dptr.get());
+        REQUIRE(dyn_cptr.get() != cptr.get());
       }
       THEN("Object count is increased")
       {
@@ -870,11 +870,11 @@ TEST_CASE("cast operations", "[cloning_ptr.casts]")
     }
     WHEN("dynamic_pointer_cast to the wrong derived type is called")
     {
-      auto dyn_dptr = std::dynamic_pointer_cast<AlternativeDerivedType>(dptr);
+      auto dyn_cptr = std::dynamic_pointer_cast<AlternativeDerivedType>(cptr);
 
       THEN("The dynamic-cast pointer is null")
       {
-        REQUIRE(!dyn_dptr);
+        REQUIRE(!dyn_cptr);
       }
       THEN("Object count is unchanged")
       {
@@ -885,24 +885,24 @@ TEST_CASE("cast operations", "[cloning_ptr.casts]")
   GIVEN("A pointer-constructed cloning_ptr<const DerivedType>")
   {
     int v = 7;
-    cloning_ptr<const DerivedType> cdptr(new DerivedType(v));
+    cloning_ptr<const DerivedType> ccptr(new DerivedType(v));
     REQUIRE(DerivedType::object_count == 1);
 
     WHEN("static_pointer_cast to the derived type is called")
     {
-      auto dptr = std::const_pointer_cast<DerivedType>(cdptr);
+      auto cptr = std::const_pointer_cast<DerivedType>(ccptr);
 
       THEN("The static-cast pointer is non-null")
       {
-        REQUIRE(dptr);
+        REQUIRE(cptr);
       }
       THEN("The static-cast pointer has the required value")
       {
-        REQUIRE(dptr->value() == v);
+        REQUIRE(cptr->value() == v);
       }
       THEN("The static-cast pointer is distinct from the original pointer")
       {
-        REQUIRE(dptr.get() != cdptr.get());
+        REQUIRE(cptr.get() != ccptr.get());
       }
       THEN("Object count is increased")
       {
@@ -913,23 +913,23 @@ TEST_CASE("cast operations", "[cloning_ptr.casts]")
   GIVEN("An AlternativeDerivedType-pointer-constructed cloning_ptr<BaseType>")
   {
     int v = 7;
-    cloning_ptr<BaseType> dptr(new AlternativeDerivedType(v));
+    cloning_ptr<BaseType> cptr(new AlternativeDerivedType(v));
 
     WHEN("dynamic_pointer_cast to AlternativeBaseType is called")
     {
-      auto dyn_dptr = std::dynamic_pointer_cast<AlternativeBaseType>(dptr);
+      auto dyn_cptr = std::dynamic_pointer_cast<AlternativeBaseType>(cptr);
 
       THEN("The dynamic-cast pointer is non-null")
       {
-        REQUIRE(dyn_dptr);
+        REQUIRE(dyn_cptr);
       }
       THEN("The dynamic-cast pointer has the required value")
       {
-        REQUIRE(dyn_dptr->alternative_value() == v);
+        REQUIRE(dyn_cptr->alternative_value() == v);
       }
       THEN("The dynamic-cast pointer is distinct from the original pointer")
       {
-        REQUIRE(dyn_dptr.get() != dynamic_cast<AlternativeBaseType*>(dptr.get()));
+        REQUIRE(dyn_cptr.get() != dynamic_cast<AlternativeBaseType*>(cptr.get()));
       }
     }
   }
@@ -945,20 +945,20 @@ TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[cloning_ptr
   GIVEN("A value-constructed multiply-derived-class cloning_ptr")
   {
     int v = 7;
-    cloning_ptr<MultiplyDerived> dptr(new MultiplyDerived(v));
+    cloning_ptr<MultiplyDerived> cptr(new MultiplyDerived(v));
 
     THEN("When copied to a cloning_ptr to an intermediate base type, data is accessible as expected")
     {
-      cloning_ptr<IntermediateBaseA> dptr_IA = dptr;
-      REQUIRE(dptr_IA->a_ == 3);
-      REQUIRE(dptr_IA->v_ == 42);
+      cloning_ptr<IntermediateBaseA> cptr_IA = cptr;
+      REQUIRE(cptr_IA->a_ == 3);
+      REQUIRE(cptr_IA->v_ == 42);
     }
 
     THEN("When copied to a cloning_ptr to an intermediate base type, data is accessible as expected")
     {
-      cloning_ptr<IntermediateBaseB> dptr_IB = dptr;
-      REQUIRE(dptr_IB->b_ == 101);
-      REQUIRE(dptr_IB->v_ == 42);
+      cloning_ptr<IntermediateBaseB> cptr_IB = cptr;
+      REQUIRE(cptr_IB->b_ == 101);
+      REQUIRE(cptr_IB->v_ == 42);
     }
   }
 }
