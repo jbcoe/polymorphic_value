@@ -201,7 +201,7 @@ TEST_CASE("cloning_ptr copy constructor","[cloning_ptr.constructors]")
       REQUIRE(DerivedType::object_count == 2);
     }
 
-    WHEN("Changes are made to the original deep pointer after copying")
+    WHEN("Changes are made to the original cloning pointer after copying")
     {
       int new_value = 99;
       original_dptr->set_value(new_value);
