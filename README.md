@@ -1,10 +1,10 @@
-# deep_ptr : a deep-copying pointer class for C++
+# cloned_ptr : a deep-copying pointer class for C++
 
-A deep copying smart pointer that uses type erasure to call the copy
+A deep-copying smart pointer that uses type erasure to call the copy
 constructor of derived types would allow the compiler-generated copy
 constructor to copy an object composed of polymorphic components correctly. 
 
-When component objects are owned by deep-copying pointers, they will be copied
+When component objects are owned by cloned pointers, they will be copied
 correctly without any extra code being required - an end user can use the
 compiler-defaults for copy, assign, move and move-assign.
 
