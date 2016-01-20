@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
 
 #include <catch.hpp>
-#include "deep_ptr.h"
+#include "cloning_ptr.h"
 
 struct BaseType
 {
@@ -44,11 +44,11 @@ struct DerivedType : BaseType
 
 size_t DerivedType::object_count = 0;
 
-TEST_CASE("Default constructor","[deep_ptr.constructors]")
+TEST_CASE("Default constructor","[cloning_ptr.constructors]")
 {
-  GIVEN("A default constructed deep_ptr to BaseType")
+  GIVEN("A default constructed cloning_ptr to BaseType")
   {
-    deep_ptr<BaseType> dptr;
+    cloning_ptr<BaseType> dptr;
 
     THEN("get returns nullptr")
     {
@@ -66,9 +66,9 @@ TEST_CASE("Default constructor","[deep_ptr.constructors]")
     }
   }
 
-  GIVEN("A default constructed const deep_ptr to BaseType")
+  GIVEN("A default constructed const cloning_ptr to BaseType")
   {
-    const deep_ptr<BaseType> cdptr;
+    const cloning_ptr<BaseType> cdptr;
 
     THEN("get returns nullptr")
     {
@@ -87,12 +87,12 @@ TEST_CASE("Default constructor","[deep_ptr.constructors]")
   }
 }
 
-TEST_CASE("Pointer constructor","[deep_ptr.constructors]")
+TEST_CASE("Pointer constructor","[cloning_ptr.constructors]")
 {
-  GIVEN("A pointer-constructed deep_ptr")
+  GIVEN("A pointer-constructed cloning_ptr")
   {
     int v = 7;
-    deep_ptr<BaseType> dptr(new DerivedType(v));
+    cloning_ptr<BaseType> dptr(new DerivedType(v));
 
     THEN("get returns a non-null pointer")
     {
@@ -109,10 +109,10 @@ TEST_CASE("Pointer constructor","[deep_ptr.constructors]")
       REQUIRE((bool)dptr == true);
     }
   }
-  GIVEN("A pointer-constructed const deep_ptr")
+  GIVEN("A pointer-constructed const cloning_ptr")
   {
     int v = 7;
-    const deep_ptr<BaseType> cdptr(new DerivedType(v));
+    const cloning_ptr<BaseType> cdptr(new DerivedType(v));
 
     THEN("get returns a non-null pointer")
     {
@@ -131,7 +131,7 @@ TEST_CASE("Pointer constructor","[deep_ptr.constructors]")
   }
 }
 
-TEST_CASE("deep_ptr destructor","[deep_ptr.destructor]")
+TEST_CASE("cloning_ptr destructor","[cloning_ptr.destructor]")
 {
   GIVEN("No derived objects")
   {
@@ -141,7 +141,7 @@ TEST_CASE("deep_ptr destructor","[deep_ptr.destructor]")
     {
       // begin and end scope to force destruction
       {
-        deep_ptr<BaseType> tmp(new DerivedType());
+        cloning_ptr<BaseType> tmp(new DerivedType());
         REQUIRE(DerivedType::object_count == 1);
       }
       REQUIRE(DerivedType::object_count == 0);
@@ -149,12 +149,12 @@ TEST_CASE("deep_ptr destructor","[deep_ptr.destructor]")
   }
 }
 
-TEST_CASE("deep_ptr copy constructor","[deep_ptr.constructors]")
+TEST_CASE("cloning_ptr copy constructor","[cloning_ptr.constructors]")
 {
-  GIVEN("A deep_ptr copied from a default-constructed deep_ptr")
+  GIVEN("A cloning_ptr copied from a default-constructed cloning_ptr")
   {
-    deep_ptr<BaseType> original_dptr;
-    deep_ptr<BaseType> dptr(original_dptr);
+    cloning_ptr<BaseType> original_dptr;
+    cloning_ptr<BaseType> dptr(original_dptr);
 
     THEN("get returns nullptr")
     {
@@ -172,13 +172,13 @@ TEST_CASE("deep_ptr copy constructor","[deep_ptr.constructors]")
     }
   }
 
-  GIVEN("A deep_ptr copied from a pointer-constructed deep_ptr")
+  GIVEN("A cloning_ptr copied from a pointer-constructed cloning_ptr")
   {
     REQUIRE(DerivedType::object_count == 0);
 
     int v = 7;
-    deep_ptr<BaseType> original_dptr(new DerivedType(v));
-    deep_ptr<BaseType> dptr(original_dptr);
+    cloning_ptr<BaseType> original_dptr(new DerivedType(v));
+    cloning_ptr<BaseType> dptr(original_dptr);
 
     THEN("get returns a distinct non-null pointer")
     {
@@ -215,12 +215,12 @@ TEST_CASE("deep_ptr copy constructor","[deep_ptr.constructors]")
   }
 }
 
-TEST_CASE("deep_ptr move constructor","[deep_ptr.constructors]")
+TEST_CASE("cloning_ptr move constructor","[cloning_ptr.constructors]")
 {
-  GIVEN("A deep_ptr move-constructed from a default-constructed deep_ptr")
+  GIVEN("A cloning_ptr move-constructed from a default-constructed cloning_ptr")
   {
-    deep_ptr<BaseType> original_dptr;
-    deep_ptr<BaseType> dptr(std::move(original_dptr));
+    cloning_ptr<BaseType> original_dptr;
+    cloning_ptr<BaseType> dptr(std::move(original_dptr));
 
     THEN("The original pointer is null")
     {
@@ -237,14 +237,14 @@ TEST_CASE("deep_ptr move constructor","[deep_ptr.constructors]")
     }
   }
 
-  GIVEN("A deep_ptr move-constructed from a default-constructed deep_ptr")
+  GIVEN("A cloning_ptr move-constructed from a default-constructed cloning_ptr")
   {
     int v = 7;
-    deep_ptr<BaseType> original_dptr(new DerivedType(v));
+    cloning_ptr<BaseType> original_dptr(new DerivedType(v));
     auto original_pointer = original_dptr.get();
     CHECK(DerivedType::object_count == 1);
 
-    deep_ptr<BaseType> dptr(std::move(original_dptr));
+    cloning_ptr<BaseType> dptr(std::move(original_dptr));
     CHECK(DerivedType::object_count == 1);
 
     THEN("The original pointer is null")
@@ -268,12 +268,12 @@ TEST_CASE("deep_ptr move constructor","[deep_ptr.constructors]")
   }
 }
 
-TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
+TEST_CASE("cloning_ptr assignment","[cloning_ptr.assignment]")
 {
-  GIVEN("A default-constructed deep_ptr assigned-to a default-constructed deep_ptr")
+  GIVEN("A default-constructed cloning_ptr assigned-to a default-constructed cloning_ptr")
   {
-    deep_ptr<BaseType> dptr1;
-    const deep_ptr<BaseType> dptr2;
+    cloning_ptr<BaseType> dptr1;
+    const cloning_ptr<BaseType> dptr2;
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 0);
@@ -293,12 +293,12 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
     }
   }
 
-  GIVEN("A default-constructed deep_ptr assigned to a pointer-constructed deep_ptr")
+  GIVEN("A default-constructed cloning_ptr assigned to a pointer-constructed cloning_ptr")
   {
     int v1 = 7;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
-    const deep_ptr<BaseType> dptr2;
+    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
+    const cloning_ptr<BaseType> dptr2;
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -318,12 +318,12 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed deep_ptr assigned to a default-constructed deep_ptr")
+  GIVEN("A pointer-constructed cloning_ptr assigned to a default-constructed cloning_ptr")
   {
     int v1 = 7;
 
-    deep_ptr<BaseType> dptr1;
-    const deep_ptr<BaseType> dptr2(new DerivedType(v1));
+    cloning_ptr<BaseType> dptr1;
+    const cloning_ptr<BaseType> dptr2(new DerivedType(v1));
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -354,13 +354,13 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
 
   }
 
-  GIVEN("A pointer-constructed deep_ptr assigned to a pointer-constructed deep_ptr")
+  GIVEN("A pointer-constructed cloning_ptr assigned to a pointer-constructed cloning_ptr")
   {
     int v1 = 7;
     int v2 = 87;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
-    const deep_ptr<BaseType> dptr2(new DerivedType(v2));
+    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
+    const cloning_ptr<BaseType> dptr2(new DerivedType(v2));
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 2);
@@ -390,11 +390,11 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed deep_ptr assigned to itself")
+  GIVEN("A pointer-constructed cloning_ptr assigned to itself")
   {
     int v1 = 7;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
+    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
     const auto p = dptr1.get();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -410,12 +410,12 @@ TEST_CASE("deep_ptr assignment","[deep_ptr.assignment]")
   }
 }
 
-TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
+TEST_CASE("cloning_ptr move-assignment","[cloning_ptr.assignment]")
 {
-  GIVEN("A default-constructed deep_ptr move-assigned-to a default-constructed deep_ptr")
+  GIVEN("A default-constructed cloning_ptr move-assigned-to a default-constructed cloning_ptr")
   {
-    deep_ptr<BaseType> dptr1;
-    deep_ptr<BaseType> dptr2;
+    cloning_ptr<BaseType> dptr1;
+    cloning_ptr<BaseType> dptr2;
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 0);
@@ -435,12 +435,12 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
     }
   }
 
-  GIVEN("A default-constructed deep_ptr move-assigned to a pointer-constructed deep_ptr")
+  GIVEN("A default-constructed cloning_ptr move-assigned to a pointer-constructed cloning_ptr")
   {
     int v1 = 7;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
-    deep_ptr<BaseType> dptr2;
+    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
+    cloning_ptr<BaseType> dptr2;
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -460,12 +460,12 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed deep_ptr move-assigned to a default-constructed deep_ptr")
+  GIVEN("A pointer-constructed cloning_ptr move-assigned to a default-constructed cloning_ptr")
   {
     int v1 = 7;
 
-    deep_ptr<BaseType> dptr1;
-    deep_ptr<BaseType> dptr2(new DerivedType(v1));
+    cloning_ptr<BaseType> dptr1;
+    cloning_ptr<BaseType> dptr2(new DerivedType(v1));
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -485,13 +485,13 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed deep_ptr move-assigned to a pointer-constructed deep_ptr")
+  GIVEN("A pointer-constructed cloning_ptr move-assigned to a pointer-constructed cloning_ptr")
   {
     int v1 = 7;
     int v2 = 87;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
-    deep_ptr<BaseType> dptr2(new DerivedType(v2));
+    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
+    cloning_ptr<BaseType> dptr2(new DerivedType(v2));
     const auto p = dptr2.get();
 
     REQUIRE(DerivedType::object_count == 2);
@@ -511,18 +511,18 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed deep_ptr move-assigned to itself")
+  GIVEN("A pointer-constructed cloning_ptr move-assigned to itself")
   {
     int v = 7;
 
-    deep_ptr<BaseType> dptr(new DerivedType(v));
+    cloning_ptr<BaseType> dptr(new DerivedType(v));
     const auto p = dptr.get();
 
     REQUIRE(DerivedType::object_count == 1);
 
     dptr = std::move(dptr);
 
-    THEN("The deep_ptr is unaffected")
+    THEN("The cloning_ptr is unaffected")
     {
       REQUIRE(DerivedType::object_count == 1);
       REQUIRE(dptr.get() == p);
@@ -530,16 +530,16 @@ TEST_CASE("deep_ptr move-assignment","[deep_ptr.assignment]")
   }
 }
 
-TEST_CASE("Derived types", "[deep_ptr.derived_types]")
+TEST_CASE("Derived types", "[cloning_ptr.derived_types]")
 {
-  GIVEN("A deep_ptr<BaseType> constructed from make_deep_ptr<DerivedType>")
+  GIVEN("A cloning_ptr<BaseType> constructed from make_cloning_ptr<DerivedType>")
   {
     int v = 7;
-    auto dptr = make_deep_ptr<DerivedType>(v);
+    auto dptr = make_cloning_ptr<DerivedType>(v);
 
-    WHEN("A deep_ptr<BaseType> is copy-constructed")
+    WHEN("A cloning_ptr<BaseType> is copy-constructed")
     {
-      deep_ptr<BaseType> bptr(dptr);
+      cloning_ptr<BaseType> bptr(dptr);
 
       THEN("get returns a non-null pointer")
       {
@@ -557,9 +557,9 @@ TEST_CASE("Derived types", "[deep_ptr.derived_types]")
       }
     }
 
-    WHEN("A deep_ptr<BaseType> is assigned")
+    WHEN("A cloning_ptr<BaseType> is assigned")
     {
-      deep_ptr<BaseType> bptr;
+      cloning_ptr<BaseType> bptr;
       bptr = dptr;
 
       THEN("get returns a non-null pointer")
@@ -578,9 +578,9 @@ TEST_CASE("Derived types", "[deep_ptr.derived_types]")
       }
     }
 
-    WHEN("A deep_ptr<BaseType> is move-constructed")
+    WHEN("A cloning_ptr<BaseType> is move-constructed")
     {
-      deep_ptr<BaseType> bptr(std::move(dptr));
+      cloning_ptr<BaseType> bptr(std::move(dptr));
 
       THEN("get returns a non-null pointer")
       {
@@ -598,9 +598,9 @@ TEST_CASE("Derived types", "[deep_ptr.derived_types]")
       }
     }
 
-    WHEN("A deep_ptr<BaseType> is move-assigned")
+    WHEN("A cloning_ptr<BaseType> is move-assigned")
     {
-      deep_ptr<BaseType> bptr;
+      cloning_ptr<BaseType> bptr;
       bptr = std::move(dptr);
 
       THEN("get returns a non-null pointer")
@@ -621,12 +621,12 @@ TEST_CASE("Derived types", "[deep_ptr.derived_types]")
   }
 }
 
-TEST_CASE("make_deep_ptr return type can be converted to base-type", "[deep_ptr.make_deep_ptr]")
+TEST_CASE("make_cloning_ptr return type can be converted to base-type", "[cloning_ptr.make_cloning_ptr]")
 {
-  GIVEN("A deep_ptr<BaseType> constructed from make_deep_ptr<DerivedType>")
+  GIVEN("A cloning_ptr<BaseType> constructed from make_cloning_ptr<DerivedType>")
   {
     int v = 7;
-    deep_ptr<BaseType> dptr = make_deep_ptr<DerivedType>(v);
+    cloning_ptr<BaseType> dptr = make_cloning_ptr<DerivedType>(v);
 
     THEN("get returns a non-null pointer")
     {
@@ -645,17 +645,17 @@ TEST_CASE("make_deep_ptr return type can be converted to base-type", "[deep_ptr.
   }
 }
 
-TEST_CASE("release","[deep_ptr.release]")
+TEST_CASE("release","[cloning_ptr.release]")
 {
-  GIVEN("An empty deep_ptr")
+  GIVEN("An empty cloning_ptr")
   {
-    deep_ptr<DerivedType> dptr;
+    cloning_ptr<DerivedType> dptr;
 
     WHEN("release is called")
     {
       auto p = dptr.release();
 
-      THEN("The deep_ptr remains empty and the returned pointer is null")
+      THEN("The cloning_ptr remains empty and the returned pointer is null")
       {
         REQUIRE(!dptr);
         REQUIRE(dptr.get()==nullptr);
@@ -664,10 +664,10 @@ TEST_CASE("release","[deep_ptr.release]")
     }
   }
 
-  GIVEN("A non-empty deep_ptr")
+  GIVEN("A non-empty cloning_ptr")
   {
     int v = 7;
-    deep_ptr<DerivedType> dptr(new DerivedType(v));
+    cloning_ptr<DerivedType> dptr(new DerivedType(v));
     CHECK(DerivedType::object_count == 1);
 
     const auto op =dptr.get();
@@ -679,7 +679,7 @@ TEST_CASE("release","[deep_ptr.release]")
       std::unique_ptr<DerivedType> cleanup(p);
       CHECK(DerivedType::object_count == 1);
 
-      THEN("The deep_ptr is empty and the returned pointer is the previous pointer value")
+      THEN("The cloning_ptr is empty and the returned pointer is the previous pointer value")
       {
         REQUIRE(!dptr);
         REQUIRE(dptr.get()==nullptr);
@@ -690,17 +690,17 @@ TEST_CASE("release","[deep_ptr.release]")
   }
 }
 
-TEST_CASE("reset","[deep_ptr.reset]")
+TEST_CASE("reset","[cloning_ptr.reset]")
 {
-  GIVEN("An empty deep_ptr")
+  GIVEN("An empty cloning_ptr")
   {
-    deep_ptr<DerivedType> dptr;
+    cloning_ptr<DerivedType> dptr;
 
     WHEN("reset to null")
     {
       dptr.reset();
 
-      THEN("The deep_ptr remains empty")
+      THEN("The cloning_ptr remains empty")
       {
         REQUIRE(!dptr);
         REQUIRE(dptr.get()==nullptr);
@@ -714,7 +714,7 @@ TEST_CASE("reset","[deep_ptr.reset]")
 
       CHECK(DerivedType::object_count == 1);
 
-      THEN("The deep_ptr is non-empty and owns the pointer")
+      THEN("The cloning_ptr is non-empty and owns the pointer")
       {
         REQUIRE(dptr);
         REQUIRE(dptr.get()!=nullptr);
@@ -724,10 +724,10 @@ TEST_CASE("reset","[deep_ptr.reset]")
   }
   CHECK(DerivedType::object_count == 0);
 
-  GIVEN("A non-empty deep_ptr")
+  GIVEN("A non-empty cloning_ptr")
   {
     int v1 = 7;
-    deep_ptr<DerivedType> dptr(new DerivedType(v1));
+    cloning_ptr<DerivedType> dptr(new DerivedType(v1));
     CHECK(DerivedType::object_count == 1);
 
     WHEN("reset to null")
@@ -735,7 +735,7 @@ TEST_CASE("reset","[deep_ptr.reset]")
       dptr.reset();
       CHECK(DerivedType::object_count == 0);
 
-      THEN("The deep_ptr is empty")
+      THEN("The cloning_ptr is empty")
       {
         REQUIRE(!dptr);
         REQUIRE(dptr.get()==nullptr);
@@ -748,7 +748,7 @@ TEST_CASE("reset","[deep_ptr.reset]")
       dptr.reset(new DerivedType(v2));
       CHECK(DerivedType::object_count == 1);
 
-      THEN("The deep_ptr is non-empty and owns the pointer")
+      THEN("The cloning_ptr is non-empty and owns the pointer")
       {
         REQUIRE(dptr);
         REQUIRE(dptr.get()!=nullptr);
@@ -758,15 +758,15 @@ TEST_CASE("reset","[deep_ptr.reset]")
   }
 }
 
-TEST_CASE("Comparisons", "[deep_ptr.comparisons]")
+TEST_CASE("Comparisons", "[cloning_ptr.comparisons]")
 {
-  GIVEN("Two pointer-constructed deep_ptr")
+  GIVEN("Two pointer-constructed cloning_ptr")
   {
     int v1 = 0;
     int v2 = 1;
 
-    deep_ptr<BaseType> dptr1(new DerivedType(v1));
-    deep_ptr<BaseType> dptr2(new DerivedType(v2));
+    cloning_ptr<BaseType> dptr1(new DerivedType(v1));
+    cloning_ptr<BaseType> dptr2(new DerivedType(v2));
 
     THEN("Comparisons give same results as raw-pointer comparisons")
     {
@@ -779,10 +779,10 @@ TEST_CASE("Comparisons", "[deep_ptr.comparisons]")
     }
   }
 
-  GIVEN("A nullptr_t and a pointer constructed deep_ptr")
+  GIVEN("A nullptr_t and a pointer constructed cloning_ptr")
   {
     int v = 7;
-    deep_ptr<BaseType> dptr(new DerivedType(v));
+    cloning_ptr<BaseType> dptr(new DerivedType(v));
 
     THEN("Comparisons give same results as raw-pointer comparisons")
     {
@@ -818,12 +818,12 @@ public:
   int alternative_value() override { return value_; }
 };
 
-TEST_CASE("cast operations", "[deep_ptr.casts]")
+TEST_CASE("cast operations", "[cloning_ptr.casts]")
 {
-  GIVEN("A pointer-constructed deep_ptr<BaseType>")
+  GIVEN("A pointer-constructed cloning_ptr<BaseType>")
   {
     int v = 7;
-    deep_ptr<BaseType> dptr(new DerivedType(v));
+    cloning_ptr<BaseType> dptr(new DerivedType(v));
     REQUIRE(DerivedType::object_count == 1);
 
     WHEN("static_pointer_cast to the derived type is called")
@@ -882,10 +882,10 @@ TEST_CASE("cast operations", "[deep_ptr.casts]")
       }
     }
   }
-  GIVEN("A pointer-constructed deep_ptr<const DerivedType>")
+  GIVEN("A pointer-constructed cloning_ptr<const DerivedType>")
   {
     int v = 7;
-    deep_ptr<const DerivedType> cdptr(new DerivedType(v));
+    cloning_ptr<const DerivedType> cdptr(new DerivedType(v));
     REQUIRE(DerivedType::object_count == 1);
 
     WHEN("static_pointer_cast to the derived type is called")
@@ -910,10 +910,10 @@ TEST_CASE("cast operations", "[deep_ptr.casts]")
       }
     }
   }
-  GIVEN("An AlternativeDerivedType-pointer-constructed deep_ptr<BaseType>")
+  GIVEN("An AlternativeDerivedType-pointer-constructed cloning_ptr<BaseType>")
   {
     int v = 7;
-    deep_ptr<BaseType> dptr(new AlternativeDerivedType(v));
+    cloning_ptr<BaseType> dptr(new AlternativeDerivedType(v));
 
     WHEN("dynamic_pointer_cast to AlternativeBaseType is called")
     {
@@ -940,23 +940,23 @@ struct IntermediateBaseA : virtual Base { int a_ = 3; };
 struct IntermediateBaseB : virtual Base { int b_ = 101; };
 struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int value_ = 0; MultiplyDerived(int value) : value_(value) {}; };
 
-TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[deep_ptr.constructors]")
+TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[cloning_ptr.constructors]")
 {
-  GIVEN("A value-constructed multiply-derived-class deep_ptr")
+  GIVEN("A value-constructed multiply-derived-class cloning_ptr")
   {
     int v = 7;
-    deep_ptr<MultiplyDerived> dptr(new MultiplyDerived(v));
+    cloning_ptr<MultiplyDerived> dptr(new MultiplyDerived(v));
 
-    THEN("When copied to a deep_ptr to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a cloning_ptr to an intermediate base type, data is accessible as expected")
     {
-      deep_ptr<IntermediateBaseA> dptr_IA = dptr;
+      cloning_ptr<IntermediateBaseA> dptr_IA = dptr;
       REQUIRE(dptr_IA->a_ == 3);
       REQUIRE(dptr_IA->v_ == 42);
     }
 
-    THEN("When copied to a deep_ptr to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a cloning_ptr to an intermediate base type, data is accessible as expected")
     {
-      deep_ptr<IntermediateBaseB> dptr_IB = dptr;
+      cloning_ptr<IntermediateBaseB> dptr_IB = dptr;
       REQUIRE(dptr_IB->b_ == 101);
       REQUIRE(dptr_IB->v_ == 42);
     }
