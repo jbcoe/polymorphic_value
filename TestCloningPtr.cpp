@@ -758,51 +758,6 @@ TEST_CASE("reset","[cloning_ptr.reset]")
   }
 }
 
-TEST_CASE("Comparisons", "[cloning_ptr.comparisons]")
-{
-  GIVEN("Two pointer-constructed cloning_ptr")
-  {
-    int v1 = 0;
-    int v2 = 1;
-
-    cloning_ptr<BaseType> cptr1(new DerivedType(v1));
-    cloning_ptr<BaseType> cptr2(new DerivedType(v2));
-
-    THEN("Comparisons give same results as raw-pointer comparisons")
-    {
-      REQUIRE( (cptr1 == cptr2) == (cptr1.get() == cptr2.get()) );
-      REQUIRE( (cptr1 != cptr2) == (cptr1.get() != cptr2.get()) );
-      REQUIRE( (cptr1 < cptr2) == (cptr1.get() < cptr2.get()) );
-      REQUIRE( (cptr1 > cptr2) == (cptr1.get() > cptr2.get()) );
-      REQUIRE( (cptr1 <= cptr2) == (cptr1.get() <= cptr2.get()) );
-      REQUIRE( (cptr1 >= cptr2) == (cptr1.get() >= cptr2.get()) );
-    }
-  }
-
-  GIVEN("A nullptr_t and a pointer constructed cloning_ptr")
-  {
-    int v = 7;
-    cloning_ptr<BaseType> cptr(new DerivedType(v));
-
-    THEN("Comparisons give same results as raw-pointer comparisons")
-    {
-      REQUIRE( (cptr == nullptr) == (cptr.get() == nullptr) );
-      REQUIRE( (cptr != nullptr) == (cptr.get() != nullptr) );
-      REQUIRE( (cptr < nullptr) == (cptr.get() < nullptr) );
-      REQUIRE( (cptr > nullptr) == (cptr.get() > nullptr) );
-      REQUIRE( (cptr <= nullptr) == (cptr.get() <= nullptr) );
-      REQUIRE( (cptr >= nullptr) == (cptr.get() >= nullptr) );
-
-      REQUIRE((nullptr == cptr) == (nullptr == cptr.get()));
-      REQUIRE( (nullptr != cptr) == (nullptr != cptr.get()) );
-      REQUIRE( (nullptr < cptr) == (nullptr < cptr.get()) );
-      REQUIRE( (nullptr > cptr) == (nullptr > cptr.get()) );
-      REQUIRE( (nullptr <= cptr) == (nullptr <= cptr.get()) );
-      REQUIRE( (nullptr >= cptr) == (nullptr >= cptr.get()) );
-    }
-  }
-}
-
 struct AlternativeBaseType {
   virtual ~AlternativeBaseType() = default;
   virtual int alternative_value() = 0;

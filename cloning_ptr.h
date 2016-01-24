@@ -290,6 +290,7 @@ template <typename T, typename... Ts> cloning_ptr<T> make_cloning_ptr(Ts &&... t
 //
 // cloning_ptr comparisons
 //
+/* TODO: Like shared_ptr implementations of comparisons
 
 template <typename T, typename U>
 bool operator==(const cloning_ptr<T> &t, const cloning_ptr<U> &u) noexcept {
@@ -375,6 +376,7 @@ template <typename T>
 bool operator>=(std::nullptr_t, const cloning_ptr<T> &t) noexcept {
   return nullptr >= t.get();
 }
+*/
 
 //
 // Casts
