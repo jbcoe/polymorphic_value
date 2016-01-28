@@ -76,7 +76,7 @@ class dynamic_casting_delegating_control_block : public control_block<T> {
 public:
   explicit dynamic_casting_delegating_control_block(
       std::unique_ptr<control_block<U>> b)
-      : delegate_(std::move(b)) 
+      : delegate_(std::move(b))
   {
     p_ = dynamic_cast<T*>(delegate_->ptr());
   }
@@ -290,7 +290,6 @@ template <typename T, typename... Ts> cloned_ptr<T> make_cloned_ptr(Ts &&... ts)
 //
 // cloned_ptr comparisons
 //
-/* TODO: Like shared_ptr implementations of comparisons
 
 template <typename T, typename U>
 bool operator==(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
@@ -299,84 +298,84 @@ bool operator==(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
 
 template <typename T, typename U>
 bool operator!=(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
-  return t.get() != u.get();
+  return !(t == u);
 }
 
 template <typename T, typename U>
 bool operator<(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
-  return t.get() < u.get();
+  using C = std::common_type_t<T *, U *>;
+  return std::less<C>(t.get(), u.get());
 }
 
 template <typename T, typename U>
 bool operator>(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
-  return t.get() > u.get();
+  return u < t;
 }
 
 template <typename T, typename U>
 bool operator<=(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
-  return t.get() <= u.get();
+  return !(u < t);
 }
 
 template <typename T, typename U>
 bool operator>=(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
-  return t.get() >= u.get();
+  return !(t < u);
 }
 
 
 template <typename T>
 bool operator==(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return t.get() == nullptr;
+  return !t;
 }
 template <typename T>
 bool operator==(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return nullptr == t.get();
+  return !t;
 }
 
 template <typename T>
 bool operator!=(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return t.get() != nullptr;
+  return static_cast<bool>(t);
 }
 template <typename T>
 bool operator!=(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return nullptr != t.get();
+  return static_cast<bool>(t);
 }
 
 template <typename T>
 bool operator<(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return t.get() < nullptr;
+  return std::less<T*>(t, nullptr);
 }
 template <typename T>
 bool operator<(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return nullptr < t.get();
+  return std::less<T*>(nullptr, t);
 }
 
 template <typename T>
 bool operator>(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return t.get() > nullptr;
+  return nullptr < t;
 }
 template <typename T>
 bool operator>(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return nullptr > t.get();
+  return t < nullptr;
 }
 
 template <typename T>
 bool operator<=(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return t.get() <= nullptr;
+  return !(nullptr<t);
 }
 template <typename T>
 bool operator<=(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return nullptr <= t.get();
+  return !(t<nullptr);
 }
 
 template <typename T>
 bool operator>=(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return t.get() >= nullptr;
+  return !(t<nullptr);
 }
 template <typename T>
 bool operator>=(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return nullptr >= t.get();
+  return !(nullptr<t);
 }
-*/
 
 //
 // Casts
