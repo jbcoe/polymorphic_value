@@ -108,31 +108,31 @@ public:
   T *ptr() override { return const_cast<T*>(delegate_->ptr()); }
 };
 
-template <typename T> class cloning_ptr {
+template <typename T> class cloned_ptr {
 
-  template <typename U> friend class cloning_ptr;
-  template <typename T_, typename U> friend cloning_ptr<T_> std::const_pointer_cast(const cloning_ptr<U>& p);
-  template <typename T_, typename U> friend cloning_ptr<T_> std::dynamic_pointer_cast(const cloning_ptr<U>& p);
-  template <typename T_, typename U> friend cloning_ptr<T_> std::static_pointer_cast(const cloning_ptr<U>& p);
+  template <typename U> friend class cloned_ptr;
+  template <typename T_, typename U> friend cloned_ptr<T_> std::const_pointer_cast(const cloned_ptr<U>& p);
+  template <typename T_, typename U> friend cloned_ptr<T_> std::dynamic_pointer_cast(const cloned_ptr<U>& p);
+  template <typename T_, typename U> friend cloned_ptr<T_> std::static_pointer_cast(const cloned_ptr<U>& p);
 
   T *ptr_ = nullptr;
   std::unique_ptr<control_block<T>> cb_;
 
 public:
 
-  ~cloning_ptr() = default;
+  ~cloned_ptr() = default;
 
   //
   // Constructors
   //
 
-  cloning_ptr() {}
+  cloned_ptr() {}
 
-  cloning_ptr(std::nullptr_t) : cloning_ptr() {}
+  cloned_ptr(std::nullptr_t) : cloned_ptr() {}
 
   template <typename U,
             typename V = std::enable_if_t<std::is_base_of<T, U>::value>>
-  explicit cloning_ptr(U *u) {
+  explicit cloned_ptr(U *u) {
     if (!u) {
       return;
     }
@@ -145,7 +145,7 @@ public:
   // Copy-constructors
   //
 
-  cloning_ptr(const cloning_ptr &p) {
+  cloned_ptr(const cloned_ptr &p) {
     if (!p) {
       return;
     }
@@ -157,8 +157,8 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
-  cloning_ptr(const cloning_ptr<U> &p) {
-    cloning_ptr<U> tmp(p);
+  cloned_ptr(const cloned_ptr<U> &p) {
+    cloned_ptr<U> tmp(p);
     ptr_ = tmp.ptr_;
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(tmp.cb_));
   }
@@ -167,7 +167,7 @@ public:
   // Move-constructors
   //
 
-  cloning_ptr(cloning_ptr &&p) {
+  cloned_ptr(cloned_ptr &&p) {
     ptr_ = p.ptr_;
     cb_ = std::move(p.cb_);
     p.ptr_ = nullptr;
@@ -176,7 +176,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
-  cloning_ptr(cloning_ptr<U> &&p) {
+  cloned_ptr(cloned_ptr<U> &&p) {
     ptr_ = p.ptr_;
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
     p.ptr_ = nullptr;
@@ -186,7 +186,7 @@ public:
   // Assignment
   //
 
-  cloning_ptr &operator=(const cloning_ptr &p) {
+  cloned_ptr &operator=(const cloned_ptr &p) {
     if (&p == this) {
       return *this;
     }
@@ -206,8 +206,8 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
-  cloning_ptr &operator=(const cloning_ptr<U> &p) {
-    cloning_ptr<U> tmp(p);
+  cloned_ptr &operator=(const cloned_ptr<U> &p) {
+    cloned_ptr<U> tmp(p);
     *this = std::move(tmp);
     return *this;
   }
@@ -216,7 +216,7 @@ public:
   // Move-assignment
   //
 
-  cloning_ptr &operator=(cloning_ptr &&p) {
+  cloned_ptr &operator=(cloned_ptr &&p) {
     if (&p == this) {
       return *this;
     }
@@ -230,7 +230,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_base_of<T, U>::value>>
-  cloning_ptr &operator=(cloning_ptr<U> &&p) {
+  cloned_ptr &operator=(cloned_ptr<U> &&p) {
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
     ptr_ = p.ptr_;
     p.ptr_ = nullptr;
@@ -255,11 +255,11 @@ public:
     if (static_cast<T *>(u) == ptr_) {
       return;
     }
-    cloning_ptr<U> tmp(u);
+    cloned_ptr<U> tmp(u);
     *this = std::move(tmp);
   }
 
-  void swap(cloning_ptr &p) {
+  void swap(cloned_ptr &p) {
     std::swap(ptr_, p.ptr_);
     std::swap(cb_, p.cb_);
   }
@@ -281,99 +281,99 @@ public:
 };
 
 //
-// cloning_ptr creation
+// cloned_ptr creation
 //
-template <typename T, typename... Ts> cloning_ptr<T> make_cloning_ptr(Ts &&... ts) {
-  return cloning_ptr<T>(new T(std::forward<Ts>(ts)...));
+template <typename T, typename... Ts> cloned_ptr<T> make_cloned_ptr(Ts &&... ts) {
+  return cloned_ptr<T>(new T(std::forward<Ts>(ts)...));
 }
 
 //
-// cloning_ptr comparisons
+// cloned_ptr comparisons
 //
 /* TODO: Like shared_ptr implementations of comparisons
 
 template <typename T, typename U>
-bool operator==(const cloning_ptr<T> &t, const cloning_ptr<U> &u) noexcept {
+bool operator==(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
   return t.get() == u.get();
 }
 
 template <typename T, typename U>
-bool operator!=(const cloning_ptr<T> &t, const cloning_ptr<U> &u) noexcept {
+bool operator!=(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
   return t.get() != u.get();
 }
 
 template <typename T, typename U>
-bool operator<(const cloning_ptr<T> &t, const cloning_ptr<U> &u) noexcept {
+bool operator<(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
   return t.get() < u.get();
 }
 
 template <typename T, typename U>
-bool operator>(const cloning_ptr<T> &t, const cloning_ptr<U> &u) noexcept {
+bool operator>(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
   return t.get() > u.get();
 }
 
 template <typename T, typename U>
-bool operator<=(const cloning_ptr<T> &t, const cloning_ptr<U> &u) noexcept {
+bool operator<=(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
   return t.get() <= u.get();
 }
 
 template <typename T, typename U>
-bool operator>=(const cloning_ptr<T> &t, const cloning_ptr<U> &u) noexcept {
+bool operator>=(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
   return t.get() >= u.get();
 }
 
 
 template <typename T>
-bool operator==(const cloning_ptr<T> &t, std::nullptr_t) noexcept {
+bool operator==(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
   return t.get() == nullptr;
 }
 template <typename T>
-bool operator==(std::nullptr_t, const cloning_ptr<T> &t) noexcept {
+bool operator==(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
   return nullptr == t.get();
 }
 
 template <typename T>
-bool operator!=(const cloning_ptr<T> &t, std::nullptr_t) noexcept {
+bool operator!=(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
   return t.get() != nullptr;
 }
 template <typename T>
-bool operator!=(std::nullptr_t, const cloning_ptr<T> &t) noexcept {
+bool operator!=(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
   return nullptr != t.get();
 }
 
 template <typename T>
-bool operator<(const cloning_ptr<T> &t, std::nullptr_t) noexcept {
+bool operator<(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
   return t.get() < nullptr;
 }
 template <typename T>
-bool operator<(std::nullptr_t, const cloning_ptr<T> &t) noexcept {
+bool operator<(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
   return nullptr < t.get();
 }
 
 template <typename T>
-bool operator>(const cloning_ptr<T> &t, std::nullptr_t) noexcept {
+bool operator>(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
   return t.get() > nullptr;
 }
 template <typename T>
-bool operator>(std::nullptr_t, const cloning_ptr<T> &t) noexcept {
+bool operator>(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
   return nullptr > t.get();
 }
 
 template <typename T>
-bool operator<=(const cloning_ptr<T> &t, std::nullptr_t) noexcept {
+bool operator<=(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
   return t.get() <= nullptr;
 }
 template <typename T>
-bool operator<=(std::nullptr_t, const cloning_ptr<T> &t) noexcept {
+bool operator<=(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
   return nullptr <= t.get();
 }
 
 template <typename T>
-bool operator>=(const cloning_ptr<T> &t, std::nullptr_t) noexcept {
+bool operator>=(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
   return t.get() >= nullptr;
 }
 template <typename T>
-bool operator>=(std::nullptr_t, const cloning_ptr<T> &t) noexcept {
+bool operator>=(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
   return nullptr >= t.get();
 }
 */
@@ -385,9 +385,9 @@ bool operator>=(std::nullptr_t, const cloning_ptr<T> &t) noexcept {
 namespace std {
 
 template <typename T, typename U>
-cloning_ptr<T> static_pointer_cast(const cloning_ptr<U> &p) {
-  cloning_ptr<U> tmp(p);
-  cloning_ptr<T> t;
+cloned_ptr<T> static_pointer_cast(const cloned_ptr<U> &p) {
+  cloned_ptr<U> tmp(p);
+  cloned_ptr<T> t;
 
   t.ptr_ = static_cast<T *>(tmp.ptr_);
   t.cb_ = std::make_unique<downcasting_delegating_control_block<T, U>>(
@@ -397,13 +397,13 @@ cloning_ptr<T> static_pointer_cast(const cloning_ptr<U> &p) {
 }
 
 template <typename T, typename U>
-cloning_ptr<T> dynamic_pointer_cast(const cloning_ptr<U> &p) {
+cloned_ptr<T> dynamic_pointer_cast(const cloned_ptr<U> &p) {
   if (!dynamic_cast<T *>(p.get())) {
     return nullptr;
   }
 
-  cloning_ptr<U> tmp(p);
-  cloning_ptr<T> t;
+  cloned_ptr<U> tmp(p);
+  cloned_ptr<T> t;
 
   t.ptr_ = dynamic_cast<T *>(tmp.ptr_);
   t.cb_ = std::make_unique<dynamic_casting_delegating_control_block<T, U>>(
@@ -413,9 +413,9 @@ cloning_ptr<T> dynamic_pointer_cast(const cloning_ptr<U> &p) {
 }
 
 template <typename T, typename U>
-cloning_ptr<T> const_pointer_cast(const cloning_ptr<U> &p) {
-  cloning_ptr<U> tmp(p);
-  cloning_ptr<T> t;
+cloned_ptr<T> const_pointer_cast(const cloned_ptr<U> &p) {
+  cloned_ptr<U> tmp(p);
+  cloned_ptr<T> t;
 
   t.ptr_ = const_cast<T *>(tmp.ptr_);
   t.cb_ = std::make_unique<const_casting_delegating_control_block<T, U>>(
