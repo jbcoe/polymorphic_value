@@ -21,7 +21,7 @@ To get the submodule run:
     git submodule update --init
 
 ## Building
-The build uses cmake. To build and run tests, run the follwing from the console:
+The build uses cmake. To build and run tests, run the following from the console:
 
     cmake . && cmake --build . && ctest
 
