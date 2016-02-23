@@ -10,24 +10,21 @@ template <typename T> struct control_block {
 
 template <typename T, typename U>
 class control_block_impl : public control_block<T> {
-  U *p_ = nullptr;
+  std::unique_ptr<U> p_;
 
 public:
-  explicit control_block_impl(U *p) : p_(p) {}
-
-  ~control_block_impl() { delete p_; }
+  explicit control_block_impl(U *u) { p_.reset(u); }
 
   std::unique_ptr<control_block<T>> clone() const override {
+    assert(p_);
     return std::make_unique<control_block_impl>(new U(*p_));
   }
 
   T *release() override {
-    T *p = p_;
-    p_ = nullptr;
-    return p;
+    return p_.release();
   }
 
-  T *ptr() override { return p_; }
+  T *ptr() override { return p_.get(); }
 };
 
 template <typename T, typename U>
@@ -108,6 +105,8 @@ public:
   T *ptr() override { return const_cast<T*>(delegate_->ptr()); }
 };
 
+struct make_cloned_tag_t {};
+
 template <typename T> class cloned_ptr {
 
   template <typename U> friend class cloned_ptr;
@@ -117,6 +116,12 @@ template <typename T> class cloned_ptr {
 
   T *ptr_ = nullptr;
   std::unique_ptr<control_block<T>> cb_;
+
+  template<typename ...Ts>
+  cloned_ptr(make_cloned_tag_t, Ts&& ...ts)
+  {
+
+  }
 
 public:
 
@@ -260,8 +265,9 @@ public:
   }
 
   void swap(cloned_ptr &p) {
-    std::swap(ptr_, p.ptr_);
-    std::swap(cb_, p.cb_);
+    using std::swap;
+    swap(ptr_, p.ptr_);
+    swap(cb_, p.cb_);
   }
 
   //
@@ -287,95 +293,6 @@ template <typename T, typename... Ts> cloned_ptr<T> make_cloned_ptr(Ts &&... ts)
   return cloned_ptr<T>(new T(std::forward<Ts>(ts)...));
 }
 
-//
-// cloned_ptr comparisons
-//
-
-template <typename T, typename U>
-bool operator==(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
-  return t.get() == u.get();
-}
-
-template <typename T, typename U>
-bool operator!=(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
-  return !(t == u);
-}
-
-template <typename T, typename U>
-bool operator<(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
-  using C = std::common_type_t<T *, U *>;
-  return std::less<C>(t.get(), u.get());
-}
-
-template <typename T, typename U>
-bool operator>(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
-  return u < t;
-}
-
-template <typename T, typename U>
-bool operator<=(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
-  return !(u < t);
-}
-
-template <typename T, typename U>
-bool operator>=(const cloned_ptr<T> &t, const cloned_ptr<U> &u) noexcept {
-  return !(t < u);
-}
-
-
-template <typename T>
-bool operator==(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return !t;
-}
-template <typename T>
-bool operator==(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return !t;
-}
-
-template <typename T>
-bool operator!=(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return static_cast<bool>(t);
-}
-template <typename T>
-bool operator!=(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return static_cast<bool>(t);
-}
-
-template <typename T>
-bool operator<(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return std::less<T*>(t, nullptr);
-}
-template <typename T>
-bool operator<(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return std::less<T*>(nullptr, t);
-}
-
-template <typename T>
-bool operator>(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return nullptr < t;
-}
-template <typename T>
-bool operator>(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return t < nullptr;
-}
-
-template <typename T>
-bool operator<=(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return !(nullptr<t);
-}
-template <typename T>
-bool operator<=(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return !(t<nullptr);
-}
-
-template <typename T>
-bool operator>=(const cloned_ptr<T> &t, std::nullptr_t) noexcept {
-  return !(t<nullptr);
-}
-template <typename T>
-bool operator>=(std::nullptr_t, const cloned_ptr<T> &t) noexcept {
-  return !(nullptr<t);
-}
 
 //
 // Casts
