@@ -27,7 +27,7 @@ public:
 
   std::unique_ptr<control_block<T>> clone() const override {
     assert(p_);
-    return std::make_unique<control_block_impl>(c_(*p_));
+    return std::make_unique<control_block_impl>(c_(*p_), c_, p_.get_deleter());
   }
 
   T *release() override { return p_.release(); }

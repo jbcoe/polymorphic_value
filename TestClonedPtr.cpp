@@ -131,6 +131,51 @@ TEST_CASE("Pointer constructor","[cloned_ptr.constructors]")
   }
 }
 
+struct BaseCloneSelf 
+{
+  BaseCloneSelf() = default;
+  virtual ~BaseCloneSelf() = default;
+  BaseCloneSelf(const BaseCloneSelf &) = delete;
+  virtual std::unique_ptr<BaseCloneSelf> clone() const = 0;
+};
+
+struct DerivedCloneSelf : BaseCloneSelf
+{
+  static size_t object_count;
+  std::unique_ptr<BaseCloneSelf> clone() const { return std::make_unique<DerivedCloneSelf>(); }
+  DerivedCloneSelf() { ++object_count; }
+  ~DerivedCloneSelf(){ --object_count; }
+};
+
+size_t DerivedCloneSelf::object_count = 0;
+
+struct invoke_clone_member
+{
+  template <typename T> T *operator()(const T &t) const {
+    return static_cast<T *>(t.clone().release());
+  }
+};
+
+TEST_CASE("Pointer constructor with custom copier avoids slicing","[cloned_ptr.constructors]")
+{
+  GIVEN("A cloned_ptr constructed with a custom copier") {
+    auto p = std::unique_ptr<BaseCloneSelf>(new DerivedCloneSelf);
+    REQUIRE(DerivedCloneSelf::object_count == 1);
+    auto c = cloned_ptr<BaseCloneSelf>(p.release(), cloned_ptr_copier_tag{},
+                                          invoke_clone_member());
+
+    WHEN("A copy is made") {
+      auto c2 = c;
+      THEN("The copied cloned_ptr manages a distinc resource") {
+        CHECK(DerivedCloneSelf::object_count == 2);
+        REQUIRE(c2);
+        REQUIRE(c2.get() != c.get());
+      }
+    }
+    CHECK(DerivedCloneSelf::object_count == 1);
+  }
+}
+
 TEST_CASE("cloned_ptr destructor","[cloned_ptr.destructor]")
 {
   GIVEN("No derived objects")
