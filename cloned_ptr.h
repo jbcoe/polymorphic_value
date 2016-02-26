@@ -1,6 +1,24 @@
 #include <type_traits>
 #include <cassert>
 
+template<typename T>
+struct default_copier
+{
+  T* operator()(const T& t) const
+  {
+    return new T(t);
+  }
+};
+
+template<typename T>
+struct default_deleter
+{
+  void operator()(const T* t) const
+  {
+    delete t;
+  }
+};
+
 template <typename T> struct control_block {
   virtual ~control_block() = default;
   virtual std::unique_ptr<control_block> clone() const = 0;
@@ -8,16 +26,19 @@ template <typename T> struct control_block {
   virtual T *ptr() = 0;
 };
 
-template <typename T, typename U>
+template <typename T, typename U, typename C = default_copier<U>,
+          typename D = default_deleter<U>>
 class control_block_impl : public control_block<T> {
-  std::unique_ptr<U> p_;
+  std::unique_ptr<U,D> p_;
+  C c_;
 
 public:
-  explicit control_block_impl(U *u) { p_.reset(u); }
+  explicit control_block_impl(U *u, C c = C{}, D d = D{}) : c_(c), p_(u,d) {
+  }
 
   std::unique_ptr<control_block<T>> clone() const override {
     assert(p_);
-    return std::make_unique<control_block_impl>(new U(*p_));
+    return std::make_unique<control_block_impl>(c_(*p_));
   }
 
   T *release() override {
