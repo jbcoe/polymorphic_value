@@ -23,7 +23,8 @@ class control_block_impl : public control_block<T> {
   C c_;
 
 public:
-  explicit control_block_impl(U *u, C c = C{}, D d = D{}) : c_(c), p_(u, d) {}
+  explicit control_block_impl(U *u, C c = C{}, D d = D{})
+      : c_(std::move(c)), p_(u, std::move(d)) {}
 
   std::unique_ptr<control_block<T>> clone() const override {
     assert(p_);
