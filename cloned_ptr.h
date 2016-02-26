@@ -1,22 +1,12 @@
 #include <type_traits>
 #include <cassert>
 
-template<typename T>
-struct default_copier
-{
-  T* operator()(const T& t) const
-  {
-    return new T(t);
-  }
+template <typename T> struct default_copier {
+  T *operator()(const T &t) const { return new T(t); }
 };
 
-template<typename T>
-struct default_deleter
-{
-  void operator()(const T* t) const
-  {
-    delete t;
-  }
+template <typename T> struct default_deleter {
+  void operator()(const T *t) const { delete t; }
 };
 
 template <typename T> struct control_block {
@@ -29,21 +19,18 @@ template <typename T> struct control_block {
 template <typename T, typename U, typename C = default_copier<U>,
           typename D = default_deleter<U>>
 class control_block_impl : public control_block<T> {
-  std::unique_ptr<U,D> p_;
+  std::unique_ptr<U, D> p_;
   C c_;
 
 public:
-  explicit control_block_impl(U *u, C c = C{}, D d = D{}) : c_(c), p_(u,d) {
-  }
+  explicit control_block_impl(U *u, C c = C{}, D d = D{}) : c_(c), p_(u, d) {}
 
   std::unique_ptr<control_block<T>> clone() const override {
     assert(p_);
     return std::make_unique<control_block_impl>(c_(*p_));
   }
 
-  T *release() override {
-    return p_.release();
-  }
+  T *release() override { return p_.release(); }
 
   T *ptr() override { return p_.get(); }
 };
@@ -61,7 +48,7 @@ public:
     return std::make_unique<delegating_control_block>(delegate_->clone());
   }
 
-  T* release() override { return delegate_->release(); }
+  T *release() override { return delegate_->release(); }
 
   T *ptr() override { return delegate_->ptr(); }
 };
@@ -77,33 +64,37 @@ public:
       : delegate_(std::move(b)) {}
 
   std::unique_ptr<control_block<T>> clone() const override {
-    return std::make_unique<downcasting_delegating_control_block>(delegate_->clone());
+    return std::make_unique<downcasting_delegating_control_block>(
+        delegate_->clone());
   }
 
-  T* release() override { return static_cast<T*>(delegate_->release()); }
+  T *release() override { return static_cast<T *>(delegate_->release()); }
 
-  T *ptr() override { return static_cast<T*>(delegate_->ptr()); }
+  T *ptr() override { return static_cast<T *>(delegate_->ptr()); }
 };
 
 template <typename T, typename U>
 class dynamic_casting_delegating_control_block : public control_block<T> {
 
   std::unique_ptr<control_block<U>> delegate_;
-  T* p_; // cache the pointer as dynamic_cast is slow
+  T *p_; // cache the pointer as dynamic_cast is slow
 
 public:
   explicit dynamic_casting_delegating_control_block(
       std::unique_ptr<control_block<U>> b)
-      : delegate_(std::move(b))
-  {
-    p_ = dynamic_cast<T*>(delegate_->ptr());
+      : delegate_(std::move(b)) {
+    p_ = dynamic_cast<T *>(delegate_->ptr());
   }
 
   std::unique_ptr<control_block<T>> clone() const override {
-    return std::make_unique<dynamic_casting_delegating_control_block>(delegate_->clone());
+    return std::make_unique<dynamic_casting_delegating_control_block>(
+        delegate_->clone());
   }
 
-  T* release() override { delegate_->release(); return p_; }
+  T *release() override {
+    delegate_->release();
+    return p_;
+  }
 
   T *ptr() override { return p_; }
 };
@@ -114,16 +105,18 @@ class const_casting_delegating_control_block : public control_block<T> {
   std::unique_ptr<control_block<U>> delegate_;
 
 public:
-  explicit const_casting_delegating_control_block(std::unique_ptr<control_block<U>> b)
+  explicit const_casting_delegating_control_block(
+      std::unique_ptr<control_block<U>> b)
       : delegate_(std::move(b)) {}
 
   std::unique_ptr<control_block<T>> clone() const override {
-    return std::make_unique<const_casting_delegating_control_block>(delegate_->clone());
+    return std::make_unique<const_casting_delegating_control_block>(
+        delegate_->clone());
   }
 
-  T* release() override { return const_cast<T*>(delegate_->release()); }
+  T *release() override { return const_cast<T *>(delegate_->release()); }
 
-  T *ptr() override { return const_cast<T*>(delegate_->ptr()); }
+  T *ptr() override { return const_cast<T *>(delegate_->ptr()); }
 };
 
 struct make_cloned_tag_t {};
@@ -131,21 +124,19 @@ struct make_cloned_tag_t {};
 template <typename T> class cloned_ptr {
 
   template <typename U> friend class cloned_ptr;
-  template <typename T_, typename U> friend cloned_ptr<T_> std::const_pointer_cast(const cloned_ptr<U>& p);
-  template <typename T_, typename U> friend cloned_ptr<T_> std::dynamic_pointer_cast(const cloned_ptr<U>& p);
-  template <typename T_, typename U> friend cloned_ptr<T_> std::static_pointer_cast(const cloned_ptr<U>& p);
+  template <typename T_, typename U>
+  friend cloned_ptr<T_> std::const_pointer_cast(const cloned_ptr<U> &p);
+  template <typename T_, typename U>
+  friend cloned_ptr<T_> std::dynamic_pointer_cast(const cloned_ptr<U> &p);
+  template <typename T_, typename U>
+  friend cloned_ptr<T_> std::static_pointer_cast(const cloned_ptr<U> &p);
 
   T *ptr_ = nullptr;
   std::unique_ptr<control_block<T>> cb_;
 
-  template<typename ...Ts>
-  cloned_ptr(make_cloned_tag_t, Ts&& ...ts)
-  {
-
-  }
+  template <typename... Ts> cloned_ptr(make_cloned_tag_t, Ts &&... ts) {}
 
 public:
-
   ~cloned_ptr() = default;
 
   //
@@ -164,6 +155,29 @@ public:
     }
 
     cb_ = std::make_unique<control_block_impl<T, U>>(u);
+    ptr_ = u;
+  }
+
+  template <typename U, typename C,
+            typename V = std::enable_if_t<std::is_base_of<T, U>::value>>
+  explicit cloned_ptr(U *u, C copier) {
+    if (!u) {
+      return;
+    }
+
+    cb_ = std::make_unique<control_block_impl<T, U, C>>(u, std::move(copier));
+    ptr_ = u;
+  }
+
+  template <typename U, typename C, typename D,
+            typename V = std::enable_if_t<std::is_base_of<T, U>::value>>
+  explicit cloned_ptr(U *u, C copier, D deleter) {
+    if (!u) {
+      return;
+    }
+
+    cb_ = std::make_unique<control_block_impl<T, U, C, D>>(u, std::move(copier),
+                                                           std::move(deleter));
     ptr_ = u;
   }
 
@@ -310,10 +324,10 @@ public:
 //
 // cloned_ptr creation
 //
-template <typename T, typename... Ts> cloned_ptr<T> make_cloned_ptr(Ts &&... ts) {
+template <typename T, typename... Ts>
+cloned_ptr<T> make_cloned_ptr(Ts &&... ts) {
   return cloned_ptr<T>(new T(std::forward<Ts>(ts)...));
 }
-
 
 //
 // Casts
