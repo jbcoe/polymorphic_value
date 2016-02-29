@@ -156,8 +156,8 @@ struct invoke_clone_member
   }
 };
 
-TEST_CASE("Pointer constructor with custom copier avoids slicing","[cloned_ptr.constructors]")
-{
+TEST_CASE("Pointer constructor with custom copier avoids slicing",
+          "[cloned_ptr.constructors]") {
   GIVEN("A cloned_ptr constructed with a custom copier") {
     auto p = std::unique_ptr<BaseCloneSelf>(new DerivedCloneSelf);
     REQUIRE(DerivedCloneSelf::object_count == 1);
@@ -181,7 +181,7 @@ struct RequiresSpecialDeletion
   static size_t object_count;
 
   RequiresSpecialDeletion() { ++object_count; }
-  RequiresSpecialDeletion(const RequiresSpecialDeletion&) { ++object_count; }
+  RequiresSpecialDeletion(const RequiresSpecialDeletion &) { ++object_count; }
 };
 
 size_t RequiresSpecialDeletion::object_count = 0;
@@ -195,8 +195,8 @@ struct SpecialDeleter
   }
 };
 
-TEST_CASE("cloned_ptr constructed with special deleter calls special deleter", "[cloned_ptr.constructor]")
-{
+TEST_CASE("cloned_ptr constructed with custom deleter",
+          "[cloned_ptr.constructor]") {
   REQUIRE(RequiresSpecialDeletion::object_count == 0);
   {
     cloned_ptr<RequiresSpecialDeletion> cp(new RequiresSpecialDeletion(),
@@ -205,6 +205,26 @@ TEST_CASE("cloned_ptr constructed with special deleter calls special deleter", "
     REQUIRE(RequiresSpecialDeletion::object_count == 1);
   }
   REQUIRE(RequiresSpecialDeletion::object_count == 0);
+}
+
+TEST_CASE("cloned_ptr constructed with copier and deleter",
+          "[cloned_ptr.constructor]") {
+  size_t copy_count = 0;
+  size_t deletion_count = 0;
+  auto cp = cloned_ptr<DerivedType>(new DerivedType(),
+                                    [&](const DerivedType &d) {
+                                      ++copy_count;
+                                      return new DerivedType(d);
+                                    },
+                                    [&](const DerivedType *d) {
+                                      ++deletion_count;
+                                      delete d;
+                                    });
+  {
+    auto cp2 = cp;
+    REQUIRE(copy_count == 1);
+  }
+  REQUIRE(deletion_count == 1);
 }
 
 TEST_CASE("cloned_ptr destructor","[cloned_ptr.destructor]")
