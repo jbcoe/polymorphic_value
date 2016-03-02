@@ -120,9 +120,6 @@ public:
   T *ptr() override { return const_cast<T *>(delegate_->ptr()); }
 };
 
-struct cloned_ptr_copier_tag {};
-struct cloned_ptr_deleter_tag {};
-
 template <typename T> class cloned_ptr {
 
   template <typename U> friend class cloned_ptr;
@@ -147,43 +144,9 @@ public:
 
   cloned_ptr(std::nullptr_t) : cloned_ptr() {}
 
-  template <typename U,
+  template <typename U, typename C=default_copier<U>, typename D=default_deleter<U>,
             typename V = std::enable_if_t<std::is_base_of<T, U>::value>>
-  explicit cloned_ptr(U *u) {
-    if (!u) {
-      return;
-    }
-
-    cb_ = std::make_unique<control_block_impl<T, U>>(u);
-    ptr_ = u;
-  }
-
-  template <typename U, typename C,
-            typename V = std::enable_if_t<std::is_base_of<T, U>::value>>
-  explicit cloned_ptr(U *u, cloned_ptr_copier_tag, C copier) {
-    if (!u) {
-      return;
-    }
-
-    cb_ = std::make_unique<control_block_impl<T, U, C>>(u, std::move(copier));
-    ptr_ = u;
-  }
-
-  template <typename U, typename D,
-            typename V = std::enable_if_t<std::is_base_of<T, U>::value>>
-  explicit cloned_ptr(U *u, cloned_ptr_deleter_tag, D deleter) {
-    if (!u) {
-      return;
-    }
-
-    cb_ = std::make_unique<control_block_impl<T, U, default_copier<U>, D>>(
-        u, default_copier<U>{}, std::move(deleter));
-    ptr_ = u;
-  }
-
-  template <typename U, typename C, typename D,
-            typename V = std::enable_if_t<std::is_base_of<T, U>::value>>
-  explicit cloned_ptr(U *u, C copier, D deleter) {
+  explicit cloned_ptr(U *u, C copier=C{}, D deleter=D{}) {
     if (!u) {
       return;
     }

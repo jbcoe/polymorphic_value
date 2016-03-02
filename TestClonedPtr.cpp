@@ -161,8 +161,7 @@ TEST_CASE("Pointer constructor with custom copier avoids slicing",
   GIVEN("A cloned_ptr constructed with a custom copier") {
     auto p = std::unique_ptr<BaseCloneSelf>(new DerivedCloneSelf);
     REQUIRE(DerivedCloneSelf::object_count == 1);
-    auto c = cloned_ptr<BaseCloneSelf>(p.release(), cloned_ptr_copier_tag{},
-                                       invoke_clone_member{});
+    auto c = cloned_ptr<BaseCloneSelf>(p.release(), invoke_clone_member{});
 
     WHEN("A copy is made") {
       auto c2 = c;
@@ -174,37 +173,6 @@ TEST_CASE("Pointer constructor with custom copier avoids slicing",
     }
     CHECK(DerivedCloneSelf::object_count == 1);
   }
-}
-
-struct RequiresSpecialDeletion
-{
-  static size_t object_count;
-
-  RequiresSpecialDeletion() { ++object_count; }
-  RequiresSpecialDeletion(const RequiresSpecialDeletion &) { ++object_count; }
-};
-
-size_t RequiresSpecialDeletion::object_count = 0;
-
-struct SpecialDeleter
-{
-  void operator()(const RequiresSpecialDeletion* p)
-  {
-    if ( p ) --RequiresSpecialDeletion::object_count;
-    delete p;
-  }
-};
-
-TEST_CASE("cloned_ptr constructed with custom deleter",
-          "[cloned_ptr.constructor]") {
-  REQUIRE(RequiresSpecialDeletion::object_count == 0);
-  {
-    cloned_ptr<RequiresSpecialDeletion> cp(new RequiresSpecialDeletion(),
-                                           cloned_ptr_deleter_tag{},
-                                           SpecialDeleter{});
-    REQUIRE(RequiresSpecialDeletion::object_count == 1);
-  }
-  REQUIRE(RequiresSpecialDeletion::object_count == 0);
 }
 
 TEST_CASE("cloned_ptr constructed with copier and deleter",
