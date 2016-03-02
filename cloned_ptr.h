@@ -144,9 +144,10 @@ public:
 
   cloned_ptr(std::nullptr_t) : cloned_ptr() {}
 
-  template <typename U, typename C=default_copier<U>, typename D=default_deleter<U>,
-            typename V = std::enable_if_t<std::is_base_of<T, U>::value>>
-  explicit cloned_ptr(U *u, C copier=C{}, D deleter=D{}) {
+  template <typename U, typename C = default_copier<U>,
+            typename D = default_deleter<U>,
+            typename V = std::enable_if_t<std::is_convertible<U *, T *>::value>>
+  explicit cloned_ptr(U *u, C copier = C{}, D deleter = D{}) {
     if (!u) {
       return;
     }
@@ -171,7 +172,7 @@ public:
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                          std::is_base_of<T, U>::value>>
+                                          std::is_convertible<U *, T *>::value>>
   cloned_ptr(const cloned_ptr<U> &p) {
     cloned_ptr<U> tmp(p);
     ptr_ = tmp.ptr_;
@@ -190,7 +191,7 @@ public:
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                          std::is_base_of<T, U>::value>>
+                                          std::is_convertible<U *, T *>::value>>
   cloned_ptr(cloned_ptr<U> &&p) {
     ptr_ = p.ptr_;
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
@@ -220,7 +221,7 @@ public:
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                          std::is_base_of<T, U>::value>>
+                                          std::is_convertible<U *, T *>::value>>
   cloned_ptr &operator=(const cloned_ptr<U> &p) {
     cloned_ptr<U> tmp(p);
     *this = std::move(tmp);
@@ -244,7 +245,7 @@ public:
 
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                          std::is_base_of<T, U>::value>>
+                                          std::is_convertible<U *, T *>::value>>
   cloned_ptr &operator=(cloned_ptr<U> &&p) {
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
     ptr_ = p.ptr_;
@@ -265,7 +266,7 @@ public:
   }
 
   template <typename U = T,
-            typename V = std::enable_if_t<std::is_base_of<T, U>::value>>
+            typename V = std::enable_if_t<std::is_convertible<U *, T *>::value>>
   void reset(U *u = nullptr) {
     if (static_cast<T *>(u) == ptr_) {
       return;
