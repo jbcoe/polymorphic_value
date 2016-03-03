@@ -33,6 +33,22 @@ public:
   T *ptr() override { return p_.get(); }
 };
 
+template <typename U>
+class direct_control_block_impl : public control_block<U> {
+  U u_;
+
+public:
+  template <typename... Ts>
+  explicit direct_control_block_impl(Ts&&... ts)
+      : u_(U(std::forward<Ts>(ts)...)) {}
+
+  std::unique_ptr<control_block<U>> clone() const override {
+    return std::make_unique<direct_control_block_impl>(*this);
+  }
+
+  U *ptr() override { return &u_; }
+};
+
 template <typename T, typename U>
 class delegating_control_block : public control_block<T> {
 
@@ -115,6 +131,8 @@ template <typename T> class cloned_ptr {
   friend cloned_ptr<T_> std::dynamic_pointer_cast(const cloned_ptr<U> &p);
   template <typename T_, typename U>
   friend cloned_ptr<T_> std::static_pointer_cast(const cloned_ptr<U> &p);
+  template <typename T_, typename ...Ts>
+  friend cloned_ptr<T_> make_cloned_ptr(Ts&& ...ts);
 
   T *ptr_ = nullptr;
   std::unique_ptr<control_block<T>> cb_;
@@ -280,7 +298,10 @@ public:
 //
 template <typename T, typename... Ts>
 cloned_ptr<T> make_cloned_ptr(Ts &&... ts) {
-  return cloned_ptr<T>(new T(std::forward<Ts>(ts)...));
+  cloned_ptr<T> p;
+  p.cb_ = std::make_unique<direct_control_block_impl<T>>(std::forward<Ts>(ts)...);
+  p.ptr_ = p.cb_->ptr();
+  return std::move(p);
 }
 
 //
