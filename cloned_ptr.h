@@ -12,7 +12,6 @@ template <typename T> struct default_deleter {
 template <typename T> struct control_block {
   virtual ~control_block() = default;
   virtual std::unique_ptr<control_block> clone() const = 0;
-  virtual T *release() = 0;
   virtual T *ptr() = 0;
 };
 
@@ -31,8 +30,6 @@ public:
     return std::make_unique<control_block_impl>(c_(*p_), c_, p_.get_deleter());
   }
 
-  T *release() override { return p_.release(); }
-
   T *ptr() override { return p_.get(); }
 };
 
@@ -48,8 +45,6 @@ public:
   std::unique_ptr<control_block<T>> clone() const override {
     return std::make_unique<delegating_control_block>(delegate_->clone());
   }
-
-  T *release() override { return delegate_->release(); }
 
   T *ptr() override { return delegate_->ptr(); }
 };
@@ -68,8 +63,6 @@ public:
     return std::make_unique<downcasting_delegating_control_block>(
         delegate_->clone());
   }
-
-  T *release() override { return static_cast<T *>(delegate_->release()); }
 
   T *ptr() override { return static_cast<T *>(delegate_->ptr()); }
 };
@@ -92,11 +85,6 @@ public:
         delegate_->clone());
   }
 
-  T *release() override {
-    delegate_->release();
-    return p_;
-  }
-
   T *ptr() override { return p_; }
 };
 
@@ -114,8 +102,6 @@ public:
     return std::make_unique<const_casting_delegating_control_block>(
         delegate_->clone());
   }
-
-  T *release() override { return const_cast<T *>(delegate_->release()); }
 
   T *ptr() override { return const_cast<T *>(delegate_->ptr()); }
 };
@@ -256,14 +242,6 @@ public:
   //
   // Modifiers
   //
-
-  T *release() {
-    if (!ptr_) {
-      return nullptr;
-    }
-    ptr_ = nullptr;
-    return cb_->release();
-  }
 
   template <typename U = T,
             typename V = std::enable_if_t<std::is_convertible<U *, T *>::value>>

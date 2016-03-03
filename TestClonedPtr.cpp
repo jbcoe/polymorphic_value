@@ -709,51 +709,6 @@ TEST_CASE("make_cloned_ptr return type can be converted to base-type", "[cloned_
   }
 }
 
-TEST_CASE("release","[cloned_ptr.release]")
-{
-  GIVEN("An empty cloned_ptr")
-  {
-    cloned_ptr<DerivedType> cptr;
-
-    WHEN("release is called")
-    {
-      auto p = cptr.release();
-
-      THEN("The cloned_ptr remains empty and the returned pointer is null")
-      {
-        REQUIRE(!cptr);
-        REQUIRE(cptr.get()==nullptr);
-        REQUIRE(p==nullptr);
-      }
-    }
-  }
-
-  GIVEN("A non-empty cloned_ptr")
-  {
-    int v = 7;
-    cloned_ptr<DerivedType> cptr(new DerivedType(v));
-    CHECK(DerivedType::object_count == 1);
-
-    const auto op =cptr.get();
-
-
-    WHEN("release is called")
-    {
-      auto p = cptr.release();
-      std::unique_ptr<DerivedType> cleanup(p);
-      CHECK(DerivedType::object_count == 1);
-
-      THEN("The cloned_ptr is empty and the returned pointer is the previous pointer value")
-      {
-        REQUIRE(!cptr);
-        REQUIRE(cptr.get()==nullptr);
-        REQUIRE(p==op);
-      }
-    }
-    CHECK(DerivedType::object_count == 0);
-  }
-}
-
 TEST_CASE("reset","[cloned_ptr.reset]")
 {
   GIVEN("An empty cloned_ptr")
