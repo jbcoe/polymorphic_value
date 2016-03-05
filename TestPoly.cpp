@@ -1,18 +1,18 @@
 #define CATCH_CONFIG_MAIN
 
 #include <catch.hpp>
-#include "cloned_ptr.h"
+#include "poly.h"
 
 struct BaseType
 {
-  virtual int value() = 0; // intentionally non-const
-  virtual void set_value(int) = 0;
+  virtual int data() = 0; // intentionally non-const
+  virtual void set_data(int) = 0;
   virtual ~BaseType() = default;
 };
 
 struct DerivedType : BaseType
 {
-  int value_ = 0;
+  int data_ = 0;
 
   DerivedType()
   {
@@ -21,11 +21,11 @@ struct DerivedType : BaseType
 
   DerivedType(const DerivedType& d)
   {
-    value_ = d.value_;
+    data_ = d.data_;
     ++object_count;
   }
 
-  DerivedType(int v) : value_(v)
+  DerivedType(int v) : data_(v)
   {
     ++object_count;
   }
@@ -35,98 +35,94 @@ struct DerivedType : BaseType
     --object_count;
   }
 
-  int value() override { return value_; }
+  int data() override { return data_; }
 
-  void set_value(int i) override { value_ = i; }
+  void set_data(int i) override { data_ = i; }
 
   static size_t object_count;
 };
 
 size_t DerivedType::object_count = 0;
 
-TEST_CASE("Default constructor","[cloned_ptr.constructors]")
+TEST_CASE("Default constructed object is empty","[poly.constructors]")
 {
-  GIVEN("A default constructed cloned_ptr to BaseType")
+  GIVEN("A default constructed poly<BaseType>")
   {
-    cloned_ptr<BaseType> cptr;
+    poly<BaseType> p;
 
-    THEN("get returns nullptr")
+    THEN("poly is empty")
     {
-      REQUIRE(cptr.get() == nullptr);
+      REQUIRE(p.empty());
     }
-
-    THEN("operator-> returns nullptr")
+    THEN("poly is false")
     {
-      REQUIRE(cptr.operator->() == nullptr);
-    }
-
-    THEN("operator bool returns false")
-    {
-      REQUIRE((bool)cptr == false);
-    }
-  }
-
-  GIVEN("A default constructed const cloned_ptr to BaseType")
-  {
-    const cloned_ptr<BaseType> ccptr;
-
-    THEN("get returns nullptr")
-    {
-      REQUIRE(ccptr.get() == nullptr);
-    }
-
-    THEN("operator-> returns nullptr")
-    {
-      REQUIRE(ccptr.operator->() == nullptr);
-    }
-
-    THEN("operator bool returns false")
-    {
-      REQUIRE((bool)ccptr == false);
+      REQUIRE(!(bool)p);
     }
   }
 }
 
-TEST_CASE("Pointer constructor","[cloned_ptr.constructors]")
+TEST_CASE("Pointer constructed object","[poly.constructors]")
 {
-  GIVEN("A pointer-constructed cloned_ptr")
+  GIVEN("A pointer-constructed poly")
   {
     int v = 7;
-    cloned_ptr<BaseType> cptr(new DerivedType(v));
-
-    THEN("get returns a non-null pointer")
+    poly<BaseType> p(new DerivedType(v));
+    
+    THEN("poly is non-empty")
     {
-      REQUIRE(cptr.get() != nullptr);
+      REQUIRE(!p.empty());
     }
-
+    THEN("poly is true")
+    {
+      REQUIRE((bool)p);
+    }
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(cptr->value() == v);
-    }
-
-    THEN("operator bool returns true")
-    {
-      REQUIRE((bool)cptr == true);
+      REQUIRE(p->data() == v);
     }
   }
-  GIVEN("A pointer-constructed const cloned_ptr")
+}
+
+
+/*
+  GIVEN("A pointer-constructed poly")
   {
     int v = 7;
-    const cloned_ptr<BaseType> ccptr(new DerivedType(v));
+    poly<BaseType> cptr(new DerivedType(v));
 
     THEN("get returns a non-null pointer")
     {
-      REQUIRE(ccptr.get() != nullptr);
+      REQUIRE(cptr.value() != nullptr);
     }
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(ccptr->value() == v);
+      REQUIRE(cptr->data() == v);
     }
 
     THEN("operator bool returns true")
     {
-      REQUIRE((bool)ccptr == true);
+      REQUIRE(cptr->empty() == true);
+    }
+  }
+  GIVEN("A pointer-constructed const poly")
+  {
+    int v = 7;
+    const poly<BaseType> ccptr(new DerivedType(v));
+
+    THEN("get returns a non-null pointer")
+    {
+      REQUIRE(ccptr.value() != nullptr);
+    }
+
+    THEN("Operator-> calls the pointee method")
+    {
+      REQUIRE(ccptr->data() == v);
+    }
+
+    THEN("operator bool returns true")
+    {
+      REQUIRE(ccptr->empty() == true);
     }
   }
 }
@@ -157,29 +153,29 @@ struct invoke_clone_member
 };
 
 TEST_CASE("Pointer constructor with custom copier avoids slicing",
-          "[cloned_ptr.constructors]") {
-  GIVEN("A cloned_ptr constructed with a custom copier") {
+          "[poly.constructors]") {
+  GIVEN("A poly constructed with a custom copier") {
     auto p = std::unique_ptr<BaseCloneSelf>(new DerivedCloneSelf);
     REQUIRE(DerivedCloneSelf::object_count == 1);
-    auto c = cloned_ptr<BaseCloneSelf>(p.release(), invoke_clone_member{});
+    auto c = poly<BaseCloneSelf>(p.release(), invoke_clone_member{});
 
     WHEN("A copy is made") {
       auto c2 = c;
-      THEN("The copied cloned_ptr manages a distinc resource") {
+      THEN("The copied poly manages a distinc resource") {
         CHECK(DerivedCloneSelf::object_count == 2);
         REQUIRE(c2);
-        REQUIRE(c2.get() != c.get());
+        REQUIRE(c2.value() != c.value());
       }
     }
     CHECK(DerivedCloneSelf::object_count == 1);
   }
 }
 
-TEST_CASE("cloned_ptr constructed with copier and deleter",
-          "[cloned_ptr.constructor]") {
+TEST_CASE("poly constructed with copier and deleter",
+          "[poly.constructor]") {
   size_t copy_count = 0;
   size_t deletion_count = 0;
-  auto cp = cloned_ptr<DerivedType>(new DerivedType(),
+  auto cp = poly<DerivedType>(new DerivedType(),
                                     [&](const DerivedType &d) {
                                       ++copy_count;
                                       return new DerivedType(d);
@@ -195,7 +191,7 @@ TEST_CASE("cloned_ptr constructed with copier and deleter",
   REQUIRE(deletion_count == 1);
 }
 
-TEST_CASE("cloned_ptr destructor","[cloned_ptr.destructor]")
+TEST_CASE("poly destructor","[poly.destructor]")
 {
   GIVEN("No derived objects")
   {
@@ -205,7 +201,7 @@ TEST_CASE("cloned_ptr destructor","[cloned_ptr.destructor]")
     {
       // begin and end scope to force destruction
       {
-        cloned_ptr<BaseType> tmp(new DerivedType());
+        poly<BaseType> tmp(new DerivedType());
         REQUIRE(DerivedType::object_count == 1);
       }
       REQUIRE(DerivedType::object_count == 0);
@@ -213,16 +209,16 @@ TEST_CASE("cloned_ptr destructor","[cloned_ptr.destructor]")
   }
 }
 
-TEST_CASE("cloned_ptr copy constructor","[cloned_ptr.constructors]")
+TEST_CASE("poly copy constructor","[poly.constructors]")
 {
-  GIVEN("A cloned_ptr copied from a default-constructed cloned_ptr")
+  GIVEN("A poly copied from a default-constructed poly")
   {
-    cloned_ptr<BaseType> original_cptr;
-    cloned_ptr<BaseType> cptr(original_cptr);
+    poly<BaseType> original_cptr;
+    poly<BaseType> cptr(original_cptr);
 
     THEN("get returns nullptr")
     {
-      REQUIRE(cptr.get() == nullptr);
+      REQUIRE(cptr.empty());
     }
 
     THEN("operator-> returns nullptr")
@@ -232,32 +228,32 @@ TEST_CASE("cloned_ptr copy constructor","[cloned_ptr.constructors]")
 
     THEN("operator bool returns false")
     {
-      REQUIRE((bool)cptr == false);
+      REQUIRE(cptr->empty() == false);
     }
   }
 
-  GIVEN("A cloned_ptr copied from a pointer-constructed cloned_ptr")
+  GIVEN("A poly copied from a pointer-constructed poly")
   {
     REQUIRE(DerivedType::object_count == 0);
 
     int v = 7;
-    cloned_ptr<BaseType> original_cptr(new DerivedType(v));
-    cloned_ptr<BaseType> cptr(original_cptr);
+    poly<BaseType> original_cptr(new DerivedType(v));
+    poly<BaseType> cptr(original_cptr);
 
     THEN("get returns a distinct non-null pointer")
     {
-      REQUIRE(cptr.get() != nullptr);
-      REQUIRE(cptr.get() != original_cptr.get());
+      REQUIRE(cptr.value() != nullptr);
+      REQUIRE(cptr.value() != original_cptr.value());
     }
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(cptr->value() == v);
+      REQUIRE(cptr->data() == v);
     }
 
     THEN("operator bool returns true")
     {
-      REQUIRE((bool)cptr == true);
+      REQUIRE(cptr->empty() == true);
     }
 
     THEN("object count is two")
@@ -267,78 +263,78 @@ TEST_CASE("cloned_ptr copy constructor","[cloned_ptr.constructors]")
 
     WHEN("Changes are made to the original cloning pointer after copying")
     {
-      int new_value = 99;
-      original_cptr->set_value(new_value);
-      REQUIRE(original_cptr->value() == new_value);
+      int new_data = 99;
+      original_cptr->set_data(new_data);
+      REQUIRE(original_cptr->data() == new_data);
       THEN("They are not reflected in the copy (copy is distinct)")
       {
-        REQUIRE(cptr->value() != new_value);
-        REQUIRE(cptr->value() == v);
+        REQUIRE(cptr->data() != new_data);
+        REQUIRE(cptr->data() == v);
       }
     }
   }
 }
 
-TEST_CASE("cloned_ptr move constructor","[cloned_ptr.constructors]")
+TEST_CASE("poly move constructor","[poly.constructors]")
 {
-  GIVEN("A cloned_ptr move-constructed from a default-constructed cloned_ptr")
+  GIVEN("A poly move-constructed from a default-constructed poly")
   {
-    cloned_ptr<BaseType> original_cptr;
-    cloned_ptr<BaseType> cptr(std::move(original_cptr));
+    poly<BaseType> original_cptr;
+    poly<BaseType> cptr(std::move(original_cptr));
 
     THEN("The original pointer is null")
     {
-      REQUIRE(original_cptr.get()==nullptr);
+      REQUIRE(original_cptr.value()==nullptr);
       REQUIRE(original_cptr.operator->()==nullptr);
-      REQUIRE(!(bool)original_cptr);
+      REQUIRE(!original_cptr->empty());
     }
 
     THEN("The move-constructed pointer is null")
     {
-      REQUIRE(cptr.get()==nullptr);
+      REQUIRE(cptr.value()==nullptr);
       REQUIRE(cptr.operator->()==nullptr);
-      REQUIRE(!(bool)cptr);
+      REQUIRE(!cptr->empty());
     }
   }
 
-  GIVEN("A cloned_ptr move-constructed from a default-constructed cloned_ptr")
+  GIVEN("A poly move-constructed from a default-constructed poly")
   {
     int v = 7;
-    cloned_ptr<BaseType> original_cptr(new DerivedType(v));
-    auto original_pointer = original_cptr.get();
+    poly<BaseType> original_cptr(new DerivedType(v));
+    auto original_pointer = original_cptr.value();
     CHECK(DerivedType::object_count == 1);
 
-    cloned_ptr<BaseType> cptr(std::move(original_cptr));
+    poly<BaseType> cptr(std::move(original_cptr));
     CHECK(DerivedType::object_count == 1);
 
     THEN("The original pointer is null")
     {
-      REQUIRE(original_cptr.get()==nullptr);
+      REQUIRE(original_cptr.value()==nullptr);
       REQUIRE(original_cptr.operator->()==nullptr);
-      REQUIRE(!(bool)original_cptr);
+      REQUIRE(!original_cptr->empty());
     }
 
     THEN("The move-constructed pointer is the original pointer")
     {
-      REQUIRE(cptr.get()==original_pointer);
+      REQUIRE(cptr.value()==original_pointer);
       REQUIRE(cptr.operator->()==original_pointer);
-      REQUIRE((bool)cptr);
+      REQUIRE(cptr->empty());
     }
 
-    THEN("The move-constructed pointer value is the constructed value")
+    THEN("The move-constructed pointer data is the constructed data")
     {
-      REQUIRE(cptr->value() == v);
+      REQUIRE(cptr->data() == v);
     }
   }
 }
 
-TEST_CASE("cloned_ptr assignment","[cloned_ptr.assignment]")
+TEST_CASE("poly assignment","[poly.assignment]")
 {
-  GIVEN("A default-constructed cloned_ptr assigned-to a default-constructed cloned_ptr")
+  GIVEN("A default-constructed poly assigned-to a default-constructed poly")
   {
-    cloned_ptr<BaseType> cptr1;
-    const cloned_ptr<BaseType> cptr2;
-    const auto p = cptr2.get();
+    poly<BaseType> cptr1;
+    const poly<BaseType> cptr2;
+    const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 0);
 
@@ -348,22 +344,22 @@ TEST_CASE("cloned_ptr assignment","[cloned_ptr.assignment]")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(cptr2.get() == p);
+      REQUIRE(cptr2.value() == p);
     }
 
     THEN("The assigned-to object is null")
     {
-      REQUIRE(cptr1.get() == nullptr);
+      REQUIRE(cptr1.empty());
     }
   }
 
-  GIVEN("A default-constructed cloned_ptr assigned to a pointer-constructed cloned_ptr")
+  GIVEN("A default-constructed poly assigned to a pointer-constructed poly")
   {
     int v1 = 7;
 
-    cloned_ptr<BaseType> cptr1(new DerivedType(v1));
-    const cloned_ptr<BaseType> cptr2;
-    const auto p = cptr2.get();
+    poly<BaseType> cptr1(new DerivedType(v1));
+    const poly<BaseType> cptr2;
+    const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -373,22 +369,22 @@ TEST_CASE("cloned_ptr assignment","[cloned_ptr.assignment]")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(cptr2.get() == p);
+      REQUIRE(cptr2.value() == p);
     }
 
     THEN("The assigned-to object is null")
     {
-      REQUIRE(cptr1.get() == nullptr);
+      REQUIRE(cptr1.empty());
     }
   }
 
-  GIVEN("A pointer-constructed cloned_ptr assigned to a default-constructed cloned_ptr")
+  GIVEN("A pointer-constructed poly assigned to a default-constructed poly")
   {
     int v1 = 7;
 
-    cloned_ptr<BaseType> cptr1;
-    const cloned_ptr<BaseType> cptr2(new DerivedType(v1));
-    const auto p = cptr2.get();
+    poly<BaseType> cptr1;
+    const poly<BaseType> cptr2(new DerivedType(v1));
+    const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -398,34 +394,34 @@ TEST_CASE("cloned_ptr assignment","[cloned_ptr.assignment]")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(cptr2.get() == p);
+      REQUIRE(cptr2.value() == p);
     }
 
     THEN("The assigned-to object is non-null")
     {
-      REQUIRE(cptr1.get() != nullptr);
+      REQUIRE(cptr1.value() != nullptr);
     }
 
-    THEN("The assigned-from object 'value' is the assigned-to object value")
+    THEN("The assigned-from object 'data' is the assigned-to object data")
     {
-      REQUIRE(cptr1->value() == cptr2->value());
+      REQUIRE(cptr1->data() == cptr2->data());
     }
 
     THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
     {
-      REQUIRE(cptr1.get() != cptr2.get());
+      REQUIRE(cptr1.value() != cptr2.value());
     }
 
   }
 
-  GIVEN("A pointer-constructed cloned_ptr assigned to a pointer-constructed cloned_ptr")
+  GIVEN("A pointer-constructed poly assigned to a pointer-constructed poly")
   {
     int v1 = 7;
     int v2 = 87;
 
-    cloned_ptr<BaseType> cptr1(new DerivedType(v1));
-    const cloned_ptr<BaseType> cptr2(new DerivedType(v2));
-    const auto p = cptr2.get();
+    poly<BaseType> cptr1(new DerivedType(v1));
+    const poly<BaseType> cptr2(new DerivedType(v2));
+    const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 2);
 
@@ -435,31 +431,31 @@ TEST_CASE("cloned_ptr assignment","[cloned_ptr.assignment]")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(cptr2.get() == p);
+      REQUIRE(cptr2.value() == p);
     }
 
     THEN("The assigned-to object is non-null")
     {
-      REQUIRE(cptr1.get() != nullptr);
+      REQUIRE(cptr1.value() != nullptr);
     }
 
-    THEN("The assigned-from object 'value' is the assigned-to object value")
+    THEN("The assigned-from object 'data' is the assigned-to object data")
     {
-      REQUIRE(cptr1->value() == cptr2->value());
+      REQUIRE(cptr1->data() == cptr2->data());
     }
 
     THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
     {
-      REQUIRE(cptr1.get() != cptr2.get());
+      REQUIRE(cptr1.value() != cptr2.value());
     }
   }
 
-  GIVEN("A pointer-constructed cloned_ptr assigned to itself")
+  GIVEN("A pointer-constructed poly assigned to itself")
   {
     int v1 = 7;
 
-    cloned_ptr<BaseType> cptr1(new DerivedType(v1));
-    const auto p = cptr1.get();
+    poly<BaseType> cptr1(new DerivedType(v1));
+    const auto p = cptr1.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -469,18 +465,18 @@ TEST_CASE("cloned_ptr assignment","[cloned_ptr.assignment]")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(cptr1.get() == p);
+      REQUIRE(cptr1.value() == p);
     }
   }
 }
 
-TEST_CASE("cloned_ptr move-assignment","[cloned_ptr.assignment]")
+TEST_CASE("poly move-assignment","[poly.assignment]")
 {
-  GIVEN("A default-constructed cloned_ptr move-assigned-to a default-constructed cloned_ptr")
+  GIVEN("A default-constructed poly move-assigned-to a default-constructed poly")
   {
-    cloned_ptr<BaseType> cptr1;
-    cloned_ptr<BaseType> cptr2;
-    const auto p = cptr2.get();
+    poly<BaseType> cptr1;
+    poly<BaseType> cptr2;
+    const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 0);
 
@@ -490,22 +486,22 @@ TEST_CASE("cloned_ptr move-assignment","[cloned_ptr.assignment]")
 
     THEN("The move-assigned-from object is null")
     {
-      REQUIRE(cptr1.get() == nullptr);
+      REQUIRE(cptr1.empty());
     }
 
     THEN("The move-assigned-to object is null")
     {
-      REQUIRE(cptr1.get() == nullptr);
+      REQUIRE(cptr1.empty());
     }
   }
 
-  GIVEN("A default-constructed cloned_ptr move-assigned to a pointer-constructed cloned_ptr")
+  GIVEN("A default-constructed poly move-assigned to a pointer-constructed poly")
   {
     int v1 = 7;
 
-    cloned_ptr<BaseType> cptr1(new DerivedType(v1));
-    cloned_ptr<BaseType> cptr2;
-    const auto p = cptr2.get();
+    poly<BaseType> cptr1(new DerivedType(v1));
+    poly<BaseType> cptr2;
+    const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -515,22 +511,22 @@ TEST_CASE("cloned_ptr move-assignment","[cloned_ptr.assignment]")
 
     THEN("The move-assigned-from object is null")
     {
-      REQUIRE(cptr1.get() == nullptr);
+      REQUIRE(cptr1.empty());
     }
 
     THEN("The move-assigned-to object is null")
     {
-      REQUIRE(cptr1.get() == nullptr);
+      REQUIRE(cptr1.empty());
     }
   }
 
-  GIVEN("A pointer-constructed cloned_ptr move-assigned to a default-constructed cloned_ptr")
+  GIVEN("A pointer-constructed poly move-assigned to a default-constructed poly")
   {
     int v1 = 7;
 
-    cloned_ptr<BaseType> cptr1;
-    cloned_ptr<BaseType> cptr2(new DerivedType(v1));
-    const auto p = cptr2.get();
+    poly<BaseType> cptr1;
+    poly<BaseType> cptr2(new DerivedType(v1));
+    const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -540,23 +536,23 @@ TEST_CASE("cloned_ptr move-assignment","[cloned_ptr.assignment]")
 
     THEN("The move-assigned-from object is null")
     {
-      REQUIRE(cptr2.get() == nullptr);
+      REQUIRE(cptr2.empty());
     }
 
     THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
     {
-      REQUIRE(cptr1.get() == p);
+      REQUIRE(cptr1.value() == p);
     }
   }
 
-  GIVEN("A pointer-constructed cloned_ptr move-assigned to a pointer-constructed cloned_ptr")
+  GIVEN("A pointer-constructed poly move-assigned to a pointer-constructed poly")
   {
     int v1 = 7;
     int v2 = 87;
 
-    cloned_ptr<BaseType> cptr1(new DerivedType(v1));
-    cloned_ptr<BaseType> cptr2(new DerivedType(v2));
-    const auto p = cptr2.get();
+    poly<BaseType> cptr1(new DerivedType(v1));
+    poly<BaseType> cptr2(new DerivedType(v2));
+    const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 2);
 
@@ -566,163 +562,163 @@ TEST_CASE("cloned_ptr move-assignment","[cloned_ptr.assignment]")
 
     THEN("The move-assigned-from object is null")
     {
-      REQUIRE(cptr2.get() == nullptr);
+      REQUIRE(cptr2.empty());
     }
 
     THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
     {
-      REQUIRE(cptr1.get() == p);
+      REQUIRE(cptr1.value() == p);
     }
   }
 
-  GIVEN("A pointer-constructed cloned_ptr move-assigned to itself")
+  GIVEN("A pointer-constructed poly move-assigned to itself")
   {
     int v = 7;
 
-    cloned_ptr<BaseType> cptr(new DerivedType(v));
-    const auto p = cptr.get();
+    poly<BaseType> cptr(new DerivedType(v));
+    const auto p = cptr.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
     cptr = std::move(cptr);
 
-    THEN("The cloned_ptr is unaffected")
+    THEN("The poly is unaffected")
     {
       REQUIRE(DerivedType::object_count == 1);
-      REQUIRE(cptr.get() == p);
+      REQUIRE(cptr.value() == p);
     }
   }
 }
 
-TEST_CASE("Derived types", "[cloned_ptr.derived_types]")
+TEST_CASE("Derived types", "[poly.derived_types]")
 {
-  GIVEN("A cloned_ptr<BaseType> constructed from make_cloned_ptr<DerivedType>")
+  GIVEN("A poly<BaseType> constructed from make_poly<DerivedType>")
   {
     int v = 7;
-    auto cptr = make_cloned_ptr<DerivedType>(v);
+    auto cptr = make_poly<DerivedType>(v);
 
-    WHEN("A cloned_ptr<BaseType> is copy-constructed")
+    WHEN("A poly<BaseType> is copy-constructed")
     {
-      cloned_ptr<BaseType> bptr(cptr);
+      poly<BaseType> bptr(cptr);
 
       THEN("get returns a non-null pointer")
       {
-        REQUIRE(bptr.get() != nullptr);
+        REQUIRE(bptr.value() != nullptr);
       }
 
       THEN("Operator-> calls the pointee method")
       {
-        REQUIRE(bptr->value() == v);
+        REQUIRE(bptr->data() == v);
       }
 
       THEN("operator bool returns true")
       {
-        REQUIRE((bool)bptr == true);
+        REQUIRE(bptr->empty() == true);
       }
     }
 
-    WHEN("A cloned_ptr<BaseType> is assigned")
+    WHEN("A poly<BaseType> is assigned")
     {
-      cloned_ptr<BaseType> bptr;
+      poly<BaseType> bptr;
       bptr = cptr;
 
       THEN("get returns a non-null pointer")
       {
-        REQUIRE(bptr.get() != nullptr);
+        REQUIRE(bptr.value() != nullptr);
       }
 
       THEN("Operator-> calls the pointee method")
       {
-        REQUIRE(bptr->value() == v);
+        REQUIRE(bptr->data() == v);
       }
 
       THEN("operator bool returns true")
       {
-        REQUIRE((bool)bptr == true);
+        REQUIRE(bptr->empty() == true);
       }
     }
 
-    WHEN("A cloned_ptr<BaseType> is move-constructed")
+    WHEN("A poly<BaseType> is move-constructed")
     {
-      cloned_ptr<BaseType> bptr(std::move(cptr));
+      poly<BaseType> bptr(std::move(cptr));
 
       THEN("get returns a non-null pointer")
       {
-        REQUIRE(bptr.get() != nullptr);
+        REQUIRE(bptr.value() != nullptr);
       }
 
       THEN("Operator-> calls the pointee method")
       {
-        REQUIRE(bptr->value() == v);
+        REQUIRE(bptr->data() == v);
       }
 
       THEN("operator bool returns true")
       {
-        REQUIRE((bool)bptr == true);
+        REQUIRE(bptr->empty() == true);
       }
     }
 
-    WHEN("A cloned_ptr<BaseType> is move-assigned")
+    WHEN("A poly<BaseType> is move-assigned")
     {
-      cloned_ptr<BaseType> bptr;
+      poly<BaseType> bptr;
       bptr = std::move(cptr);
 
       THEN("get returns a non-null pointer")
       {
-        REQUIRE(bptr.get() != nullptr);
+        REQUIRE(bptr.value() != nullptr);
       }
 
       THEN("Operator-> calls the pointee method")
       {
-        REQUIRE(bptr->value() == v);
+        REQUIRE(bptr->data() == v);
       }
 
       THEN("operator bool returns true")
       {
-        REQUIRE((bool)bptr == true);
+        REQUIRE(bptr->empty() == true);
       }
     }
   }
 }
 
-TEST_CASE("make_cloned_ptr return type can be converted to base-type", "[cloned_ptr.make_cloned_ptr]")
+TEST_CASE("make_poly return type can be converted to base-type", "[poly.make_poly]")
 {
-  GIVEN("A cloned_ptr<BaseType> constructed from make_cloned_ptr<DerivedType>")
+  GIVEN("A poly<BaseType> constructed from make_poly<DerivedType>")
   {
     int v = 7;
-    cloned_ptr<BaseType> cptr = make_cloned_ptr<DerivedType>(v);
+    poly<BaseType> cptr = make_poly<DerivedType>(v);
 
     THEN("get returns a non-null pointer")
     {
-      REQUIRE(cptr.get() != nullptr);
+      REQUIRE(cptr.value() != nullptr);
     }
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(cptr->value() == v);
+      REQUIRE(cptr->data() == v);
     }
 
     THEN("operator bool returns true")
     {
-      REQUIRE((bool)cptr == true);
+      REQUIRE(cptr->empty() == true);
     }
   }
 }
 
-TEST_CASE("reset","[cloned_ptr.reset]")
+TEST_CASE("reset","[poly.reset]")
 {
-  GIVEN("An empty cloned_ptr")
+  GIVEN("An empty poly")
   {
-    cloned_ptr<DerivedType> cptr;
+    poly<DerivedType> cptr;
 
     WHEN("reset to null")
     {
       cptr.reset();
 
-      THEN("The cloned_ptr remains empty")
+      THEN("The poly remains empty")
       {
         REQUIRE(!cptr);
-        REQUIRE(cptr.get()==nullptr);
+        REQUIRE(cptr.value()==nullptr);
       }
     }
 
@@ -733,20 +729,20 @@ TEST_CASE("reset","[cloned_ptr.reset]")
 
       CHECK(DerivedType::object_count == 1);
 
-      THEN("The cloned_ptr is non-empty and owns the pointer")
+      THEN("The poly is non-empty and owns the pointer")
       {
         REQUIRE(cptr);
-        REQUIRE(cptr.get()!=nullptr);
-        REQUIRE(cptr->value() == v);
+        REQUIRE(cptr.value()!=nullptr);
+        REQUIRE(cptr->data() == v);
       }
     }
   }
   CHECK(DerivedType::object_count == 0);
 
-  GIVEN("A non-empty cloned_ptr")
+  GIVEN("A non-empty poly")
   {
     int v1 = 7;
-    cloned_ptr<DerivedType> cptr(new DerivedType(v1));
+    poly<DerivedType> cptr(new DerivedType(v1));
     CHECK(DerivedType::object_count == 1);
 
     WHEN("reset to null")
@@ -754,10 +750,10 @@ TEST_CASE("reset","[cloned_ptr.reset]")
       cptr.reset();
       CHECK(DerivedType::object_count == 0);
 
-      THEN("The cloned_ptr is empty")
+      THEN("The poly is empty")
       {
         REQUIRE(!cptr);
-        REQUIRE(cptr.get()==nullptr);
+        REQUIRE(cptr.value()==nullptr);
       }
     }
 
@@ -767,11 +763,11 @@ TEST_CASE("reset","[cloned_ptr.reset]")
       cptr.reset(new DerivedType(v2));
       CHECK(DerivedType::object_count == 1);
 
-      THEN("The cloned_ptr is non-empty and owns the pointer")
+      THEN("The poly is non-empty and owns the pointer")
       {
         REQUIRE(cptr);
-        REQUIRE(cptr.get()!=nullptr);
-        REQUIRE(cptr->value() == v2);
+        REQUIRE(cptr.value()!=nullptr);
+        REQUIRE(cptr->data() == v2);
       }
     }
   }
@@ -779,25 +775,25 @@ TEST_CASE("reset","[cloned_ptr.reset]")
 
 struct AlternativeBaseType {
   virtual ~AlternativeBaseType() = default;
-  virtual int alternative_value() = 0;
+  virtual int alternative_data() = 0;
 };
 
 class AlternativeDerivedType : public BaseType, public AlternativeBaseType {
-  int value_;
+  int data_;
 public:
-  AlternativeDerivedType(int value) : value_(value) {}
+  AlternativeDerivedType(int data) : data_(data) {}
 
-  int value() override { return value_; }
-  void set_value(int v) override { value_ = v; }
-  int alternative_value() override { return value_; }
+  int data() override { return data_; }
+  void set_data(int v) override { data_ = v; }
+  int alternative_data() override { return data_; }
 };
 
-TEST_CASE("cast operations", "[cloned_ptr.casts]")
+TEST_CASE("cast operations", "[poly.casts]")
 {
-  GIVEN("A pointer-constructed cloned_ptr<BaseType>")
+  GIVEN("A pointer-constructed poly<BaseType>")
   {
     int v = 7;
-    cloned_ptr<BaseType> cptr(new DerivedType(v));
+    poly<BaseType> cptr(new DerivedType(v));
     REQUIRE(DerivedType::object_count == 1);
 
     WHEN("static_pointer_cast to the derived type is called")
@@ -808,13 +804,13 @@ TEST_CASE("cast operations", "[cloned_ptr.casts]")
       {
         REQUIRE(st_cptr);
       }
-      THEN("The static-cast pointer has the required value")
+      THEN("The static-cast pointer has the required data")
       {
-        REQUIRE(st_cptr->value() == v);
+        REQUIRE(st_cptr->data() == v);
       }
       THEN("The static-cast pointer is distinct from the original pointer")
       {
-        REQUIRE(st_cptr.get() != cptr.get());
+        REQUIRE(st_cptr.value() != cptr.value());
       }
       THEN("Object count is increased")
       {
@@ -829,13 +825,13 @@ TEST_CASE("cast operations", "[cloned_ptr.casts]")
       {
         REQUIRE(dyn_cptr);
       }
-      THEN("The dynamic-cast pointer has the required value")
+      THEN("The dynamic-cast pointer has the required data")
       {
-        REQUIRE(dyn_cptr->value() == v);
+        REQUIRE(dyn_cptr->data() == v);
       }
       THEN("The dynamic-cast pointer is distinct from the original pointer")
       {
-        REQUIRE(dyn_cptr.get() != cptr.get());
+        REQUIRE(dyn_cptr.value() != cptr.value());
       }
       THEN("Object count is increased")
       {
@@ -856,10 +852,10 @@ TEST_CASE("cast operations", "[cloned_ptr.casts]")
       }
     }
   }
-  GIVEN("A pointer-constructed cloned_ptr<const DerivedType>")
+  GIVEN("A pointer-constructed poly<const DerivedType>")
   {
     int v = 7;
-    cloned_ptr<const DerivedType> ccptr(new DerivedType(v));
+    poly<const DerivedType> ccptr(new DerivedType(v));
     REQUIRE(DerivedType::object_count == 1);
 
     WHEN("static_pointer_cast to the derived type is called")
@@ -870,13 +866,13 @@ TEST_CASE("cast operations", "[cloned_ptr.casts]")
       {
         REQUIRE(cptr);
       }
-      THEN("The static-cast pointer has the required value")
+      THEN("The static-cast pointer has the required data")
       {
-        REQUIRE(cptr->value() == v);
+        REQUIRE(cptr->data() == v);
       }
       THEN("The static-cast pointer is distinct from the original pointer")
       {
-        REQUIRE(cptr.get() != ccptr.get());
+        REQUIRE(cptr.value() != ccptr.value());
       }
       THEN("Object count is increased")
       {
@@ -884,10 +880,10 @@ TEST_CASE("cast operations", "[cloned_ptr.casts]")
       }
     }
   }
-  GIVEN("An AlternativeDerivedType-pointer-constructed cloned_ptr<BaseType>")
+  GIVEN("An AlternativeDerivedType-pointer-constructed poly<BaseType>")
   {
     int v = 7;
-    cloned_ptr<BaseType> cptr(new AlternativeDerivedType(v));
+    poly<BaseType> cptr(new AlternativeDerivedType(v));
 
     WHEN("dynamic_pointer_cast to AlternativeBaseType is called")
     {
@@ -897,13 +893,13 @@ TEST_CASE("cast operations", "[cloned_ptr.casts]")
       {
         REQUIRE(dyn_cptr);
       }
-      THEN("The dynamic-cast pointer has the required value")
+      THEN("The dynamic-cast pointer has the required data")
       {
-        REQUIRE(dyn_cptr->alternative_value() == v);
+        REQUIRE(dyn_cptr->alternative_data() == v);
       }
       THEN("The dynamic-cast pointer is distinct from the original pointer")
       {
-        REQUIRE(dyn_cptr.get() != dynamic_cast<AlternativeBaseType*>(cptr.get()));
+        REQUIRE(dyn_cptr.value() != dynamic_cast<AlternativeBaseType*>(cptr.value()));
       }
     }
   }
@@ -912,28 +908,28 @@ TEST_CASE("cast operations", "[cloned_ptr.casts]")
 struct Base { int v_ = 42; virtual ~Base() = default; };
 struct IntermediateBaseA : virtual Base { int a_ = 3; };
 struct IntermediateBaseB : virtual Base { int b_ = 101; };
-struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int value_ = 0; MultiplyDerived(int value) : value_(value) {}; };
+struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int data_ = 0; MultiplyDerived(int data) : data_(data) {}; };
 
-TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[cloned_ptr.constructors]")
+TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[poly.constructors]")
 {
-  GIVEN("A value-constructed multiply-derived-class cloned_ptr")
+  GIVEN("A data-constructed multiply-derived-class poly")
   {
     int v = 7;
-    cloned_ptr<MultiplyDerived> cptr(new MultiplyDerived(v));
+    poly<MultiplyDerived> cptr(new MultiplyDerived(v));
 
-    THEN("When copied to a cloned_ptr to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a poly to an intermediate base type, data is accessible as expected")
     {
-      cloned_ptr<IntermediateBaseA> cptr_IA = cptr;
+      poly<IntermediateBaseA> cptr_IA = cptr;
       REQUIRE(cptr_IA->a_ == 3);
       REQUIRE(cptr_IA->v_ == 42);
     }
 
-    THEN("When copied to a cloned_ptr to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a poly to an intermediate base type, data is accessible as expected")
     {
-      cloned_ptr<IntermediateBaseB> cptr_IB = cptr;
+      poly<IntermediateBaseB> cptr_IB = cptr;
       REQUIRE(cptr_IB->b_ == 101);
       REQUIRE(cptr_IB->v_ == 42);
     }
   }
 }
-
+*/
