@@ -5,7 +5,7 @@
 
 struct BaseType
 {
-  virtual int data() = 0; // intentionally non-const
+  virtual int data() const = 0;
   virtual void set_data(int) = 0;
   virtual ~BaseType() = default;
 };
@@ -35,16 +35,22 @@ struct DerivedType : BaseType
     --object_count;
   }
 
-  int data() override { return data_; }
+  int data() const override
+  {
+    return data_;
+  }
 
-  void set_data(int i) override { data_ = i; }
+  void set_data(int i) override
+  {
+    data_ = i;
+  }
 
   static size_t object_count;
 };
 
 size_t DerivedType::object_count = 0;
 
-TEST_CASE("Default constructed object is empty","[poly.constructors]")
+TEST_CASE("Default constructed object is empty", "[poly.constructors]")
 {
   GIVEN("A default constructed poly<BaseType>")
   {
@@ -61,13 +67,13 @@ TEST_CASE("Default constructed object is empty","[poly.constructors]")
   }
 }
 
-TEST_CASE("Pointer constructed object","[poly.constructors]")
+TEST_CASE("Pointer constructed object", "[poly.constructors]")
 {
   GIVEN("A pointer-constructed poly")
   {
     int v = 7;
     poly<BaseType> p(new DerivedType(v));
-    
+
     THEN("poly is non-empty")
     {
       REQUIRE(!p.empty());
@@ -83,41 +89,56 @@ TEST_CASE("Pointer constructed object","[poly.constructors]")
   }
 }
 
-struct BaseCloneSelf 
+struct BaseCloneSelf
 {
   BaseCloneSelf() = default;
   virtual ~BaseCloneSelf() = default;
-  BaseCloneSelf(const BaseCloneSelf &) = delete;
+  BaseCloneSelf(const BaseCloneSelf&) = delete;
   virtual std::unique_ptr<BaseCloneSelf> clone() const = 0;
 };
 
 struct DerivedCloneSelf : BaseCloneSelf
 {
   static size_t object_count;
-  std::unique_ptr<BaseCloneSelf> clone() const { return std::make_unique<DerivedCloneSelf>(); }
-  DerivedCloneSelf() { ++object_count; }
-  ~DerivedCloneSelf(){ --object_count; }
+  std::unique_ptr<BaseCloneSelf> clone() const
+  {
+    return std::make_unique<DerivedCloneSelf>();
+  }
+  DerivedCloneSelf()
+  {
+    ++object_count;
+  }
+  ~DerivedCloneSelf()
+  {
+    --object_count;
+  }
 };
 
 size_t DerivedCloneSelf::object_count = 0;
 
 struct invoke_clone_member
 {
-  template <typename T> T *operator()(const T &t) const {
-    return static_cast<T *>(t.clone().release());
+  template <typename T>
+  T* operator()(const T& t) const
+  {
+    return static_cast<T*>(t.clone().release());
   }
 };
 
 TEST_CASE("Pointer constructor with custom copier avoids slicing",
-          "[poly.constructors]") {
-  GIVEN("A poly constructed with a custom copier") {
+          "[poly.constructors]")
+{
+  GIVEN("A poly constructed with a custom copier")
+  {
     auto p = std::unique_ptr<BaseCloneSelf>(new DerivedCloneSelf);
     REQUIRE(DerivedCloneSelf::object_count == 1);
     auto c = poly<BaseCloneSelf>(p.release(), invoke_clone_member{});
 
-    WHEN("A copy is made") {
+    WHEN("A copy is made")
+    {
       auto c2 = c;
-      THEN("The copied poly manages a distinc resource") {
+      THEN("The copied poly manages a distinc resource")
+      {
         CHECK(DerivedCloneSelf::object_count == 2);
         REQUIRE(c2);
         REQUIRE(&c2.value() != &c.value());
@@ -127,13 +148,14 @@ TEST_CASE("Pointer constructor with custom copier avoids slicing",
   }
 }
 
-TEST_CASE("poly destructor","[poly.destructor]")
+TEST_CASE("poly destructor", "[poly.destructor]")
 {
   GIVEN("No derived objects")
   {
     REQUIRE(DerivedType::object_count == 0);
 
-    THEN("Object count is increased on construction and decreased on destruction")
+    THEN("Object count is increased on construction and decreased on "
+         "destruction")
     {
       // begin and end scope to force destruction
       {
@@ -145,7 +167,7 @@ TEST_CASE("poly destructor","[poly.destructor]")
   }
 }
 
-TEST_CASE("poly copy constructor","[poly.constructors]")
+TEST_CASE("poly copy constructor", "[poly.constructors]")
 {
   GIVEN("A poly copied from a default-constructed poly")
   {
@@ -170,7 +192,7 @@ TEST_CASE("poly copy constructor","[poly.constructors]")
     {
       REQUIRE(p.empty() == false);
     }
-    
+
     THEN("values are distinct objects")
     {
       REQUIRE(&op.value() != &p.value());
@@ -188,7 +210,7 @@ TEST_CASE("poly copy constructor","[poly.constructors]")
   }
 }
 
-TEST_CASE("poly move constructor","[poly.constructors]")
+TEST_CASE("poly move constructor", "[poly.constructors]")
 {
   GIVEN("A poly move constructed from a default-constructed poly")
   {
@@ -350,7 +372,8 @@ TEST_CASE("poly assignment","[poly.assignment]")
       REQUIRE(cptr1->data() == cptr2->data());
     }
 
-    THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
+    THEN("The assigned-from object pointer and the assigned-to object pointer
+are distinct")
     {
       REQUIRE(cptr1.value() != cptr2.value());
     }
@@ -387,7 +410,8 @@ TEST_CASE("poly assignment","[poly.assignment]")
       REQUIRE(cptr1->data() == cptr2->data());
     }
 
-    THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
+    THEN("The assigned-from object pointer and the assigned-to object pointer
+are distinct")
     {
       REQUIRE(cptr1.value() != cptr2.value());
     }
@@ -415,7 +439,8 @@ TEST_CASE("poly assignment","[poly.assignment]")
 
 TEST_CASE("poly move-assignment","[poly.assignment]")
 {
-  GIVEN("A default-constructed poly move-assigned-to a default-constructed poly")
+  GIVEN("A default-constructed poly move-assigned-to a default-constructed
+poly")
   {
     poly<BaseType> cptr1;
     poly<BaseType> cptr2;
@@ -438,7 +463,8 @@ TEST_CASE("poly move-assignment","[poly.assignment]")
     }
   }
 
-  GIVEN("A default-constructed poly move-assigned to a pointer-constructed poly")
+  GIVEN("A default-constructed poly move-assigned to a pointer-constructed
+poly")
   {
     int v1 = 7;
 
@@ -463,7 +489,8 @@ TEST_CASE("poly move-assignment","[poly.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed poly move-assigned to a default-constructed poly")
+  GIVEN("A pointer-constructed poly move-assigned to a default-constructed
+poly")
   {
     int v1 = 7;
 
@@ -482,13 +509,15 @@ TEST_CASE("poly move-assignment","[poly.assignment]")
       REQUIRE(cptr2.empty());
     }
 
-    THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
+    THEN("The move-assigned-to object pointer is the move-assigned-from
+pointer")
     {
       REQUIRE(cptr1.value() == p);
     }
   }
 
-  GIVEN("A pointer-constructed poly move-assigned to a pointer-constructed poly")
+  GIVEN("A pointer-constructed poly move-assigned to a pointer-constructed
+poly")
   {
     int v1 = 7;
     int v2 = 87;
@@ -508,7 +537,8 @@ TEST_CASE("poly move-assignment","[poly.assignment]")
       REQUIRE(cptr2.empty());
     }
 
-    THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
+    THEN("The move-assigned-to object pointer is the move-assigned-from
+pointer")
     {
       REQUIRE(cptr1.value() == p);
     }
@@ -624,7 +654,8 @@ TEST_CASE("Derived types", "[poly.derived_types]")
   }
 }
 
-TEST_CASE("make_poly return type can be converted to base-type", "[poly.make_poly]")
+TEST_CASE("make_poly return type can be converted to base-type",
+"[poly.make_poly]")
 {
   GIVEN("A poly<BaseType> constructed from make_poly<DerivedType>")
   {
@@ -842,7 +873,8 @@ TEST_CASE("cast operations", "[poly.casts]")
       }
       THEN("The dynamic-cast pointer is distinct from the original pointer")
       {
-        REQUIRE(dyn_cptr.value() != dynamic_cast<AlternativeBaseType*>(cptr.value()));
+        REQUIRE(dyn_cptr.value() !=
+dynamic_cast<AlternativeBaseType*>(cptr.value()));
       }
     }
   }
@@ -851,23 +883,27 @@ TEST_CASE("cast operations", "[poly.casts]")
 struct Base { int v_ = 42; virtual ~Base() = default; };
 struct IntermediateBaseA : virtual Base { int a_ = 3; };
 struct IntermediateBaseB : virtual Base { int b_ = 101; };
-struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int data_ = 0; MultiplyDerived(int data) : data_(data) {}; };
+struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int data_ = 0;
+MultiplyDerived(int data) : data_(data) {}; };
 
-TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[poly.constructors]")
+TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes",
+"[poly.constructors]")
 {
   GIVEN("A data-constructed multiply-derived-class poly")
   {
     int v = 7;
     poly<MultiplyDerived> cptr(new MultiplyDerived(v));
 
-    THEN("When copied to a poly to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a poly to an intermediate base type, data is accessible
+as expected")
     {
       poly<IntermediateBaseA> cptr_IA = cptr;
       REQUIRE(cptr_IA->a_ == 3);
       REQUIRE(cptr_IA->v_ == 42);
     }
 
-    THEN("When copied to a poly to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a poly to an intermediate base type, data is accessible
+as expected")
     {
       poly<IntermediateBaseB> cptr_IB = cptr;
       REQUIRE(cptr_IB->b_ == 101);
