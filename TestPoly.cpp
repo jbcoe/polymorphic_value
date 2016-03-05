@@ -83,50 +83,6 @@ TEST_CASE("Pointer constructed object","[poly.constructors]")
   }
 }
 
-
-/*
-  GIVEN("A pointer-constructed poly")
-  {
-    int v = 7;
-    poly<BaseType> cptr(new DerivedType(v));
-
-    THEN("get returns a non-null pointer")
-    {
-      REQUIRE(cptr.value() != nullptr);
-    }
-
-    THEN("Operator-> calls the pointee method")
-    {
-      REQUIRE(cptr->data() == v);
-    }
-
-    THEN("operator bool returns true")
-    {
-      REQUIRE(cptr->empty() == true);
-    }
-  }
-  GIVEN("A pointer-constructed const poly")
-  {
-    int v = 7;
-    const poly<BaseType> ccptr(new DerivedType(v));
-
-    THEN("get returns a non-null pointer")
-    {
-      REQUIRE(ccptr.value() != nullptr);
-    }
-
-    THEN("Operator-> calls the pointee method")
-    {
-      REQUIRE(ccptr->data() == v);
-    }
-
-    THEN("operator bool returns true")
-    {
-      REQUIRE(ccptr->empty() == true);
-    }
-  }
-}
-
 struct BaseCloneSelf 
 {
   BaseCloneSelf() = default;
@@ -164,31 +120,11 @@ TEST_CASE("Pointer constructor with custom copier avoids slicing",
       THEN("The copied poly manages a distinc resource") {
         CHECK(DerivedCloneSelf::object_count == 2);
         REQUIRE(c2);
-        REQUIRE(c2.value() != c.value());
+        REQUIRE(&c2.value() != &c.value());
       }
     }
     CHECK(DerivedCloneSelf::object_count == 1);
   }
-}
-
-TEST_CASE("poly constructed with copier and deleter",
-          "[poly.constructor]") {
-  size_t copy_count = 0;
-  size_t deletion_count = 0;
-  auto cp = poly<DerivedType>(new DerivedType(),
-                                    [&](const DerivedType &d) {
-                                      ++copy_count;
-                                      return new DerivedType(d);
-                                    },
-                                    [&](const DerivedType *d) {
-                                      ++deletion_count;
-                                      delete d;
-                                    });
-  {
-    auto cp2 = cp;
-    REQUIRE(copy_count == 1);
-  }
-  REQUIRE(deletion_count == 1);
 }
 
 TEST_CASE("poly destructor","[poly.destructor]")
@@ -213,22 +149,12 @@ TEST_CASE("poly copy constructor","[poly.constructors]")
 {
   GIVEN("A poly copied from a default-constructed poly")
   {
-    poly<BaseType> original_cptr;
-    poly<BaseType> cptr(original_cptr);
+    poly<BaseType> op;
+    poly<BaseType> p(op);
 
-    THEN("get returns nullptr")
+    THEN("poly is empty")
     {
-      REQUIRE(cptr.empty());
-    }
-
-    THEN("operator-> returns nullptr")
-    {
-      REQUIRE(cptr.operator->() == nullptr);
-    }
-
-    THEN("operator bool returns false")
-    {
-      REQUIRE(cptr->empty() == false);
+      REQUIRE(p.empty());
     }
   }
 
@@ -237,44 +163,61 @@ TEST_CASE("poly copy constructor","[poly.constructors]")
     REQUIRE(DerivedType::object_count == 0);
 
     int v = 7;
-    poly<BaseType> original_cptr(new DerivedType(v));
-    poly<BaseType> cptr(original_cptr);
+    poly<BaseType> op(new DerivedType(v));
+    poly<BaseType> p(op);
 
-    THEN("get returns a distinct non-null pointer")
+    THEN("copy is non-empty")
     {
-      REQUIRE(cptr.value() != nullptr);
-      REQUIRE(cptr.value() != original_cptr.value());
+      REQUIRE(p.empty() == false);
+    }
+    
+    THEN("values are distinct objects")
+    {
+      REQUIRE(&op.value() != &p.value());
     }
 
-    THEN("Operator-> calls the pointee method")
+    THEN("managed object has been copied")
     {
-      REQUIRE(cptr->data() == v);
-    }
-
-    THEN("operator bool returns true")
-    {
-      REQUIRE(cptr->empty() == true);
+      REQUIRE(p->data() == v);
     }
 
     THEN("object count is two")
     {
       REQUIRE(DerivedType::object_count == 2);
     }
-
-    WHEN("Changes are made to the original cloning pointer after copying")
-    {
-      int new_data = 99;
-      original_cptr->set_data(new_data);
-      REQUIRE(original_cptr->data() == new_data);
-      THEN("They are not reflected in the copy (copy is distinct)")
-      {
-        REQUIRE(cptr->data() != new_data);
-        REQUIRE(cptr->data() == v);
-      }
-    }
   }
 }
 
+TEST_CASE("poly move constructor","[poly.constructors]")
+{
+  GIVEN("A poly move constructed from a default-constructed poly")
+  {
+    poly<BaseType> op;
+    poly<BaseType> p(std::move(op));
+
+    THEN("move-constructed poly is empty")
+    {
+      REQUIRE(p.empty());
+    }
+  }
+
+  GIVEN("A poly move constructed from a pointer-constructed poly")
+  {
+    REQUIRE(DerivedType::object_count == 0);
+
+    int v = 7;
+    poly<BaseType> op(new DerivedType(v));
+    BaseType* resource = &op.value();
+    poly<BaseType> p(std::move(op));
+
+    THEN("resource ownership is transferred")
+    {
+      REQUIRE(&p.value() == resource);
+      REQUIRE(op.empty());
+    }
+  }
+}
+/*
 TEST_CASE("poly move constructor","[poly.constructors]")
 {
   GIVEN("A poly move-constructed from a default-constructed poly")
