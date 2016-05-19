@@ -279,6 +279,12 @@ public:
     cb_ = std::move(p);
   }
 
+  void clear()
+  {
+    cb_.reset();
+    ptr_ = nullptr;
+  }
+
   //
   // Accessors
   //
@@ -286,6 +292,11 @@ public:
   explicit operator bool() const
   {
     return (bool)cb_;
+  }
+
+  bool empty() const
+  {
+    return !(bool)cb_;
   }
 
   const T* operator->() const
