@@ -11,8 +11,6 @@ compiler-defaults for copy, assign, move and move-assign.
 See <https://groups.google.com/a/isocpp.org/forum/#!topic/std-proposals/YnUvKJATgD0>
 for discussion/design.
 
-The proposal is available here: [P0201r0.pdf](./P0201r0.pdf).
-
 ## Submodules
 Tests use the 'catch' test framework: <https://github.com/philsquared/Catch.git>
 
