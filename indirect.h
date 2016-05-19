@@ -209,9 +209,9 @@ public:
       return *this;
     }
 
-    auto tmp_cb = p.cb_->clone();
-    ptr_ = tmp_cb->ptr();
-    cb_ = std::move(tmp_cb);
+
+    cb_ = p.cb_->clone();
+    ptr_ = cb_->ptr();
     return *this;
   }
 
@@ -220,8 +220,8 @@ public:
                                           std::is_convertible<U*, T*>::value>>
   indirect& operator=(const indirect<U>& p)
   {
-    indirect<U> tmp(p);
-    *this = std::move(tmp);
+    cb_ = std::make_unique<delegating_control_block<T, U>>(p.cb_->clone());
+    ptr_ = cb_.ptr();
     return *this;
   }
 
@@ -313,3 +313,5 @@ indirect<T> make_indirect(Ts&&... ts)
   p.ptr_ = p.cb_->ptr();
   return std::move(p);
 }
+
+// FIXME Add hash and comparison operators for indirect<T> if T supports them.

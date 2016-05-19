@@ -137,6 +137,7 @@ TEST_CASE("indirect copy constructor", "[indirect.constructors]")
   }
 }
 
+/*
 TEST_CASE("indirect move constructor", "[indirect.constructors]")
 {
   GIVEN("A indirect move constructed from a pointer-constructed indirect")
@@ -155,7 +156,6 @@ TEST_CASE("indirect move constructor", "[indirect.constructors]")
   }
 }
 
-/*
 TEST_CASE("indirect move constructor","[indirect.constructors]")
 {
   GIVEN("A indirect move-constructed from a default-constructed indirect")
