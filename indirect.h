@@ -9,11 +9,6 @@ struct default_copier
   {
     return new T(t);
   }
-
-  T* operator()(T&& t) const
-  {
-    return new T(std::move(t));
-  }
 };
 
 template <typename T>
@@ -30,7 +25,6 @@ struct control_block
 {
   virtual ~control_block() = default;
   virtual std::unique_ptr<control_block> clone() const = 0;
-  virtual std::unique_ptr<control_block> move() = 0;
   virtual T* ptr() = 0;
 };
 
@@ -53,13 +47,6 @@ public:
     return std::make_unique<control_block_impl>(c_(*p_), c_, p_.get_deleter());
   }
 
-  std::unique_ptr<control_block<T>> move() override
-  {
-    assert(p_);
-    return std::make_unique<control_block_impl>(c_(std::move(*p_)), c_,
-                                                p_.get_deleter());
-  }
-
   T* ptr() override
   {
     return p_.get();
@@ -80,12 +67,7 @@ public:
 
   std::unique_ptr<control_block<U>> clone() const override
   {
-    return std::make_unique<direct_control_block_impl>(u_);
-  }
-
-  std::unique_ptr<control_block<U>> move() override
-  {
-    return std::make_unique<direct_control_block_impl>(std::move(u_));
+    return std::make_unique<direct_control_block_impl>(*this);
   }
 
   T* ptr() override
@@ -111,11 +93,6 @@ public:
     return std::make_unique<delegating_control_block>(delegate_->clone());
   }
 
-  std::unique_ptr<control_block<T>> move() override
-  {
-    return std::make_unique<delegating_control_block>(delegate_->move());
-  }
-
   T* ptr() override
   {
     return delegate_->ptr();
@@ -128,31 +105,37 @@ class indirect
 
   template <typename U>
   friend class indirect;
-
   template <typename T_, typename... Ts>
   friend indirect<T_> make_indirect(Ts&&... ts);
 
   T* ptr_ = nullptr;
   std::unique_ptr<control_block<T>> cb_;
 
+  void init(std::unique_ptr<control_block<T>> p)
+  {
+    cb_ = std::move(p);
+    ptr_ = cb_->ptr();
+  }
+
 public:
   //
   // Constructors
   //
 
-  template <typename T_ = T,
-            typename = std::enable_if_t<!std::is_abstract<T_>::value>>
-  indirect() : cb_(std::make_unique<control_block_impl<T, T>>())
-  {
-    ptr_ = cb_->ptr();
-  }
+  indirect() = default;
+  
+  ~indirect() = default;
 
   template <typename U, typename C = default_copier<U>,
             typename D = default_deleter<U>,
             typename V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
   explicit indirect(U* u, C copier = C{}, D deleter = D{})
   {
-    assert(u);
+    if (!u)
+    {
+      return;
+    }
+
     assert(typeid(*u) == typeid(U));
 
     cb_ = std::make_unique<control_block_impl<T, U, C, D>>(u, std::move(copier),
@@ -166,8 +149,13 @@ public:
 
   indirect(const indirect& p)
   {
-    cb_ = p.cb_->clone();
-    ptr_ = cb_->ptr();
+    if (!p)
+    {
+      return;
+    }
+    auto tmp_cb = p.cb_->clone();
+    ptr_ = tmp_cb->ptr();
+    cb_ = std::move(tmp_cb);
   }
 
   template <typename U,
@@ -175,8 +163,9 @@ public:
                                           std::is_convertible<U*, T*>::value>>
   indirect(const indirect<U>& p)
   {
-    cb_ = std::make_unique<delegating_control_block<T, U>>(p.cb_->clone());
-    ptr_ = cb_->ptr();
+    indirect<U> tmp(p);
+    ptr_ = tmp.ptr_;
+    cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(tmp.cb_));
   }
 
   //
@@ -185,8 +174,9 @@ public:
 
   indirect(indirect&& p)
   {
-    cb_ = p.cb_->move();
-    ptr_ = cb_->ptr();
+    ptr_ = p.ptr_;
+    cb_ = std::move(p.cb_);
+    p.ptr_ = nullptr;
   }
 
   template <typename U,
@@ -194,8 +184,9 @@ public:
                                           std::is_convertible<U*, T*>::value>>
   indirect(indirect<U>&& p)
   {
-    cb_ = std::make_unique<delegating_control_block<T, U>>(p.cb_->move());
-    ptr_ = cb_->ptr();
+    ptr_ = p.ptr_;
+    cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
+    p.ptr_ = nullptr;
   }
 
   //
@@ -209,9 +200,16 @@ public:
       return *this;
     }
 
+    if (!p)
+    {
+      cb_.reset();
+      ptr_ = nullptr;
+      return *this;
+    }
 
-    cb_ = p.cb_->clone();
-    ptr_ = cb_->ptr();
+    auto tmp_cb = p.cb_->clone();
+    ptr_ = tmp_cb->ptr();
+    cb_ = std::move(tmp_cb);
     return *this;
   }
 
@@ -220,8 +218,8 @@ public:
                                           std::is_convertible<U*, T*>::value>>
   indirect& operator=(const indirect<U>& p)
   {
-    cb_ = std::make_unique<delegating_control_block<T, U>>(p.cb_->clone());
-    ptr_ = cb_.ptr();
+    indirect<U> tmp(p);
+    *this = std::move(tmp);
     return *this;
   }
 
@@ -231,8 +229,14 @@ public:
 
   indirect& operator=(indirect&& p)
   {
-    cb_ = p.cb_->move();
-    ptr_ = cb_->ptr();
+    if (&p == this)
+    {
+      return *this;
+    }
+
+    cb_ = std::move(p.cb_);
+    ptr_ = p.ptr_;
+    p.ptr_ = nullptr;
     return *this;
   }
 
@@ -241,8 +245,9 @@ public:
                                           std::is_convertible<U*, T*>::value>>
   indirect& operator=(indirect<U>&& p)
   {
-    cb_ = std::make_unique<delegating_control_block<T, U>>(p.cb_->move());
-    ptr_ = cb_.ptr();
+    cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
+    ptr_ = p.ptr_;
+    p.ptr_ = nullptr;
     return *this;
   }
 
@@ -269,6 +274,11 @@ public:
   //
   // Accessors
   //
+
+  explicit operator bool() const
+  {
+    return (bool)cb_;
+  }
 
   const T* operator->() const
   {
@@ -314,4 +324,3 @@ indirect<T> make_indirect(Ts&&... ts)
   return std::move(p);
 }
 
-// FIXME Add hash and comparison operators for indirect<T> if T supports them.

@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
 
-#include <catch.hpp>
 #include "indirect.h"
+#include <catch.hpp>
 
 struct BaseType
 {
@@ -31,6 +31,56 @@ struct DerivedType : BaseType
   }
 
   ~DerivedType()
+  {
+    --object_count;
+  }
+
+  int data() const override
+  {
+    return data_;
+  }
+
+  void set_data(int i) override
+  {
+    data_ = i;
+  }
+
+  static size_t object_count;
+};
+
+struct MoveableDerivedType : BaseType
+{
+  int data_ = 0;
+
+  enum
+  {
+    moved_from = -1
+  };
+
+  MoveableDerivedType()
+  {
+    ++object_count;
+  }
+
+  MoveableDerivedType(const MoveableDerivedType& d)
+  {
+    data_ = d.data_;
+    ++object_count;
+  }
+  
+  MoveableDerivedType(MoveableDerivedType&& d)
+  {
+    data_ = d.data_;
+    d.data_ = MoveableDerivedType::moved_from;
+    ++object_count;
+  }
+
+  MoveableDerivedType(int v) : data_(v)
+  {
+    ++object_count;
+  }
+
+  ~MoveableDerivedType()
   {
     --object_count;
   }
@@ -478,6 +528,7 @@ pointer")
     }
   }
 }
+*/
 
 TEST_CASE("Derived types", "[indirect.derived_types]")
 {
@@ -489,41 +540,21 @@ TEST_CASE("Derived types", "[indirect.derived_types]")
     WHEN("A indirect<BaseType> is copy-constructed")
     {
       indirect<BaseType> bptr(cptr);
-
-      THEN("get returns a non-null pointer")
-      {
-        REQUIRE(bptr.value() != nullptr);
-      }
-
+      
       THEN("Operator-> calls the pointee method")
       {
         REQUIRE(bptr->data() == v);
-      }
-
-      THEN("operator bool returns true")
-      {
-        REQUIRE(bptr->empty() == true);
       }
     }
 
     WHEN("A indirect<BaseType> is assigned")
     {
-      indirect<BaseType> bptr;
+      indirect<BaseType> bptr(new DerivedType(0));
       bptr = cptr;
-
-      THEN("get returns a non-null pointer")
-      {
-        REQUIRE(bptr.value() != nullptr);
-      }
 
       THEN("Operator-> calls the pointee method")
       {
         REQUIRE(bptr->data() == v);
-      }
-
-      THEN("operator bool returns true")
-      {
-        REQUIRE(bptr->empty() == true);
       }
     }
 
@@ -531,40 +562,20 @@ TEST_CASE("Derived types", "[indirect.derived_types]")
     {
       indirect<BaseType> bptr(std::move(cptr));
 
-      THEN("get returns a non-null pointer")
-      {
-        REQUIRE(bptr.value() != nullptr);
-      }
-
       THEN("Operator-> calls the pointee method")
       {
         REQUIRE(bptr->data() == v);
-      }
-
-      THEN("operator bool returns true")
-      {
-        REQUIRE(bptr->empty() == true);
       }
     }
 
     WHEN("A indirect<BaseType> is move-assigned")
     {
-      indirect<BaseType> bptr;
+      indirect<BaseType> bptr(new DerivedType(0));
       bptr = std::move(cptr);
-
-      THEN("get returns a non-null pointer")
-      {
-        REQUIRE(bptr.value() != nullptr);
-      }
-
+      
       THEN("Operator-> calls the pointee method")
       {
         REQUIRE(bptr->data() == v);
-      }
-
-      THEN("operator bool returns true")
-      {
-        REQUIRE(bptr->empty() == true);
       }
     }
   }
@@ -578,220 +589,9 @@ TEST_CASE("make_indirect return type can be converted to base-type",
     int v = 7;
     indirect<BaseType> cptr = make_indirect<DerivedType>(v);
 
-    THEN("get returns a non-null pointer")
-    {
-      REQUIRE(cptr.value() != nullptr);
-    }
-
     THEN("Operator-> calls the pointee method")
     {
       REQUIRE(cptr->data() == v);
-    }
-
-    THEN("operator bool returns true")
-    {
-      REQUIRE(cptr->empty() == true);
-    }
-  }
-}
-
-TEST_CASE("reset","[indirect.reset]")
-{
-  GIVEN("An empty indirect")
-  {
-    indirect<DerivedType> cptr;
-
-    WHEN("reset to null")
-    {
-      cptr.reset();
-
-      THEN("The indirect remains empty")
-      {
-        REQUIRE(!cptr);
-        REQUIRE(cptr.value()==nullptr);
-      }
-    }
-
-    WHEN("reset to non-null")
-    {
-      int v = 7;
-      cptr.reset(new DerivedType(v));
-
-      CHECK(DerivedType::object_count == 1);
-
-      THEN("The indirect is non-empty and owns the pointer")
-      {
-        REQUIRE(cptr);
-        REQUIRE(cptr.value()!=nullptr);
-        REQUIRE(cptr->data() == v);
-      }
-    }
-  }
-  CHECK(DerivedType::object_count == 0);
-
-  GIVEN("A non-empty indirect")
-  {
-    int v1 = 7;
-    indirect<DerivedType> cptr(new DerivedType(v1));
-    CHECK(DerivedType::object_count == 1);
-
-    WHEN("reset to null")
-    {
-      cptr.reset();
-      CHECK(DerivedType::object_count == 0);
-
-      THEN("The indirect is empty")
-      {
-        REQUIRE(!cptr);
-        REQUIRE(cptr.value()==nullptr);
-      }
-    }
-
-    WHEN("reset to non-null")
-    {
-      int v2 = 7;
-      cptr.reset(new DerivedType(v2));
-      CHECK(DerivedType::object_count == 1);
-
-      THEN("The indirect is non-empty and owns the pointer")
-      {
-        REQUIRE(cptr);
-        REQUIRE(cptr.value()!=nullptr);
-        REQUIRE(cptr->data() == v2);
-      }
-    }
-  }
-}
-
-struct AlternativeBaseType {
-  virtual ~AlternativeBaseType() = default;
-  virtual int alternative_data() = 0;
-};
-
-class AlternativeDerivedType : public BaseType, public AlternativeBaseType {
-  int data_;
-public:
-  AlternativeDerivedType(int data) : data_(data) {}
-
-  int data() override { return data_; }
-  void set_data(int v) override { data_ = v; }
-  int alternative_data() override { return data_; }
-};
-
-TEST_CASE("cast operations", "[indirect.casts]")
-{
-  GIVEN("A pointer-constructed indirect<BaseType>")
-  {
-    int v = 7;
-    indirect<BaseType> cptr(new DerivedType(v));
-    REQUIRE(DerivedType::object_count == 1);
-
-    WHEN("static_pointer_cast to the derived type is called")
-    {
-      auto st_cptr = std::static_pointer_cast<DerivedType>(cptr);
-
-      THEN("The static-cast pointer is non-null")
-      {
-        REQUIRE(st_cptr);
-      }
-      THEN("The static-cast pointer has the required data")
-      {
-        REQUIRE(st_cptr->data() == v);
-      }
-      THEN("The static-cast pointer is distinct from the original pointer")
-      {
-        REQUIRE(st_cptr.value() != cptr.value());
-      }
-      THEN("Object count is increased")
-      {
-        REQUIRE(DerivedType::object_count == 2);
-      }
-    }
-    WHEN("dynamic_pointer_cast to the derived type is called")
-    {
-      auto dyn_cptr = std::dynamic_pointer_cast<DerivedType>(cptr);
-
-      THEN("The dynamic-cast pointer is non-null")
-      {
-        REQUIRE(dyn_cptr);
-      }
-      THEN("The dynamic-cast pointer has the required data")
-      {
-        REQUIRE(dyn_cptr->data() == v);
-      }
-      THEN("The dynamic-cast pointer is distinct from the original pointer")
-      {
-        REQUIRE(dyn_cptr.value() != cptr.value());
-      }
-      THEN("Object count is increased")
-      {
-        REQUIRE(DerivedType::object_count == 2);
-      }
-    }
-    WHEN("dynamic_pointer_cast to the wrong derived type is called")
-    {
-      auto dyn_cptr = std::dynamic_pointer_cast<AlternativeDerivedType>(cptr);
-
-      THEN("The dynamic-cast pointer is null")
-      {
-        REQUIRE(!dyn_cptr);
-      }
-      THEN("Object count is unchanged")
-      {
-        REQUIRE(DerivedType::object_count == 1);
-      }
-    }
-  }
-  GIVEN("A pointer-constructed indirect<const DerivedType>")
-  {
-    int v = 7;
-    indirect<const DerivedType> ccptr(new DerivedType(v));
-    REQUIRE(DerivedType::object_count == 1);
-
-    WHEN("static_pointer_cast to the derived type is called")
-    {
-      auto cptr = std::const_pointer_cast<DerivedType>(ccptr);
-
-      THEN("The static-cast pointer is non-null")
-      {
-        REQUIRE(cptr);
-      }
-      THEN("The static-cast pointer has the required data")
-      {
-        REQUIRE(cptr->data() == v);
-      }
-      THEN("The static-cast pointer is distinct from the original pointer")
-      {
-        REQUIRE(cptr.value() != ccptr.value());
-      }
-      THEN("Object count is increased")
-      {
-        REQUIRE(DerivedType::object_count == 2);
-      }
-    }
-  }
-  GIVEN("An AlternativeDerivedType-pointer-constructed indirect<BaseType>")
-  {
-    int v = 7;
-    indirect<BaseType> cptr(new AlternativeDerivedType(v));
-
-    WHEN("dynamic_pointer_cast to AlternativeBaseType is called")
-    {
-      auto dyn_cptr = std::dynamic_pointer_cast<AlternativeBaseType>(cptr);
-
-      THEN("The dynamic-cast pointer is non-null")
-      {
-        REQUIRE(dyn_cptr);
-      }
-      THEN("The dynamic-cast pointer has the required data")
-      {
-        REQUIRE(dyn_cptr->alternative_data() == v);
-      }
-      THEN("The dynamic-cast pointer is distinct from the original pointer")
-      {
-        REQUIRE(dyn_cptr.value() !=
-dynamic_cast<AlternativeBaseType*>(cptr.value()));
-      }
     }
   }
 }
@@ -800,26 +600,25 @@ struct Base { int v_ = 42; virtual ~Base() = default; };
 struct IntermediateBaseA : virtual Base { int a_ = 3; };
 struct IntermediateBaseB : virtual Base { int b_ = 101; };
 struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int data_ = 0;
-MultiplyDerived(int data) : data_(data) {}; };
+  MultiplyDerived(int data) : data_(data){};
+};
 
 TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes",
-"[indirect.constructors]")
+          "[indirect.constructors]")
 {
   GIVEN("A data-constructed multiply-derived-class indirect")
   {
     int v = 7;
     indirect<MultiplyDerived> cptr(new MultiplyDerived(v));
 
-    THEN("When copied to a indirect to an intermediate base type, data is accessible
-as expected")
+    WHEN("When copied to a indirect to an intermediate base type, data is accessible as expected")
     {
       indirect<IntermediateBaseA> cptr_IA = cptr;
       REQUIRE(cptr_IA->a_ == 3);
       REQUIRE(cptr_IA->v_ == 42);
     }
 
-    THEN("When copied to a indirect to an intermediate base type, data is accessible
-as expected")
+    WHEN("When copied to a indirect to an intermediate base type, data is accessible as expected")
     {
       indirect<IntermediateBaseB> cptr_IB = cptr;
       REQUIRE(cptr_IB->b_ == 101);
@@ -827,4 +626,3 @@ as expected")
     }
   }
 }
-*/
