@@ -172,7 +172,7 @@ public:
   // Move-constructors
   //
 
-  indirect(indirect&& p)
+  indirect(indirect&& p) noexcept
   {
     ptr_ = p.ptr_;
     cb_ = std::move(p.cb_);
@@ -182,7 +182,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  indirect(indirect<U>&& p)
+  indirect(indirect<U>&& p) noexcept
   {
     ptr_ = p.ptr_;
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
@@ -227,7 +227,7 @@ public:
   // Move-assignment
   //
 
-  indirect& operator=(indirect&& p)
+  indirect& operator=(indirect&& p) noexcept
   {
     if (&p == this)
     {
@@ -243,7 +243,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  indirect& operator=(indirect<U>&& p)
+  indirect& operator=(indirect<U>&& p) noexcept
   {
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
     ptr_ = p.ptr_;
@@ -251,7 +251,7 @@ public:
     return *this;
   }
 
-  void swap(indirect& p)
+  void swap(indirect& p) noexcept
   {
     using std::swap;
     swap(ptr_, p.ptr_);
@@ -322,5 +322,15 @@ indirect<T> make_indirect(Ts&&... ts)
       std::make_unique<direct_control_block_impl<T>>(std::forward<Ts>(ts)...);
   p.ptr_ = p.cb_->ptr();
   return std::move(p);
+}
+
+
+//
+// non-member swap
+//
+template<typename T>
+void swap(indirect<T>& t, indirect<T>& u) noexcept
+{
+  t.swap(u);
 }
 
