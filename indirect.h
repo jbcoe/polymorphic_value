@@ -1,6 +1,6 @@
-#include <type_traits>
 #include <cassert>
 #include <memory>
+#include <type_traits>
 
 template <typename T>
 struct default_copier
@@ -9,7 +9,7 @@ struct default_copier
   {
     return new T(t);
   }
-  
+
   T* operator()(T&& t) const
   {
     return new T(std::move(t));
@@ -52,11 +52,12 @@ public:
     assert(p_);
     return std::make_unique<control_block_impl>(c_(*p_), c_, p_.get_deleter());
   }
-  
+
   std::unique_ptr<control_block<T>> move() override
   {
     assert(p_);
-    return std::make_unique<control_block_impl>(c_(std::move(*p_)), c_, p_.get_deleter());
+    return std::make_unique<control_block_impl>(c_(std::move(*p_)), c_,
+                                                p_.get_deleter());
   }
 
   T* ptr() override
@@ -81,12 +82,12 @@ public:
   {
     return std::make_unique<direct_control_block_impl>(u_);
   }
-  
+
   std::unique_ptr<control_block<U>> move() override
   {
     return std::make_unique<direct_control_block_impl>(std::move(u_));
   }
-  
+
   T* ptr() override
   {
     return &u_;
@@ -109,7 +110,7 @@ public:
   {
     return std::make_unique<delegating_control_block>(delegate_->clone());
   }
-  
+
   std::unique_ptr<control_block<T>> move() override
   {
     return std::make_unique<delegating_control_block>(delegate_->move());
@@ -127,7 +128,7 @@ class indirect
 
   template <typename U>
   friend class indirect;
-  
+
   template <typename T_, typename... Ts>
   friend indirect<T_> make_indirect(Ts&&... ts);
 
@@ -139,9 +140,11 @@ public:
   // Constructors
   //
 
-  template <typename T_ = T, typename = std::enable_if_t<!std::is_abstract<T_>::value>>
+  template <typename T_ = T,
+            typename = std::enable_if_t<!std::is_abstract<T_>::value>>
   indirect() : cb_(std::make_unique<control_block_impl<T, T>>())
   {
+    ptr_ = cb_->ptr();
   }
 
   template <typename U, typename C = default_copier<U>,
@@ -163,9 +166,8 @@ public:
 
   indirect(const indirect& p)
   {
-    auto tmp_cb = p.cb_->clone();
-    ptr_ = tmp_cb->ptr();
-    cb_ = std::move(tmp_cb);
+    cb_ = p.cb_->clone();
+    ptr_ = cb_->ptr();
   }
 
   template <typename U,
@@ -173,9 +175,8 @@ public:
                                           std::is_convertible<U*, T*>::value>>
   indirect(const indirect<U>& p)
   {
-    indirect<U> tmp(p);
-    ptr_ = tmp.ptr_;
-    cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(tmp.cb_));
+    cb_ = std::make_unique<delegating_control_block<T, U>>(p.cb_->clone());
+    ptr_ = cb_->ptr();
   }
 
   //
@@ -184,9 +185,8 @@ public:
 
   indirect(indirect&& p)
   {
-    ptr_ = p.ptr_;
-    cb_ = std::move(p.cb_);
-    p.ptr_ = nullptr;
+    cb_ = p.cb_->move();
+    ptr_ = cb_->ptr();
   }
 
   template <typename U,
@@ -194,9 +194,8 @@ public:
                                           std::is_convertible<U*, T*>::value>>
   indirect(indirect<U>&& p)
   {
-    ptr_ = p.ptr_;
-    cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
-    p.ptr_ = nullptr;
+    cb_ = std::make_unique<delegating_control_block<T, U>>(p.cb_->move());
+    ptr_ = cb_->ptr();
   }
 
   //
@@ -209,7 +208,7 @@ public:
     {
       return *this;
     }
-    
+
     auto tmp_cb = p.cb_->clone();
     ptr_ = tmp_cb->ptr();
     cb_ = std::move(tmp_cb);
@@ -232,14 +231,8 @@ public:
 
   indirect& operator=(indirect&& p)
   {
-    if (&p == this)
-    {
-      return *this;
-    }
-
-    cb_ = std::move(p.cb_);
-    ptr_ = p.ptr_;
-    p.ptr_ = nullptr;
+    cb_ = p.cb_->move();
+    ptr_ = cb_->ptr();
     return *this;
   }
 
@@ -248,9 +241,8 @@ public:
                                           std::is_convertible<U*, T*>::value>>
   indirect& operator=(indirect<U>&& p)
   {
-    cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
-    ptr_ = p.ptr_;
-    p.ptr_ = nullptr;
+    cb_ = std::make_unique<delegating_control_block<T, U>>(p.cb_->move());
+    ptr_ = cb_.ptr();
     return *this;
   }
 
@@ -283,12 +275,12 @@ public:
     return ptr_;
   }
 
-  const T& value() const 
+  const T& value() const
   {
     return *ptr_;
   }
 
-  const T& operator*() const 
+  const T& operator*() const
   {
     return *ptr_;
   }
@@ -298,12 +290,12 @@ public:
     return ptr_;
   }
 
-  T& value() 
+  T& value()
   {
     return *ptr_;
   }
 
-  T& operator*() 
+  T& operator*()
   {
     return *ptr_;
   }
