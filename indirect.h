@@ -2,6 +2,10 @@
 #include <memory>
 #include <type_traits>
 
+////////////////////////////////////////////////////////////////////////////////
+// Implementation detail classes 
+////////////////////////////////////////////////////////////////////////////////
+
 template <typename T>
 struct default_copier
 {
@@ -30,13 +34,13 @@ struct control_block
 
 template <typename T, typename U, typename C = default_copier<U>,
           typename D = default_deleter<U>>
-class control_block_impl : public control_block<T>
+class pointer_control_block : public control_block<T>
 {
   std::unique_ptr<U, D> p_;
   C c_;
 
 public:
-  explicit control_block_impl(U* u, C c = C{}, D d = D{})
+  explicit pointer_control_block(U* u, C c = C{}, D d = D{})
       : c_(std::move(c)), p_(u, std::move(d))
   {
   }
@@ -44,7 +48,7 @@ public:
   std::unique_ptr<control_block<T>> clone() const override
   {
     assert(p_);
-    return std::make_unique<control_block_impl>(c_(*p_), c_, p_.get_deleter());
+    return std::make_unique<pointer_control_block>(c_(*p_), c_, p_.get_deleter());
   }
 
   T* ptr() override
@@ -54,20 +58,20 @@ public:
 };
 
 template <typename T, typename U = T>
-class direct_control_block_impl : public control_block<U>
+class direct_control_block : public control_block<U>
 {
   U u_;
 
 public:
   template <typename... Ts>
-  explicit direct_control_block_impl(Ts&&... ts)
+  explicit direct_control_block(Ts&&... ts)
       : u_(U(std::forward<Ts>(ts)...))
   {
   }
 
   std::unique_ptr<control_block<U>> clone() const override
   {
-    return std::make_unique<direct_control_block_impl>(*this);
+    return std::make_unique<direct_control_block>(*this);
   }
 
   T* ptr() override
@@ -98,6 +102,10 @@ public:
     return delegate_->ptr();
   }
 };
+
+////////////////////////////////////////////////////////////////////////////////
+// `indirect` class definition
+////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
 class indirect
@@ -138,7 +146,7 @@ public:
 
     assert(typeid(*u) == typeid(U));
 
-    cb_ = std::make_unique<control_block_impl<T, U, C, D>>(u, std::move(copier),
+    cb_ = std::make_unique<pointer_control_block<T, U, C, D>>(u, std::move(copier),
                                                            std::move(deleter));
     ptr_ = u;
   }
@@ -265,7 +273,7 @@ public:
   template <typename U, typename... Ts>
   void emplace(Ts&&... ts)
   {
-    auto p = std::make_unique<direct_control_block_impl<T, U>>(
+    auto p = std::make_unique<direct_control_block<T, U>>(
         std::forward<Ts>(ts)...);
     ptr_ = p->ptr();
     cb_ = std::move(p);
@@ -319,7 +327,7 @@ indirect<T> make_indirect(Ts&&... ts)
 {
   indirect<T> p;
   p.cb_ =
-      std::make_unique<direct_control_block_impl<T>>(std::forward<Ts>(ts)...);
+      std::make_unique<direct_control_block<T>>(std::forward<Ts>(ts)...);
   p.ptr_ = p.cb_->ptr();
   return std::move(p);
 }
