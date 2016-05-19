@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
 
 #include <catch.hpp>
-#include "poly.h"
+#include "indirect.h"
 
 struct BaseType
 {
@@ -50,38 +50,13 @@ struct DerivedType : BaseType
 
 size_t DerivedType::object_count = 0;
 
-TEST_CASE("Default constructed object is empty", "[poly.constructors]")
+TEST_CASE("Pointer constructed object", "[indirect.constructors]")
 {
-  GIVEN("A default constructed poly<BaseType>")
-  {
-    poly<BaseType> p;
-
-    THEN("poly is empty")
-    {
-      REQUIRE(p.empty());
-    }
-    THEN("poly is false")
-    {
-      REQUIRE(!(bool)p);
-    }
-  }
-}
-
-TEST_CASE("Pointer constructed object", "[poly.constructors]")
-{
-  GIVEN("A pointer-constructed poly")
+  GIVEN("A pointer-constructed indirect")
   {
     int v = 7;
-    poly<BaseType> p(new DerivedType(v));
+    indirect<BaseType> p(new DerivedType(v));
 
-    THEN("poly is non-empty")
-    {
-      REQUIRE(!p.empty());
-    }
-    THEN("poly is true")
-    {
-      REQUIRE((bool)p);
-    }
     THEN("Operator-> calls the pointee method")
     {
       REQUIRE(p->data() == v);
@@ -116,39 +91,7 @@ struct DerivedCloneSelf : BaseCloneSelf
 
 size_t DerivedCloneSelf::object_count = 0;
 
-struct invoke_clone_member
-{
-  template <typename T>
-  T* operator()(const T& t) const
-  {
-    return static_cast<T*>(t.clone().release());
-  }
-};
-
-TEST_CASE("Pointer constructor with custom copier avoids slicing",
-          "[poly.constructors]")
-{
-  GIVEN("A poly constructed with a custom copier")
-  {
-    auto p = std::unique_ptr<BaseCloneSelf>(new DerivedCloneSelf);
-    REQUIRE(DerivedCloneSelf::object_count == 1);
-    auto c = poly<BaseCloneSelf>(p.release(), invoke_clone_member{});
-
-    WHEN("A copy is made")
-    {
-      auto c2 = c;
-      THEN("The copied poly manages a distinc resource")
-      {
-        CHECK(DerivedCloneSelf::object_count == 2);
-        REQUIRE(c2);
-        REQUIRE(&c2.value() != &c.value());
-      }
-    }
-    CHECK(DerivedCloneSelf::object_count == 1);
-  }
-}
-
-TEST_CASE("poly destructor", "[poly.destructor]")
+TEST_CASE("indirect destructor", "[indirect.destructor]")
 {
   GIVEN("No derived objects")
   {
@@ -159,7 +102,7 @@ TEST_CASE("poly destructor", "[poly.destructor]")
     {
       // begin and end scope to force destruction
       {
-        poly<BaseType> tmp(new DerivedType());
+        indirect<BaseType> tmp(new DerivedType());
         REQUIRE(DerivedType::object_count == 1);
       }
       REQUIRE(DerivedType::object_count == 0);
@@ -167,31 +110,15 @@ TEST_CASE("poly destructor", "[poly.destructor]")
   }
 }
 
-TEST_CASE("poly copy constructor", "[poly.constructors]")
+TEST_CASE("indirect copy constructor", "[indirect.constructors]")
 {
-  GIVEN("A poly copied from a default-constructed poly")
-  {
-    poly<BaseType> op;
-    poly<BaseType> p(op);
-
-    THEN("poly is empty")
-    {
-      REQUIRE(p.empty());
-    }
-  }
-
-  GIVEN("A poly copied from a pointer-constructed poly")
+  GIVEN("A indirect copied from a pointer-constructed indirect")
   {
     REQUIRE(DerivedType::object_count == 0);
 
     int v = 7;
-    poly<BaseType> op(new DerivedType(v));
-    poly<BaseType> p(op);
-
-    THEN("copy is non-empty")
-    {
-      REQUIRE(p.empty() == false);
-    }
+    indirect<BaseType> op(new DerivedType(v));
+    indirect<BaseType> p(op);
 
     THEN("values are distinct objects")
     {
@@ -210,42 +137,31 @@ TEST_CASE("poly copy constructor", "[poly.constructors]")
   }
 }
 
-TEST_CASE("poly move constructor", "[poly.constructors]")
+TEST_CASE("indirect move constructor", "[indirect.constructors]")
 {
-  GIVEN("A poly move constructed from a default-constructed poly")
-  {
-    poly<BaseType> op;
-    poly<BaseType> p(std::move(op));
-
-    THEN("move-constructed poly is empty")
-    {
-      REQUIRE(p.empty());
-    }
-  }
-
-  GIVEN("A poly move constructed from a pointer-constructed poly")
+  GIVEN("A indirect move constructed from a pointer-constructed indirect")
   {
     REQUIRE(DerivedType::object_count == 0);
 
     int v = 7;
-    poly<BaseType> op(new DerivedType(v));
+    indirect<BaseType> op(new DerivedType(v));
     BaseType* resource = &op.value();
-    poly<BaseType> p(std::move(op));
+    indirect<BaseType> p(std::move(op));
 
     THEN("resource ownership is transferred")
     {
       REQUIRE(&p.value() == resource);
-      REQUIRE(op.empty());
     }
   }
 }
+
 /*
-TEST_CASE("poly move constructor","[poly.constructors]")
+TEST_CASE("indirect move constructor","[indirect.constructors]")
 {
-  GIVEN("A poly move-constructed from a default-constructed poly")
+  GIVEN("A indirect move-constructed from a default-constructed indirect")
   {
-    poly<BaseType> original_cptr;
-    poly<BaseType> cptr(std::move(original_cptr));
+    indirect<BaseType> original_cptr;
+    indirect<BaseType> cptr(std::move(original_cptr));
 
     THEN("The original pointer is null")
     {
@@ -262,14 +178,14 @@ TEST_CASE("poly move constructor","[poly.constructors]")
     }
   }
 
-  GIVEN("A poly move-constructed from a default-constructed poly")
+  GIVEN("A indirect move-constructed from a default-constructed indirect")
   {
     int v = 7;
-    poly<BaseType> original_cptr(new DerivedType(v));
+    indirect<BaseType> original_cptr(new DerivedType(v));
     auto original_pointer = original_cptr.value();
     CHECK(DerivedType::object_count == 1);
 
-    poly<BaseType> cptr(std::move(original_cptr));
+    indirect<BaseType> cptr(std::move(original_cptr));
     CHECK(DerivedType::object_count == 1);
 
     THEN("The original pointer is null")
@@ -293,12 +209,12 @@ TEST_CASE("poly move constructor","[poly.constructors]")
   }
 }
 
-TEST_CASE("poly assignment","[poly.assignment]")
+TEST_CASE("indirect assignment","[indirect.assignment]")
 {
-  GIVEN("A default-constructed poly assigned-to a default-constructed poly")
+  GIVEN("A default-constructed indirect assigned-to a default-constructed indirect")
   {
-    poly<BaseType> cptr1;
-    const poly<BaseType> cptr2;
+    indirect<BaseType> cptr1;
+    const indirect<BaseType> cptr2;
     const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 0);
@@ -318,12 +234,12 @@ TEST_CASE("poly assignment","[poly.assignment]")
     }
   }
 
-  GIVEN("A default-constructed poly assigned to a pointer-constructed poly")
+  GIVEN("A default-constructed indirect assigned to a pointer-constructed indirect")
   {
     int v1 = 7;
 
-    poly<BaseType> cptr1(new DerivedType(v1));
-    const poly<BaseType> cptr2;
+    indirect<BaseType> cptr1(new DerivedType(v1));
+    const indirect<BaseType> cptr2;
     const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -343,12 +259,12 @@ TEST_CASE("poly assignment","[poly.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed poly assigned to a default-constructed poly")
+  GIVEN("A pointer-constructed indirect assigned to a default-constructed indirect")
   {
     int v1 = 7;
 
-    poly<BaseType> cptr1;
-    const poly<BaseType> cptr2(new DerivedType(v1));
+    indirect<BaseType> cptr1;
+    const indirect<BaseType> cptr2(new DerivedType(v1));
     const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -380,13 +296,13 @@ are distinct")
 
   }
 
-  GIVEN("A pointer-constructed poly assigned to a pointer-constructed poly")
+  GIVEN("A pointer-constructed indirect assigned to a pointer-constructed indirect")
   {
     int v1 = 7;
     int v2 = 87;
 
-    poly<BaseType> cptr1(new DerivedType(v1));
-    const poly<BaseType> cptr2(new DerivedType(v2));
+    indirect<BaseType> cptr1(new DerivedType(v1));
+    const indirect<BaseType> cptr2(new DerivedType(v2));
     const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 2);
@@ -417,11 +333,11 @@ are distinct")
     }
   }
 
-  GIVEN("A pointer-constructed poly assigned to itself")
+  GIVEN("A pointer-constructed indirect assigned to itself")
   {
     int v1 = 7;
 
-    poly<BaseType> cptr1(new DerivedType(v1));
+    indirect<BaseType> cptr1(new DerivedType(v1));
     const auto p = cptr1.value();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -437,13 +353,13 @@ are distinct")
   }
 }
 
-TEST_CASE("poly move-assignment","[poly.assignment]")
+TEST_CASE("indirect move-assignment","[indirect.assignment]")
 {
-  GIVEN("A default-constructed poly move-assigned-to a default-constructed
-poly")
+  GIVEN("A default-constructed indirect move-assigned-to a default-constructed
+indirect")
   {
-    poly<BaseType> cptr1;
-    poly<BaseType> cptr2;
+    indirect<BaseType> cptr1;
+    indirect<BaseType> cptr2;
     const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 0);
@@ -463,13 +379,13 @@ poly")
     }
   }
 
-  GIVEN("A default-constructed poly move-assigned to a pointer-constructed
-poly")
+  GIVEN("A default-constructed indirect move-assigned to a pointer-constructed
+indirect")
   {
     int v1 = 7;
 
-    poly<BaseType> cptr1(new DerivedType(v1));
-    poly<BaseType> cptr2;
+    indirect<BaseType> cptr1(new DerivedType(v1));
+    indirect<BaseType> cptr2;
     const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -489,13 +405,13 @@ poly")
     }
   }
 
-  GIVEN("A pointer-constructed poly move-assigned to a default-constructed
-poly")
+  GIVEN("A pointer-constructed indirect move-assigned to a default-constructed
+indirect")
   {
     int v1 = 7;
 
-    poly<BaseType> cptr1;
-    poly<BaseType> cptr2(new DerivedType(v1));
+    indirect<BaseType> cptr1;
+    indirect<BaseType> cptr2(new DerivedType(v1));
     const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -516,14 +432,14 @@ pointer")
     }
   }
 
-  GIVEN("A pointer-constructed poly move-assigned to a pointer-constructed
-poly")
+  GIVEN("A pointer-constructed indirect move-assigned to a pointer-constructed
+indirect")
   {
     int v1 = 7;
     int v2 = 87;
 
-    poly<BaseType> cptr1(new DerivedType(v1));
-    poly<BaseType> cptr2(new DerivedType(v2));
+    indirect<BaseType> cptr1(new DerivedType(v1));
+    indirect<BaseType> cptr2(new DerivedType(v2));
     const auto p = cptr2.value();
 
     REQUIRE(DerivedType::object_count == 2);
@@ -544,18 +460,18 @@ pointer")
     }
   }
 
-  GIVEN("A pointer-constructed poly move-assigned to itself")
+  GIVEN("A pointer-constructed indirect move-assigned to itself")
   {
     int v = 7;
 
-    poly<BaseType> cptr(new DerivedType(v));
+    indirect<BaseType> cptr(new DerivedType(v));
     const auto p = cptr.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
     cptr = std::move(cptr);
 
-    THEN("The poly is unaffected")
+    THEN("The indirect is unaffected")
     {
       REQUIRE(DerivedType::object_count == 1);
       REQUIRE(cptr.value() == p);
@@ -563,16 +479,16 @@ pointer")
   }
 }
 
-TEST_CASE("Derived types", "[poly.derived_types]")
+TEST_CASE("Derived types", "[indirect.derived_types]")
 {
-  GIVEN("A poly<BaseType> constructed from make_poly<DerivedType>")
+  GIVEN("A indirect<BaseType> constructed from make_indirect<DerivedType>")
   {
     int v = 7;
-    auto cptr = make_poly<DerivedType>(v);
+    auto cptr = make_indirect<DerivedType>(v);
 
-    WHEN("A poly<BaseType> is copy-constructed")
+    WHEN("A indirect<BaseType> is copy-constructed")
     {
-      poly<BaseType> bptr(cptr);
+      indirect<BaseType> bptr(cptr);
 
       THEN("get returns a non-null pointer")
       {
@@ -590,9 +506,9 @@ TEST_CASE("Derived types", "[poly.derived_types]")
       }
     }
 
-    WHEN("A poly<BaseType> is assigned")
+    WHEN("A indirect<BaseType> is assigned")
     {
-      poly<BaseType> bptr;
+      indirect<BaseType> bptr;
       bptr = cptr;
 
       THEN("get returns a non-null pointer")
@@ -611,9 +527,9 @@ TEST_CASE("Derived types", "[poly.derived_types]")
       }
     }
 
-    WHEN("A poly<BaseType> is move-constructed")
+    WHEN("A indirect<BaseType> is move-constructed")
     {
-      poly<BaseType> bptr(std::move(cptr));
+      indirect<BaseType> bptr(std::move(cptr));
 
       THEN("get returns a non-null pointer")
       {
@@ -631,9 +547,9 @@ TEST_CASE("Derived types", "[poly.derived_types]")
       }
     }
 
-    WHEN("A poly<BaseType> is move-assigned")
+    WHEN("A indirect<BaseType> is move-assigned")
     {
-      poly<BaseType> bptr;
+      indirect<BaseType> bptr;
       bptr = std::move(cptr);
 
       THEN("get returns a non-null pointer")
@@ -654,13 +570,13 @@ TEST_CASE("Derived types", "[poly.derived_types]")
   }
 }
 
-TEST_CASE("make_poly return type can be converted to base-type",
-"[poly.make_poly]")
+TEST_CASE("make_indirect return type can be converted to base-type",
+"[indirect.make_indirect]")
 {
-  GIVEN("A poly<BaseType> constructed from make_poly<DerivedType>")
+  GIVEN("A indirect<BaseType> constructed from make_indirect<DerivedType>")
   {
     int v = 7;
-    poly<BaseType> cptr = make_poly<DerivedType>(v);
+    indirect<BaseType> cptr = make_indirect<DerivedType>(v);
 
     THEN("get returns a non-null pointer")
     {
@@ -679,17 +595,17 @@ TEST_CASE("make_poly return type can be converted to base-type",
   }
 }
 
-TEST_CASE("reset","[poly.reset]")
+TEST_CASE("reset","[indirect.reset]")
 {
-  GIVEN("An empty poly")
+  GIVEN("An empty indirect")
   {
-    poly<DerivedType> cptr;
+    indirect<DerivedType> cptr;
 
     WHEN("reset to null")
     {
       cptr.reset();
 
-      THEN("The poly remains empty")
+      THEN("The indirect remains empty")
       {
         REQUIRE(!cptr);
         REQUIRE(cptr.value()==nullptr);
@@ -703,7 +619,7 @@ TEST_CASE("reset","[poly.reset]")
 
       CHECK(DerivedType::object_count == 1);
 
-      THEN("The poly is non-empty and owns the pointer")
+      THEN("The indirect is non-empty and owns the pointer")
       {
         REQUIRE(cptr);
         REQUIRE(cptr.value()!=nullptr);
@@ -713,10 +629,10 @@ TEST_CASE("reset","[poly.reset]")
   }
   CHECK(DerivedType::object_count == 0);
 
-  GIVEN("A non-empty poly")
+  GIVEN("A non-empty indirect")
   {
     int v1 = 7;
-    poly<DerivedType> cptr(new DerivedType(v1));
+    indirect<DerivedType> cptr(new DerivedType(v1));
     CHECK(DerivedType::object_count == 1);
 
     WHEN("reset to null")
@@ -724,7 +640,7 @@ TEST_CASE("reset","[poly.reset]")
       cptr.reset();
       CHECK(DerivedType::object_count == 0);
 
-      THEN("The poly is empty")
+      THEN("The indirect is empty")
       {
         REQUIRE(!cptr);
         REQUIRE(cptr.value()==nullptr);
@@ -737,7 +653,7 @@ TEST_CASE("reset","[poly.reset]")
       cptr.reset(new DerivedType(v2));
       CHECK(DerivedType::object_count == 1);
 
-      THEN("The poly is non-empty and owns the pointer")
+      THEN("The indirect is non-empty and owns the pointer")
       {
         REQUIRE(cptr);
         REQUIRE(cptr.value()!=nullptr);
@@ -762,12 +678,12 @@ public:
   int alternative_data() override { return data_; }
 };
 
-TEST_CASE("cast operations", "[poly.casts]")
+TEST_CASE("cast operations", "[indirect.casts]")
 {
-  GIVEN("A pointer-constructed poly<BaseType>")
+  GIVEN("A pointer-constructed indirect<BaseType>")
   {
     int v = 7;
-    poly<BaseType> cptr(new DerivedType(v));
+    indirect<BaseType> cptr(new DerivedType(v));
     REQUIRE(DerivedType::object_count == 1);
 
     WHEN("static_pointer_cast to the derived type is called")
@@ -826,10 +742,10 @@ TEST_CASE("cast operations", "[poly.casts]")
       }
     }
   }
-  GIVEN("A pointer-constructed poly<const DerivedType>")
+  GIVEN("A pointer-constructed indirect<const DerivedType>")
   {
     int v = 7;
-    poly<const DerivedType> ccptr(new DerivedType(v));
+    indirect<const DerivedType> ccptr(new DerivedType(v));
     REQUIRE(DerivedType::object_count == 1);
 
     WHEN("static_pointer_cast to the derived type is called")
@@ -854,10 +770,10 @@ TEST_CASE("cast operations", "[poly.casts]")
       }
     }
   }
-  GIVEN("An AlternativeDerivedType-pointer-constructed poly<BaseType>")
+  GIVEN("An AlternativeDerivedType-pointer-constructed indirect<BaseType>")
   {
     int v = 7;
-    poly<BaseType> cptr(new AlternativeDerivedType(v));
+    indirect<BaseType> cptr(new AlternativeDerivedType(v));
 
     WHEN("dynamic_pointer_cast to AlternativeBaseType is called")
     {
@@ -887,25 +803,25 @@ struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int data_ = 0;
 MultiplyDerived(int data) : data_(data) {}; };
 
 TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes",
-"[poly.constructors]")
+"[indirect.constructors]")
 {
-  GIVEN("A data-constructed multiply-derived-class poly")
+  GIVEN("A data-constructed multiply-derived-class indirect")
   {
     int v = 7;
-    poly<MultiplyDerived> cptr(new MultiplyDerived(v));
+    indirect<MultiplyDerived> cptr(new MultiplyDerived(v));
 
-    THEN("When copied to a poly to an intermediate base type, data is accessible
+    THEN("When copied to a indirect to an intermediate base type, data is accessible
 as expected")
     {
-      poly<IntermediateBaseA> cptr_IA = cptr;
+      indirect<IntermediateBaseA> cptr_IA = cptr;
       REQUIRE(cptr_IA->a_ == 3);
       REQUIRE(cptr_IA->v_ == 42);
     }
 
-    THEN("When copied to a poly to an intermediate base type, data is accessible
+    THEN("When copied to a indirect to an intermediate base type, data is accessible
 as expected")
     {
-      poly<IntermediateBaseB> cptr_IB = cptr;
+      indirect<IntermediateBaseB> cptr_IB = cptr;
       REQUIRE(cptr_IB->b_ == 101);
       REQUIRE(cptr_IB->v_ == 42);
     }

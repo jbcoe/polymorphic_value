@@ -1,5 +1,6 @@
 #include <type_traits>
 #include <cassert>
+#include <memory>
 
 template <typename T>
 struct default_copier
@@ -7,6 +8,11 @@ struct default_copier
   T* operator()(const T& t) const
   {
     return new T(t);
+  }
+  
+  T* operator()(T&& t) const
+  {
+    return new T(std::move(t));
   }
 };
 
@@ -24,6 +30,7 @@ struct control_block
 {
   virtual ~control_block() = default;
   virtual std::unique_ptr<control_block> clone() const = 0;
+  virtual std::unique_ptr<control_block> move() = 0;
   virtual T* ptr() = 0;
 };
 
@@ -44,6 +51,12 @@ public:
   {
     assert(p_);
     return std::make_unique<control_block_impl>(c_(*p_), c_, p_.get_deleter());
+  }
+  
+  std::unique_ptr<control_block<T>> move() override
+  {
+    assert(p_);
+    return std::make_unique<control_block_impl>(c_(std::move(*p_)), c_, p_.get_deleter());
   }
 
   T* ptr() override
@@ -66,9 +79,14 @@ public:
 
   std::unique_ptr<control_block<U>> clone() const override
   {
-    return std::make_unique<direct_control_block_impl>(*this);
+    return std::make_unique<direct_control_block_impl>(u_);
   }
-
+  
+  std::unique_ptr<control_block<U>> move() override
+  {
+    return std::make_unique<direct_control_block_impl>(std::move(u_));
+  }
+  
   T* ptr() override
   {
     return &u_;
@@ -91,6 +109,11 @@ public:
   {
     return std::make_unique<delegating_control_block>(delegate_->clone());
   }
+  
+  std::unique_ptr<control_block<T>> move() override
+  {
+    return std::make_unique<delegating_control_block>(delegate_->move());
+  }
 
   T* ptr() override
   {
@@ -99,41 +122,35 @@ public:
 };
 
 template <typename T>
-class poly
+class indirect
 {
 
   template <typename U>
-  friend class poly;
+  friend class indirect;
+  
   template <typename T_, typename... Ts>
-  friend poly<T_> make_poly(Ts&&... ts);
+  friend indirect<T_> make_indirect(Ts&&... ts);
 
   T* ptr_ = nullptr;
   std::unique_ptr<control_block<T>> cb_;
-
-  void init(std::unique_ptr<control_block<T>> p)
-  {
-    cb_ = std::move(p);
-    ptr_ = cb_->ptr();
-  }
 
 public:
   //
   // Constructors
   //
 
-  poly()
+  template <typename T_ = T, typename = std::enable_if_t<!std::is_abstract<T_>::value>>
+  indirect() : cb_(std::make_unique<control_block_impl<T, T>>())
   {
   }
 
   template <typename U, typename C = default_copier<U>,
             typename D = default_deleter<U>,
             typename V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
-  explicit poly(U* u, C copier = C{}, D deleter = D{})
+  explicit indirect(U* u, C copier = C{}, D deleter = D{})
   {
-    if (!u)
-    {
-      return;
-    }
+    assert(u);
+    assert(typeid(*u) == typeid(U));
 
     cb_ = std::make_unique<control_block_impl<T, U, C, D>>(u, std::move(copier),
                                                            std::move(deleter));
@@ -144,12 +161,8 @@ public:
   // Copy-constructors
   //
 
-  poly(const poly& p)
+  indirect(const indirect& p)
   {
-    if (!p)
-    {
-      return;
-    }
     auto tmp_cb = p.cb_->clone();
     ptr_ = tmp_cb->ptr();
     cb_ = std::move(tmp_cb);
@@ -158,9 +171,9 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  poly(const poly<U>& p)
+  indirect(const indirect<U>& p)
   {
-    poly<U> tmp(p);
+    indirect<U> tmp(p);
     ptr_ = tmp.ptr_;
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(tmp.cb_));
   }
@@ -169,7 +182,7 @@ public:
   // Move-constructors
   //
 
-  poly(poly&& p)
+  indirect(indirect&& p)
   {
     ptr_ = p.ptr_;
     cb_ = std::move(p.cb_);
@@ -179,7 +192,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  poly(poly<U>&& p)
+  indirect(indirect<U>&& p)
   {
     ptr_ = p.ptr_;
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
@@ -190,20 +203,13 @@ public:
   // Assignment
   //
 
-  poly& operator=(const poly& p)
+  indirect& operator=(const indirect& p)
   {
     if (&p == this)
     {
       return *this;
     }
-
-    if (!p)
-    {
-      cb_.reset();
-      ptr_ = nullptr;
-      return *this;
-    }
-
+    
     auto tmp_cb = p.cb_->clone();
     ptr_ = tmp_cb->ptr();
     cb_ = std::move(tmp_cb);
@@ -213,9 +219,9 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  poly& operator=(const poly<U>& p)
+  indirect& operator=(const indirect<U>& p)
   {
-    poly<U> tmp(p);
+    indirect<U> tmp(p);
     *this = std::move(tmp);
     return *this;
   }
@@ -224,7 +230,7 @@ public:
   // Move-assignment
   //
 
-  poly& operator=(poly&& p)
+  indirect& operator=(indirect&& p)
   {
     if (&p == this)
     {
@@ -240,7 +246,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  poly& operator=(poly<U>&& p)
+  indirect& operator=(indirect<U>&& p)
   {
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
     ptr_ = p.ptr_;
@@ -248,7 +254,7 @@ public:
     return *this;
   }
 
-  void swap(poly& p)
+  void swap(indirect& p)
   {
     using std::swap;
     swap(ptr_, p.ptr_);
@@ -272,34 +278,17 @@ public:
   // Accessors
   //
 
-  bool empty() const
-  {
-    return ptr_ == nullptr;
-  }
-  explicit operator bool() const
-  {
-    return ptr_ != nullptr;
-  }
-
   const T* operator->() const
   {
     return ptr_;
   }
 
-  const T& value() const &
-  {
-    return *ptr_;
-  }
-  const T&& value() const &&
+  const T& value() const 
   {
     return *ptr_;
   }
 
-  const T& operator*() const &
-  {
-    return *ptr_;
-  }
-  const T&& operator*() const &&
+  const T& operator*() const 
   {
     return *ptr_;
   }
@@ -309,32 +298,24 @@ public:
     return ptr_;
   }
 
-  T& value() &
-  {
-    return *ptr_;
-  }
-  T&& value() &&
+  T& value() 
   {
     return *ptr_;
   }
 
-  T& operator*() &
-  {
-    return *ptr_;
-  }
-  T&& operator*() &&
+  T& operator*() 
   {
     return *ptr_;
   }
 };
 
 //
-// poly creation
+// indirect creation
 //
 template <typename T, typename... Ts>
-poly<T> make_poly(Ts&&... ts)
+indirect<T> make_indirect(Ts&&... ts)
 {
-  poly<T> p;
+  indirect<T> p;
   p.cb_ =
       std::make_unique<direct_control_block_impl<T>>(std::forward<Ts>(ts)...);
   p.ptr_ = p.cb_->ptr();

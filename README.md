@@ -1,4 +1,4 @@
-# cloned_ptr : a deep-copying pointer class for C++
+# indirect : a free-store allocated value-type for C++
 
 A deep-copying smart pointer that uses type erasure to call the copy
 constructor of derived types would allow the compiler-generated copy
