@@ -130,7 +130,7 @@ public:
   // Constructors
   //
 
-  indirect() = default;
+  indirect() {}
   
   ~indirect() = default;
 
@@ -301,6 +301,7 @@ public:
 
   const T* operator->() const
   {
+    assert(ptr_);
     return ptr_;
   }
 

@@ -1,18 +1,18 @@
 #define CATCH_CONFIG_MAIN
 
-#include "indirect.h"
 #include <catch.hpp>
+#include "indirect.h"
 
 struct BaseType
 {
-  virtual int data() const = 0;
-  virtual void set_data(int) = 0;
+  virtual int value() const = 0;
+  virtual void set_value(int) = 0;
   virtual ~BaseType() = default;
 };
 
 struct DerivedType : BaseType
 {
-  int data_ = 0;
+  int value_ = 0;
 
   DerivedType()
   {
@@ -21,11 +21,11 @@ struct DerivedType : BaseType
 
   DerivedType(const DerivedType& d)
   {
-    data_ = d.data_;
+    value_ = d.value_;
     ++object_count;
   }
 
-  DerivedType(int v) : data_(v)
+  DerivedType(int v) : value_(v)
   {
     ++object_count;
   }
@@ -35,120 +35,124 @@ struct DerivedType : BaseType
     --object_count;
   }
 
-  int data() const override
-  {
-    return data_;
-  }
+  int value() const override { return value_; }
 
-  void set_data(int i) override
-  {
-    data_ = i;
-  }
-
-  static size_t object_count;
-};
-
-struct MoveableDerivedType : BaseType
-{
-  int data_ = 0;
-
-  enum
-  {
-    moved_from = -1
-  };
-
-  MoveableDerivedType()
-  {
-    ++object_count;
-  }
-
-  MoveableDerivedType(const MoveableDerivedType& d)
-  {
-    data_ = d.data_;
-    ++object_count;
-  }
-  
-  MoveableDerivedType(MoveableDerivedType&& d)
-  {
-    data_ = d.data_;
-    d.data_ = MoveableDerivedType::moved_from;
-    ++object_count;
-  }
-
-  MoveableDerivedType(int v) : data_(v)
-  {
-    ++object_count;
-  }
-
-  ~MoveableDerivedType()
-  {
-    --object_count;
-  }
-
-  int data() const override
-  {
-    return data_;
-  }
-
-  void set_data(int i) override
-  {
-    data_ = i;
-  }
+  void set_value(int i) override { value_ = i; }
 
   static size_t object_count;
 };
 
 size_t DerivedType::object_count = 0;
 
-TEST_CASE("Pointer constructed object", "[indirect.constructors]")
+TEST_CASE("Default constructor","[indirect.constructors]")
 {
-  GIVEN("A pointer-constructed indirect")
+  GIVEN("A default constructed indirect to BaseType")
   {
-    int v = 7;
-    indirect<BaseType> p(new DerivedType(v));
+    indirect<BaseType> cptr;
 
-    THEN("Operator-> calls the pointee method")
+    THEN("operator bool returns false")
     {
-      REQUIRE(p->data() == v);
+      REQUIRE((bool)cptr == false);
+    }
+  }
+
+  GIVEN("A default constructed const indirect to BaseType")
+  {
+    const indirect<BaseType> ccptr;
+
+    THEN("operator bool returns false")
+    {
+      REQUIRE((bool)ccptr == false);
     }
   }
 }
 
-struct BaseCloneSelf
+TEST_CASE("Pointer constructor","[indirect.constructors]")
+{
+  GIVEN("A pointer-constructed indirect")
+  {
+    int v = 7;
+    indirect<BaseType> cptr(new DerivedType(v));
+
+    THEN("Operator-> calls the pointee method")
+    {
+      REQUIRE(cptr->value() == v);
+    }
+
+    THEN("operator bool returns true")
+    {
+      REQUIRE((bool)cptr == true);
+    }
+  }
+  GIVEN("A pointer-constructed const indirect")
+  {
+    int v = 7;
+    const indirect<BaseType> ccptr(new DerivedType(v));
+
+    THEN("Operator-> calls the pointee method")
+    {
+      REQUIRE(ccptr->value() == v);
+    }
+
+    THEN("operator bool returns true")
+    {
+      REQUIRE((bool)ccptr == true);
+    }
+  }
+}
+
+struct BaseCloneSelf 
 {
   BaseCloneSelf() = default;
   virtual ~BaseCloneSelf() = default;
-  BaseCloneSelf(const BaseCloneSelf&) = delete;
+  BaseCloneSelf(const BaseCloneSelf &) = delete;
   virtual std::unique_ptr<BaseCloneSelf> clone() const = 0;
 };
 
 struct DerivedCloneSelf : BaseCloneSelf
 {
   static size_t object_count;
-  std::unique_ptr<BaseCloneSelf> clone() const
-  {
-    return std::make_unique<DerivedCloneSelf>();
-  }
-  DerivedCloneSelf()
-  {
-    ++object_count;
-  }
-  ~DerivedCloneSelf()
-  {
-    --object_count;
-  }
+  std::unique_ptr<BaseCloneSelf> clone() const { return std::make_unique<DerivedCloneSelf>(); }
+  DerivedCloneSelf() { ++object_count; }
+  ~DerivedCloneSelf(){ --object_count; }
 };
 
 size_t DerivedCloneSelf::object_count = 0;
 
-TEST_CASE("indirect destructor", "[indirect.destructor]")
+struct invoke_clone_member
+{
+  template <typename T> T *operator()(const T &t) const {
+    return static_cast<T *>(t.clone().release());
+  }
+};
+
+TEST_CASE("indirect constructed with copier and deleter",
+          "[indirect.constructor]") {
+  size_t copy_count = 0;
+  size_t deletion_count = 0;
+  auto cp = indirect<DerivedType>(new DerivedType(),
+                                    [&](const DerivedType &d) {
+                                      ++copy_count;
+                                      return new DerivedType(d);
+                                    },
+                                    [&](const DerivedType *d) {
+                                      ++deletion_count;
+                                      delete d;
+                                    });
+  {
+    auto cp2 = cp;
+    REQUIRE(copy_count == 1);
+  }
+  REQUIRE(deletion_count == 1);
+}
+
+TEST_CASE("indirect destructor","[indirect.destructor]")
 {
   GIVEN("No derived objects")
   {
     REQUIRE(DerivedType::object_count == 0);
 
-    THEN("Object count is increased on construction and decreased on "
-         "destruction")
+    THEN("Object count is increased on construction and decreased on destruction")
     {
       // begin and end scope to force destruction
       {
@@ -160,48 +164,57 @@ TEST_CASE("indirect destructor", "[indirect.destructor]")
   }
 }
 
-TEST_CASE("indirect copy constructor", "[indirect.constructors]")
+TEST_CASE("indirect copy constructor","[indirect.constructors]")
 {
+  GIVEN("A indirect copied from a default-constructed indirect")
+  {
+    indirect<BaseType> original_cptr;
+    indirect<BaseType> cptr(original_cptr);
+
+    THEN("operator bool returns false")
+    {
+      REQUIRE((bool)cptr == false);
+    }
+  }
+
   GIVEN("A indirect copied from a pointer-constructed indirect")
   {
     REQUIRE(DerivedType::object_count == 0);
 
     int v = 7;
-    indirect<BaseType> op(new DerivedType(v));
-    indirect<BaseType> p(op);
+    indirect<BaseType> original_cptr(new DerivedType(v));
+    indirect<BaseType> cptr(original_cptr);
 
-    THEN("values are distinct objects")
+    THEN("values are distinct")
     {
-      REQUIRE(&op.value() != &p.value());
+      REQUIRE(&cptr.value() != &original_cptr.value());
     }
 
-    THEN("managed object has been copied")
+    THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(p->data() == v);
+      REQUIRE(cptr->value() == v);
+    }
+
+    THEN("operator bool returns true")
+    {
+      REQUIRE((bool)cptr == true);
     }
 
     THEN("object count is two")
     {
       REQUIRE(DerivedType::object_count == 2);
     }
-  }
-}
 
-/*
-TEST_CASE("indirect move constructor", "[indirect.constructors]")
-{
-  GIVEN("A indirect move constructed from a pointer-constructed indirect")
-  {
-    REQUIRE(DerivedType::object_count == 0);
-
-    int v = 7;
-    indirect<BaseType> op(new DerivedType(v));
-    BaseType* resource = &op.value();
-    indirect<BaseType> p(std::move(op));
-
-    THEN("resource ownership is transferred")
+    WHEN("Changes are made to the original cloning pointer after copying")
     {
-      REQUIRE(&p.value() == resource);
+      int new_value = 99;
+      original_cptr->set_value(new_value);
+      REQUIRE(original_cptr->value() == new_value);
+      THEN("They are not reflected in the copy (copy is distinct)")
+      {
+        REQUIRE(cptr->value() != new_value);
+        REQUIRE(cptr->value() == v);
+      }
     }
   }
 }
@@ -213,18 +226,14 @@ TEST_CASE("indirect move constructor","[indirect.constructors]")
     indirect<BaseType> original_cptr;
     indirect<BaseType> cptr(std::move(original_cptr));
 
-    THEN("The original pointer is null")
+    THEN("The original indirect is empty")
     {
-      REQUIRE(original_cptr.value()==nullptr);
-      REQUIRE(original_cptr.operator->()==nullptr);
-      REQUIRE(!original_cptr->empty());
+      REQUIRE(!(bool)original_cptr);
     }
 
-    THEN("The move-constructed pointer is null")
+    THEN("The move-constructed indirect is empty")
     {
-      REQUIRE(cptr.value()==nullptr);
-      REQUIRE(cptr.operator->()==nullptr);
-      REQUIRE(!cptr->empty());
+      REQUIRE(!(bool)cptr);
     }
   }
 
@@ -232,29 +241,27 @@ TEST_CASE("indirect move constructor","[indirect.constructors]")
   {
     int v = 7;
     indirect<BaseType> original_cptr(new DerivedType(v));
-    auto original_pointer = original_cptr.value();
+    auto original_pointer = &original_cptr.value();
     CHECK(DerivedType::object_count == 1);
 
     indirect<BaseType> cptr(std::move(original_cptr));
     CHECK(DerivedType::object_count == 1);
 
-    THEN("The original pointer is null")
+    THEN("The original indirect is empty")
     {
-      REQUIRE(original_cptr.value()==nullptr);
-      REQUIRE(original_cptr.operator->()==nullptr);
-      REQUIRE(!original_cptr->empty());
+      REQUIRE(!(bool)original_cptr);
     }
 
     THEN("The move-constructed pointer is the original pointer")
     {
-      REQUIRE(cptr.value()==original_pointer);
+      REQUIRE(&cptr.value()==original_pointer);
       REQUIRE(cptr.operator->()==original_pointer);
-      REQUIRE(cptr->empty());
+      REQUIRE((bool)cptr);
     }
 
-    THEN("The move-constructed pointer data is the constructed data")
+    THEN("The move-constructed pointer value is the constructed value")
     {
-      REQUIRE(cptr->data() == v);
+      REQUIRE(cptr->value() == v);
     }
   }
 }
@@ -265,7 +272,7 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
   {
     indirect<BaseType> cptr1;
     const indirect<BaseType> cptr2;
-    const auto p = cptr2.value();
+    const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 0);
 
@@ -275,10 +282,10 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(cptr2.value() == p);
+      REQUIRE(&cptr2.value() == p);
     }
 
-    THEN("The assigned-to object is null")
+    THEN("The assigned-to object is empty")
     {
       REQUIRE(cptr1.empty());
     }
@@ -290,7 +297,7 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
 
     indirect<BaseType> cptr1(new DerivedType(v1));
     const indirect<BaseType> cptr2;
-    const auto p = cptr2.value();
+    const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -300,10 +307,10 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(cptr2.value() == p);
+      REQUIRE(&cptr2.value() == p);
     }
 
-    THEN("The assigned-to object is null")
+    THEN("The assigned-to object is empty")
     {
       REQUIRE(cptr1.empty());
     }
@@ -315,7 +322,7 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
 
     indirect<BaseType> cptr1;
     const indirect<BaseType> cptr2(new DerivedType(v1));
-    const auto p = cptr2.value();
+    const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -325,23 +332,22 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(cptr2.value() == p);
+      REQUIRE(&cptr2.value() == p);
     }
 
-    THEN("The assigned-to object is non-null")
+    THEN("The assigned-to object is non-empty")
     {
-      REQUIRE(cptr1.value() != nullptr);
+      REQUIRE((bool)cptr1);
     }
 
-    THEN("The assigned-from object 'data' is the assigned-to object data")
+    THEN("The assigned-from object 'value' is the assigned-to object value")
     {
-      REQUIRE(cptr1->data() == cptr2->data());
+      REQUIRE(cptr1->value() == cptr2->value());
     }
 
-    THEN("The assigned-from object pointer and the assigned-to object pointer
-are distinct")
+    THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
     {
-      REQUIRE(cptr1.value() != cptr2.value());
+      REQUIRE(&cptr1.value() != &cptr2.value());
     }
 
   }
@@ -353,7 +359,7 @@ are distinct")
 
     indirect<BaseType> cptr1(new DerivedType(v1));
     const indirect<BaseType> cptr2(new DerivedType(v2));
-    const auto p = cptr2.value();
+    const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 2);
 
@@ -363,23 +369,22 @@ are distinct")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(cptr2.value() == p);
+      REQUIRE(&cptr2.value() == p);
     }
 
-    THEN("The assigned-to object is non-null")
+    THEN("The assigned-to object is non-empty")
     {
-      REQUIRE(cptr1.value() != nullptr);
+      REQUIRE((bool)cptr1);
     }
 
-    THEN("The assigned-from object 'data' is the assigned-to object data")
+    THEN("The assigned-from object 'value' is the assigned-to object value")
     {
-      REQUIRE(cptr1->data() == cptr2->data());
+      REQUIRE(cptr1->value() == cptr2->value());
     }
 
-    THEN("The assigned-from object pointer and the assigned-to object pointer
-are distinct")
+    THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
     {
-      REQUIRE(cptr1.value() != cptr2.value());
+      REQUIRE(&cptr1.value() != &cptr2.value());
     }
   }
 
@@ -388,7 +393,7 @@ are distinct")
     int v1 = 7;
 
     indirect<BaseType> cptr1(new DerivedType(v1));
-    const auto p = cptr1.value();
+    const auto p = &cptr1.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -398,19 +403,18 @@ are distinct")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(cptr1.value() == p);
+      REQUIRE(&cptr1.value() == p);
     }
   }
 }
 
 TEST_CASE("indirect move-assignment","[indirect.assignment]")
 {
-  GIVEN("A default-constructed indirect move-assigned-to a default-constructed
-indirect")
+  GIVEN("A default-constructed indirect move-assigned-to a default-constructed indirect")
   {
     indirect<BaseType> cptr1;
     indirect<BaseType> cptr2;
-    const auto p = cptr2.value();
+    const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 0);
 
@@ -418,25 +422,24 @@ indirect")
 
     REQUIRE(DerivedType::object_count == 0);
 
-    THEN("The move-assigned-from object is null")
+    THEN("The move-assigned-from object is empty")
     {
-      REQUIRE(cptr1.empty());
+      REQUIRE(cptr2.empty());
     }
 
-    THEN("The move-assigned-to object is null")
+    THEN("The move-assigned-to object is empty")
     {
       REQUIRE(cptr1.empty());
     }
   }
 
-  GIVEN("A default-constructed indirect move-assigned to a pointer-constructed
-indirect")
+  GIVEN("A default-constructed indirect move-assigned to a pointer-constructed indirect")
   {
     int v1 = 7;
 
     indirect<BaseType> cptr1(new DerivedType(v1));
     indirect<BaseType> cptr2;
-    const auto p = cptr2.value();
+    const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -444,25 +447,24 @@ indirect")
 
     REQUIRE(DerivedType::object_count == 0);
 
-    THEN("The move-assigned-from object is null")
+    THEN("The move-assigned-from object is empty")
     {
-      REQUIRE(cptr1.empty());
+      REQUIRE(cptr2.empty());
     }
 
-    THEN("The move-assigned-to object is null")
+    THEN("The move-assigned-to object is empty")
     {
       REQUIRE(cptr1.empty());
     }
   }
 
-  GIVEN("A pointer-constructed indirect move-assigned to a default-constructed
-indirect")
+  GIVEN("A pointer-constructed indirect move-assigned to a default-constructed indirect")
   {
     int v1 = 7;
 
     indirect<BaseType> cptr1;
     indirect<BaseType> cptr2(new DerivedType(v1));
-    const auto p = cptr2.value();
+    const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -470,27 +472,25 @@ indirect")
 
     REQUIRE(DerivedType::object_count == 1);
 
-    THEN("The move-assigned-from object is null")
+    THEN("The move-assigned-from object is empty")
     {
       REQUIRE(cptr2.empty());
     }
 
-    THEN("The move-assigned-to object pointer is the move-assigned-from
-pointer")
+    THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
     {
-      REQUIRE(cptr1.value() == p);
+      REQUIRE(&cptr1.value() == p);
     }
   }
 
-  GIVEN("A pointer-constructed indirect move-assigned to a pointer-constructed
-indirect")
+  GIVEN("A pointer-constructed indirect move-assigned to a pointer-constructed indirect")
   {
     int v1 = 7;
     int v2 = 87;
 
     indirect<BaseType> cptr1(new DerivedType(v1));
     indirect<BaseType> cptr2(new DerivedType(v2));
-    const auto p = cptr2.value();
+    const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 2);
 
@@ -498,37 +498,17 @@ indirect")
 
     REQUIRE(DerivedType::object_count == 1);
 
-    THEN("The move-assigned-from object is null")
+    THEN("The move-assigned-from object is empty")
     {
       REQUIRE(cptr2.empty());
     }
 
-    THEN("The move-assigned-to object pointer is the move-assigned-from
-pointer")
+    THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
     {
-      REQUIRE(cptr1.value() == p);
-    }
-  }
-
-  GIVEN("A pointer-constructed indirect move-assigned to itself")
-  {
-    int v = 7;
-
-    indirect<BaseType> cptr(new DerivedType(v));
-    const auto p = cptr.value();
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    cptr = std::move(cptr);
-
-    THEN("The indirect is unaffected")
-    {
-      REQUIRE(DerivedType::object_count == 1);
-      REQUIRE(cptr.value() == p);
+      REQUIRE(&cptr1.value() == p);
     }
   }
 }
-*/
 
 TEST_CASE("Derived types", "[indirect.derived_types]")
 {
@@ -540,21 +520,31 @@ TEST_CASE("Derived types", "[indirect.derived_types]")
     WHEN("A indirect<BaseType> is copy-constructed")
     {
       indirect<BaseType> bptr(cptr);
-      
+
       THEN("Operator-> calls the pointee method")
       {
-        REQUIRE(bptr->data() == v);
+        REQUIRE(bptr->value() == v);
+      }
+
+      THEN("operator bool returns true")
+      {
+        REQUIRE((bool)bptr == true);
       }
     }
 
     WHEN("A indirect<BaseType> is assigned")
     {
-      indirect<BaseType> bptr(new DerivedType(0));
+      indirect<BaseType> bptr;
       bptr = cptr;
 
       THEN("Operator-> calls the pointee method")
       {
-        REQUIRE(bptr->data() == v);
+        REQUIRE(bptr->value() == v);
+      }
+
+      THEN("operator bool returns true")
+      {
+        REQUIRE((bool)bptr == true);
       }
     }
 
@@ -564,25 +554,34 @@ TEST_CASE("Derived types", "[indirect.derived_types]")
 
       THEN("Operator-> calls the pointee method")
       {
-        REQUIRE(bptr->data() == v);
+        REQUIRE(bptr->value() == v);
+      }
+
+      THEN("operator bool returns true")
+      {
+        REQUIRE((bool)bptr == true);
       }
     }
 
     WHEN("A indirect<BaseType> is move-assigned")
     {
-      indirect<BaseType> bptr(new DerivedType(0));
+      indirect<BaseType> bptr;
       bptr = std::move(cptr);
-      
+
       THEN("Operator-> calls the pointee method")
       {
-        REQUIRE(bptr->data() == v);
+        REQUIRE(bptr->value() == v);
+      }
+
+      THEN("operator bool returns true")
+      {
+        REQUIRE((bool)bptr == true);
       }
     }
   }
 }
 
-TEST_CASE("make_indirect return type can be converted to base-type",
-"[indirect.make_indirect]")
+TEST_CASE("make_indirect return type can be converted to base-type", "[indirect.make_indirect]")
 {
   GIVEN("A indirect<BaseType> constructed from make_indirect<DerivedType>")
   {
@@ -591,7 +590,55 @@ TEST_CASE("make_indirect return type can be converted to base-type",
 
     THEN("Operator-> calls the pointee method")
     {
-      REQUIRE(cptr->data() == v);
+      REQUIRE(cptr->value() == v);
+    }
+
+    THEN("operator bool returns true")
+    {
+      REQUIRE((bool)cptr == true);
+    }
+  }
+}
+
+TEST_CASE("emplace","[indirect.emplace]")
+{
+  GIVEN("An empty indirect")
+  {
+    indirect<DerivedType> cptr;
+
+    WHEN("emplace is called")
+    {
+      int v = 7;
+      cptr.emplace<DerivedType>(v);
+
+      CHECK(DerivedType::object_count == 1);
+
+      THEN("The indirect is non-empty and owns the pointer")
+      {
+        REQUIRE((bool)cptr);
+        REQUIRE(cptr->value() == v);
+      }
+    }
+  }
+  CHECK(DerivedType::object_count == 0);
+
+  GIVEN("A non-empty indirect")
+  {
+    int v1 = 7;
+    indirect<DerivedType> cptr(new DerivedType(v1));
+    CHECK(DerivedType::object_count == 1);
+
+    WHEN("emplace is called")
+    {
+      int v2 = 7;
+      cptr.emplace<DerivedType>(v2);
+      CHECK(DerivedType::object_count == 1);
+
+      THEN("The indirect is non-empty and owns the pointer")
+      {
+        REQUIRE((bool)cptr);
+        REQUIRE(cptr->value() == v2);
+      }
     }
   }
 }
@@ -599,26 +646,23 @@ TEST_CASE("make_indirect return type can be converted to base-type",
 struct Base { int v_ = 42; virtual ~Base() = default; };
 struct IntermediateBaseA : virtual Base { int a_ = 3; };
 struct IntermediateBaseB : virtual Base { int b_ = 101; };
-struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int data_ = 0;
-  MultiplyDerived(int data) : data_(data){};
-};
+struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int value_ = 0; MultiplyDerived(int value) : value_(value) {}; };
 
-TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes",
-          "[indirect.constructors]")
+TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[indirect.constructors]")
 {
-  GIVEN("A data-constructed multiply-derived-class indirect")
+  GIVEN("A value-constructed multiply-derived-class indirect")
   {
     int v = 7;
     indirect<MultiplyDerived> cptr(new MultiplyDerived(v));
 
-    WHEN("When copied to a indirect to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a indirect to an intermediate base type, data is accessible as expected")
     {
       indirect<IntermediateBaseA> cptr_IA = cptr;
       REQUIRE(cptr_IA->a_ == 3);
       REQUIRE(cptr_IA->v_ == 42);
     }
 
-    WHEN("When copied to a indirect to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a indirect to an intermediate base type, data is accessible as expected")
     {
       indirect<IntermediateBaseB> cptr_IB = cptr;
       REQUIRE(cptr_IB->b_ == 101);
@@ -626,3 +670,4 @@ TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes",
     }
   }
 }
+
