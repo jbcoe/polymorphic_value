@@ -600,49 +600,6 @@ TEST_CASE("make_indirect return type can be converted to base-type", "[indirect.
   }
 }
 
-TEST_CASE("emplace","[indirect.emplace]")
-{
-  GIVEN("An empty indirect")
-  {
-    indirect<DerivedType> cptr;
-
-    WHEN("emplace is called")
-    {
-      int v = 7;
-      cptr.emplace<DerivedType>(v);
-
-      CHECK(DerivedType::object_count == 1);
-
-      THEN("The indirect is non-empty and owns the pointer")
-      {
-        REQUIRE((bool)cptr);
-        REQUIRE(cptr->value() == v);
-      }
-    }
-  }
-  CHECK(DerivedType::object_count == 0);
-
-  GIVEN("A non-empty indirect")
-  {
-    int v1 = 7;
-    indirect<DerivedType> cptr(new DerivedType(v1));
-    CHECK(DerivedType::object_count == 1);
-
-    WHEN("emplace is called")
-    {
-      int v2 = 7;
-      cptr.emplace<DerivedType>(v2);
-      CHECK(DerivedType::object_count == 1);
-
-      THEN("The indirect is non-empty and owns the pointer")
-      {
-        REQUIRE((bool)cptr);
-        REQUIRE(cptr->value() == v2);
-      }
-    }
-  }
-}
-
 struct Base { int v_ = 42; virtual ~Base() = default; };
 struct IntermediateBaseA : virtual Base { int a_ = 3; };
 struct IntermediateBaseB : virtual Base { int b_ = 101; };

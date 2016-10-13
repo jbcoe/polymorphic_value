@@ -259,6 +259,10 @@ public:
     return *this;
   }
 
+  //
+  // Modifiers
+  //
+
   void swap(indirect& p) noexcept
   {
     using std::swap;
@@ -266,27 +270,9 @@ public:
     swap(cb_, p.cb_);
   }
 
-  //
-  // Modifiers
-  //
-
-  template <typename U, typename... Ts>
-  void emplace(Ts&&... ts)
-  {
-    auto p = std::make_unique<direct_control_block<T, U>>(
-        std::forward<Ts>(ts)...);
-    ptr_ = p->ptr();
-    cb_ = std::move(p);
-  }
-
-  void clear()
-  {
-    cb_.reset();
-    ptr_ = nullptr;
-  }
 
   //
-  // Accessors
+  // Observers
   //
 
   explicit operator bool() const
