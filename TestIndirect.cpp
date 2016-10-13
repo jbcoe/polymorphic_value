@@ -287,7 +287,7 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
 
     THEN("The assigned-to object is empty")
     {
-      REQUIRE(cptr1.empty());
+      REQUIRE(!cptr1);
     }
   }
 
@@ -312,7 +312,7 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
 
     THEN("The assigned-to object is empty")
     {
-      REQUIRE(cptr1.empty());
+      REQUIRE(!cptr1);
     }
   }
 
@@ -424,12 +424,12 @@ TEST_CASE("indirect move-assignment","[indirect.assignment]")
 
     THEN("The move-assigned-from object is empty")
     {
-      REQUIRE(cptr2.empty());
+      REQUIRE(!cptr2);
     }
 
     THEN("The move-assigned-to object is empty")
     {
-      REQUIRE(cptr1.empty());
+      REQUIRE(!cptr1);
     }
   }
 
@@ -449,12 +449,12 @@ TEST_CASE("indirect move-assignment","[indirect.assignment]")
 
     THEN("The move-assigned-from object is empty")
     {
-      REQUIRE(cptr2.empty());
+      REQUIRE(!cptr2);
     }
 
     THEN("The move-assigned-to object is empty")
     {
-      REQUIRE(cptr1.empty());
+      REQUIRE(!cptr1);
     }
   }
 
@@ -474,7 +474,7 @@ TEST_CASE("indirect move-assignment","[indirect.assignment]")
 
     THEN("The move-assigned-from object is empty")
     {
-      REQUIRE(cptr2.empty());
+      REQUIRE(!cptr2);
     }
 
     THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
@@ -500,7 +500,7 @@ TEST_CASE("indirect move-assignment","[indirect.assignment]")
 
     THEN("The move-assigned-from object is empty")
     {
-      REQUIRE(cptr2.empty());
+      REQUIRE(!cptr2);
     }
 
     THEN("The move-assigned-to object pointer is the move-assigned-from pointer")

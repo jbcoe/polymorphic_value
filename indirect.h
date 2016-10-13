@@ -280,11 +280,6 @@ public:
     return (bool)cb_;
   }
 
-  bool empty() const
-  {
-    return !(bool)cb_;
-  }
-
   const T* operator->() const
   {
     assert(ptr_);
