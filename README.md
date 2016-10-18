@@ -1,15 +1,33 @@
 # indirect : a free-store allocated value-type for C++
 
-A deep-copying smart pointer that uses type erasure to call the copy
-constructor of derived types would allow the compiler-generated copy
-constructor to copy an object composed of polymorphic components correctly. 
+The class template, `indirect`, confers value-like semantics on a free-store
+allocated object.  An `indirect<T>` may hold a an object of a class publicly
+derived from T, and copying the indirect<T> will copy the object of the derived
+type.
 
-When component objects are owned by cloned pointers, they will be copied
-correctly without any extra code being required - an end user can use the
-compiler-defaults for copy, assign, move and move-assign.
+Using `indirect` a copyable composite object with polymorphic components can be
+written as:
 
-See <https://groups.google.com/a/isocpp.org/forum/#!topic/std-proposals/YnUvKJATgD0>
-for discussion/design.
+~~~ {.cpp}
+    // Copyable composite with mutable polymorphic components
+    class CompositeObject {
+      std::indirect<IComponent1> c1_;
+      std::indirect<IComponent2> c2_;
+
+     public:
+      CompositeObject(std::indirect<IComponent1> c1,
+                        std::indirect<IComponent2> c2) :
+                        c1_(std::move(c1)), c2_(std::move(c2)) {}
+
+      // `indirect` propagates constness so const methods call 
+      // corresponding const methods of components
+      void foo() const { c1_->foo(); }
+      void bar() const { c2_->bar(); }
+      
+      void foo() { c1_->foo(); }
+      void bar() { c2_->bar(); }
+    };
+~~~
 
 ## Submodules
 Tests use the 'catch' test framework: <https://github.com/philsquared/Catch.git>
