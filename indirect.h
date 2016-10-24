@@ -190,7 +190,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  indirect(indirect<U>&& p) noexcept
+  indirect(indirect<U>&& p)
   {
     ptr_ = p.ptr_;
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
@@ -251,7 +251,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  indirect& operator=(indirect<U>&& p) noexcept
+  indirect& operator=(indirect<U>&& p)
   {
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
     ptr_ = p.ptr_;
