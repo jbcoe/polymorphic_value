@@ -1,4 +1,4 @@
-# indirect : a free-store allocated value-type for C++
+# indirect : a free-store-allocated value-type for C++
 
 The class template `indirect` is proposed for addition to the C++ Standard Library.
 
