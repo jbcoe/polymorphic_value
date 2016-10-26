@@ -1,5 +1,9 @@
 # indirect : a free-store allocated value-type for C++
 
+The class template `indirect` is proposed for addition to the C++ Standard Library.
+
+<http://open-std.org/JTC1/SC22/WG21/docs/papers/2016/p0201r1.pdf>
+
 The class template, `indirect`, confers value-like semantics on a free-store
 allocated object.  An `indirect<T>` may hold a an object of a class publicly
 derived from T, and copying the indirect<T> will copy the object of the derived
