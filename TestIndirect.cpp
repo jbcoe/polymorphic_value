@@ -2,6 +2,8 @@
 
 #include <catch.hpp>
 #include "indirect.h"
+#include <new>
+#include <stdexcept>
 
 struct BaseType
 {
@@ -628,3 +630,113 @@ TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[indirect.co
   }
 }
 
+struct Tracked
+{
+  static int ctor_count_;
+  static int dtor_count_;
+  static int assignment_count_;
+
+  static void reset_counts()
+  {
+    ctor_count_ = 0;
+    dtor_count_ = 0;
+    assignment_count_ = 0;
+  }
+
+  Tracked() { ++ctor_count_; }
+  ~Tracked() { ++dtor_count_; }
+  Tracked(const Tracked&) { ++ctor_count_; }
+  Tracked(Tracked&&) { ++ctor_count_; }
+  Tracked& operator=(const Tracked&) { ++assignment_count_; return *this; }
+  Tracked& operator=(Tracked&&) { ++assignment_count_; return *this; }
+};
+
+int Tracked::ctor_count_ = 0;
+int Tracked::dtor_count_ = 0;
+int Tracked::assignment_count_ = 0;
+
+struct ThrowsOnCopy : Tracked
+{
+  int value_ = 0;
+
+  ThrowsOnCopy() = default;
+  
+  explicit ThrowsOnCopy(const int v) : value_(v) {}
+  
+  ThrowsOnCopy(const ThrowsOnCopy&)
+  {
+    throw std::runtime_error("something went wrong during copy");
+  }
+
+  ThrowsOnCopy& operator=(const ThrowsOnCopy& rhs) = default;
+};
+
+TEST_CASE("Exception safety: throw in copy constructor", "[indirect.exception_safety.copy]")
+{
+  GIVEN("A value-constructed indirect to a ThrowsOnCopy")
+  {
+    const int v = 7;
+    indirect<ThrowsOnCopy> cptr(new ThrowsOnCopy(v));
+
+    THEN("When copying to another indirect, after an exception, the source remains valid")
+    {
+      Tracked::reset_counts();
+      REQUIRE_THROWS_AS(indirect<ThrowsOnCopy> another = cptr, std::runtime_error);
+      REQUIRE(cptr->value_ == v);
+      REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
+    }
+
+    THEN("When copying to another indirect, after an exception, the destination is not changed")
+    {
+      const int v2 = 5;
+      indirect<ThrowsOnCopy> another(new ThrowsOnCopy(v2));
+      Tracked::reset_counts();
+      REQUIRE_THROWS_AS(another = cptr, std::runtime_error);
+      REQUIRE(another->value_ == v2);
+      REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
+    }
+  }
+}
+
+template <typename T>
+struct throwing_copier
+{
+  T* operator()(const T& t) const
+  {
+    throw std::bad_alloc{};
+  }
+};
+
+struct TrackedValue : Tracked
+{
+  int value_ = 0;
+  explicit TrackedValue(const int v) : value_(v) {}
+};
+
+TEST_CASE("Exception safety: throw in copier", "[indirect.exception_safety.copier]")
+{
+  GIVEN("A value-constructed indirect")
+  {
+    const int v = 7;
+    indirect<TrackedValue> cptr(new TrackedValue(v), throwing_copier<TrackedValue>{});
+
+    THEN("When an exception occurs in the copier, the source is unchanged")
+    {
+      indirect<TrackedValue> another;
+      Tracked::reset_counts();
+      REQUIRE_THROWS_AS(another = cptr, std::bad_alloc);
+      REQUIRE(cptr->value_ == v);
+      REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
+    }
+
+    THEN("When an exception occurs in the copier, the destination is unchanged")
+    {
+      const int v2 = 5;
+      indirect<TrackedValue> another(new TrackedValue(v2));
+      Tracked::reset_counts();
+      REQUIRE_THROWS_AS(another = cptr, std::bad_alloc);
+      REQUIRE(another->value_ == v2);
+      REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
+    }
+  }
+}
