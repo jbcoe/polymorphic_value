@@ -69,6 +69,44 @@ TEST_CASE("Default constructor","[indirect.constructors]")
   }
 }
 
+TEST_CASE("Value constructor", "[indirect.constructors]")
+{
+  DerivedType d(7);
+
+  indirect<BaseType> i(d);
+
+  REQUIRE(i->value() == 7);
+}
+
+TEST_CASE("Value move-constructor", "[indirect.constructors]")
+{
+  DerivedType d(7);
+
+  indirect<BaseType> i(d);
+
+  REQUIRE(i->value() == 7);
+}
+
+TEST_CASE("Value assignment", "[indirect.constructors]")
+{
+  DerivedType d(7);
+
+  indirect<BaseType> i;
+  i = d;
+
+  REQUIRE(i->value() == 7);
+}
+
+TEST_CASE("Value move-assignment", "[indirect.constructors]")
+{
+  DerivedType d(7);
+
+  indirect<BaseType> i;
+  i = std::move(d);
+
+  REQUIRE(i->value() == 7);
+}
+
 TEST_CASE("Pointer constructor","[indirect.constructors]")
 {
   GIVEN("A pointer-constructed indirect")

@@ -5,7 +5,7 @@
 #include <type_traits>
 
 ////////////////////////////////////////////////////////////////////////////////
-// Implementation detail classes 
+// Implementation detail classes
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
@@ -105,6 +105,19 @@ public:
   }
 };
 
+template <typename T>
+class indirect;
+
+template <typename T>
+struct is_indirect : std::false_type
+{
+};
+
+template <typename T>
+struct is_indirect<indirect<T>> : std::true_type
+{
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 // `indirect` class definition
 ////////////////////////////////////////////////////////////////////////////////
@@ -121,19 +134,13 @@ class indirect
   T* ptr_ = nullptr;
   std::unique_ptr<control_block<T>> cb_;
 
-  void init(std::unique_ptr<control_block<T>> p)
-  {
-    cb_ = std::move(p);
-    ptr_ = cb_->ptr();
-  }
-
 public:
   //
   // Constructors
   //
 
   indirect() {}
-  
+
   ~indirect() = default;
 
   template <typename U, typename C = default_copier<U>,
@@ -178,6 +185,14 @@ public:
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(tmp.cb_));
   }
 
+  template <typename U,
+            typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
+                                          !is_indirect<U>::value>>
+  indirect(const U& u) : indirect(new U(u))
+  {
+  }
+
+
   //
   // Move-constructors
   //
@@ -198,6 +213,14 @@ public:
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
     p.ptr_ = nullptr;
   }
+
+  template <typename U,
+            typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
+                                          !is_indirect<U>::value>>
+  indirect(U&& u) : indirect(new U(std::move(u)))
+  {
+  }
+
 
   //
   // Assignment
@@ -233,6 +256,17 @@ public:
     return *this;
   }
 
+  template <typename U,
+            typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
+                                          !is_indirect<U>::value>>
+  indirect& operator=(const U& u)
+  {
+    indirect tmp(u);
+    *this = std::move(tmp);
+    return *this;
+  }
+
+
   //
   // Move-assignment
   //
@@ -260,6 +294,17 @@ public:
     p.ptr_ = nullptr;
     return *this;
   }
+
+  template <typename U,
+            typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
+                                          !is_indirect<U>::value>>
+  indirect& operator=(U&& u)
+  {
+    indirect tmp(std::move(u));
+    *this = std::move(tmp);
+    return *this;
+  }
+
 
   //
   // Modifiers
