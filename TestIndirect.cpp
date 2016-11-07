@@ -141,7 +141,7 @@ TEST_CASE("Pointer constructor","[indirect.constructors]")
   }
 }
 
-struct BaseCloneSelf 
+struct BaseCloneSelf
 {
   BaseCloneSelf() = default;
   virtual ~BaseCloneSelf() = default;
@@ -698,9 +698,9 @@ struct ThrowsOnCopy : Tracked
   int value_ = 0;
 
   ThrowsOnCopy() = default;
-  
+
   explicit ThrowsOnCopy(const int v) : value_(v) {}
-  
+
   ThrowsOnCopy(const ThrowsOnCopy&)
   {
     throw std::runtime_error("something went wrong during copy");
