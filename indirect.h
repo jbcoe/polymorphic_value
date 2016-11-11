@@ -50,7 +50,8 @@ public:
   std::unique_ptr<control_block<T>> clone() const override
   {
     assert(p_);
-    return std::make_unique<pointer_control_block>(c_(*p_), c_, p_.get_deleter());
+    return std::make_unique<pointer_control_block>(c_(*p_), c_,
+                                                   p_.get_deleter());
   }
 
   T* ptr() override
@@ -66,8 +67,7 @@ class direct_control_block : public control_block<U>
 
 public:
   template <typename... Ts>
-  explicit direct_control_block(Ts&&... ts)
-      : u_(U(std::forward<Ts>(ts)...))
+  explicit direct_control_block(Ts&&... ts) : u_(U(std::forward<Ts>(ts)...))
   {
   }
 
@@ -123,6 +123,14 @@ struct is_indirect<indirect<T>> : std::true_type
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
+struct in_place_tag
+{
+};
+
+template <typename T>
+in_place_tag<T> in_place;
+
+template <typename T>
 class indirect
 {
 
@@ -135,13 +143,21 @@ class indirect
   std::unique_ptr<control_block<T>> cb_;
 
 public:
+
+  //
+  // Destructor
+  //
+
+  ~indirect() = default;
+
+
   //
   // Constructors
   //
 
-  indirect() {}
-
-  ~indirect() = default;
+  indirect()
+  {
+  }
 
   template <typename U, typename C = default_copier<U>,
             typename D = default_deleter<U>,
@@ -155,10 +171,17 @@ public:
 
     assert(typeid(*u) == typeid(U));
 
-    cb_ = std::make_unique<pointer_control_block<T, U, C, D>>(u, std::move(copier),
-                                                           std::move(deleter));
+    cb_ = std::make_unique<pointer_control_block<T, U, C, D>>(
+        u, std::move(copier), std::move(deleter));
     ptr_ = u;
   }
+
+  template <typename U, typename... Ts>
+  indirect(in_place_tag<U>, Ts&&... ts)
+      : indirect(std::make_unique<U>(std::forward<Ts>(ts)...).release())
+  {
+  }
+
 
   //
   // Copy-constructors
@@ -357,6 +380,7 @@ public:
   {
     return *ptr_;
   }
+
 };
 
 //
@@ -366,17 +390,15 @@ template <typename T, typename... Ts>
 indirect<T> make_indirect(Ts&&... ts)
 {
   indirect<T> p;
-  p.cb_ =
-      std::make_unique<direct_control_block<T>>(std::forward<Ts>(ts)...);
+  p.cb_ = std::make_unique<direct_control_block<T>>(std::forward<Ts>(ts)...);
   p.ptr_ = p.cb_->ptr();
   return std::move(p);
 }
 
-
 //
 // non-member swap
 //
-template<typename T>
+template <typename T>
 void swap(indirect<T>& t, indirect<T>& u) noexcept
 {
   t.swap(u);
