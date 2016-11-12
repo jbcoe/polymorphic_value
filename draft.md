@@ -1,4 +1,4 @@
-# An indirect value-type for C++
+# A polymorphic_value value-type for C++
 
 ISO/IEC JTC1 SC22 WG21 Programming Language C++
 
@@ -16,6 +16,8 @@ _Sean Parent \<sparent@adobe.com\>_
 
 Changes in P0201R2
 
+* Change name to `polymorphic_value`.
+
 * Add construction and assignment from values.
 
 * Use `std::default_delete`.
@@ -28,7 +30,7 @@ Changes in P0201R1
 
 * Change name to `indirect`.
 
-* Remove `static_cast`, `dynamic_cast` and `const_cast` as `indirect` is
+* Remove `static_cast`, `dynamic_cast` and `const_cast` as `polymorphic_value` is
   modelled on a value not a pointer.
 
 * Add `const` accessors which return `const` references/pointers.
@@ -45,14 +47,14 @@ Changes in P0201R1
 
 ## TL;DR
 
-Add a class template, `indirect<T>`, to the standard library to support
+Add a class template, `polymorphic_value<T>`, to the standard library to support
 free-store-allocated objects with value-like semantics.
 
 ## Introduction
 
-The class template, `indirect`, confers value-like semantics on a free-store
-allocated object.  An `indirect<T>` may hold a an object of a class publicly
-derived from T, and copying the indirect<T> will copy the object of the derived
+The class template, `polymorphic_value`, confers value-like semantics on a free-store
+allocated object.  An `polymorphic_value<T>` may hold a an object of a class publicly
+derived from T, and copying the polymorphic_value<T> will copy the object of the derived
 type.
 
 ## Motivation: Composite objects
@@ -168,17 +170,17 @@ move and assignment operators. As long as the components are not mutated, this
 design is good. If non-const methods of components are used then this won't
 compile.
 
-Using `indirect` a copyable composite object with polymorphic components can be
+Using `polymorphic_value` a copyable composite object with polymorphic components can be
 written as:
 
     // Copyable composite with mutable polymorphic components
     class CompositeObject_5 {
-      std::indirect<IComponent1> c1_;
-      std::indirect<IComponent2> c2_;
+      std::polymorphic_value<IComponent1> c1_;
+      std::polymorphic_value<IComponent2> c2_;
 
      public:
-      CompositeObject_5(std::indirect<IComponent1> c1,
-                        std::indirect<IComponent2> c2) :
+      CompositeObject_5(std::polymorphic_value<IComponent1> c1,
+                        std::polymorphic_value<IComponent2> c2) :
                         c1_(std::move(c1)), c2_(std::move(c2)) {}
 
       void foo() { c1_->foo(); }
@@ -187,16 +189,16 @@ written as:
 
 `CompositeObject_5` has a (correct) compiler-generated destructor, copy, move,
 and assignment operators. In addition to enabling compiler-generation of
-functions, `indirect` performs deep copies of `c1_` and `c2_` without the class
+functions, `polymorphic_value` performs deep copies of `c1_` and `c2_` without the class
 author needing to provide a special 'clone' method.
 
 ## Deep copies
 
-To allow correct copying of polymorphic objects, `indirect` uses the
+To allow correct copying of polymorphic objects, `polymorphic_value` uses the
 copy constructor of the derived-type pointee when copying a base type
-`indirect`.  Similarly, to allow correct destruction of polymorphic
-component objects, `indirect` uses the destructor of the derived-type
-pointee in the destructor of a base type `indirect`.
+`polymorphic_value`.  Similarly, to allow correct destruction of polymorphic
+component objects, `polymorphic_value` uses the destructor of the derived-type
+pointee in the destructor of a base type `polymorphic_value`.
 
 The requirements of deep-copying can be illustrated by some simple test code:
 ```
@@ -204,9 +206,9 @@ The requirements of deep-copying can be illustrated by some simple test code:
 class Base { virtual void foo() const = 0; };
 class Derived : Base { void foo() const override {} };
 
-// WHEN an indirect to base is formed from a derived pointer
-indirect<Base> dptr(new Derived());
-// AND the indirect to base is copied.
+// WHEN an polymorphic_value to base is formed from a derived pointer
+polymorphic_value<Base> dptr(new Derived());
+// AND the polymorphic_value to base is copied.
 auto dptr_copy = dptr;
 
 // THEN the copy points to a distinct object
@@ -230,17 +232,17 @@ TODO
 
 ## Lack of hashing and comparisons
 For a given user-defined type, `T`, there are multiple strategies to make
-`indirect<T>` hashable and comparable.  Without requiring additional named
+`polymorphic_value<T>` hashable and comparable.  Without requiring additional named
 member functions on the type, `T`, or mandating that `T` has virtual functions
-and RTTI, the authors do not see how `indirect` can generically support hashing
+and RTTI, the authors do not see how `polymorphic_value` can generically support hashing
 or comparisons. Incurring a cost for functionality that is not required goes
 against the 'pay for what you use' philosophy of C++.
 
 For a given user-defined type `T` the user is free to specialize
-`std::hash<indirect<T>>` and implement comparison operators for `indirect<T>`.
+`std::hash<polymorphic_value<T>>` and implement comparison operators for `polymorphic_value<T>`.
 
 ## Custom copiers and deleters
-The resource management performed by `indirect` - copying and destruction of
+The resource management performed by `polymorphic_value` - copying and destruction of
 the managed object - can be customized by supplying a _copier_ and _deleter_.
 If no copier or deleter is supplied then a default copier or deleter will be
 used. 
@@ -252,31 +254,31 @@ We define the default copier in technical specifications below.
 
 
 ## Custom allocators
-Custom allocators are not explicitly supported by `indirect`. Since all
-memory allocation and deallocation performed by `indirect` is done by copying
+Custom allocators are not explicitly supported by `polymorphic_value`. Since all
+memory allocation and deallocation performed by `polymorphic_value` is done by copying
 and deletion, any requirement for custom allocators can be handled by suitable
 choices for a custom copier and custom deleter.
 
 
 ## Design changes from `cloned_ptr`
-The design of `indirect` is based upon `cloned_ptr` after advice from LEWG. The
+The design of `polymorphic_value` is based upon `cloned_ptr` after advice from LEWG. The
 authors would like to make LEWG explicitly aware of the cost of these design
 changes.
 
-`indirect<T>` has value-like semantics: copies are deep and `const` is
+`polymorphic_value<T>` has value-like semantics: copies are deep and `const` is
 propagated to the owned object. The first revision of this paper presented
 `cloned_ptr<T>` which had mixed pointer/value semantics: copies are deep but
-`const` is not propagated to the owned object. `indirect` can be built from
+`const` is not propagated to the owned object. `polymorphic_value` can be built from
 `cloned_ptr` and `propagate_const` but there is no way to remove `const`
-propagation from indirect.
+propagation from polymorphic_value.
 
-As `indirect` is a value, `dynamic_pointer_cast`, `static_pointer_cast` and
-`const_pointer_cast` are not provided.  If an `indirect` is constructed with a
+As `polymorphic_value` is a value, `dynamic_pointer_cast`, `static_pointer_cast` and
+`const_pointer_cast` are not provided.  If an `polymorphic_value` is constructed with a
 custom copier or deleter, then there is no way for a user to implement the cast
 operations provided for `cloned_ptr`.
 
 [Should we be standardizing vocabulary types (`optional`, `variant` and
-`indirect`) or components through which vocabulary types can be trivially
+`polymorphic_value`) or components through which vocabulary types can be trivially
 composed (`propagate_const`, `cloned_ptr`)?]
 
 
@@ -291,7 +293,7 @@ the standard library header `<memory>`.
 
 ### X.X.1 Class template `default_copy` general [default.copy.general]
 The class template `default_copy` serves as the default copier for the class
-template `indirect`.
+template `polymorphic_value`.
 
 The template parameter `T` of `default_copy` may be an incomplete type.
 
@@ -315,59 +317,59 @@ T* operator()(const T& t) const;
 * _Returns:_  `new T(t)`.
           
 
-## X.Y Class template `indirect` [indirect]
+## X.Y Class template `polymorphic_value` [polymorphic_value]
 
-### X.Y.1 Class template `indirect` general [indirect.general]
+### X.Y.1 Class template `polymorphic_value` general [polymorphic_value.general]
 
-An _indirect_ is an object that owns another object and manages that other
+An _polymorphic_value_ is an object that owns another object and manages that other
 object through a pointer.  
 
-When a `indirect` is constructed from a pointer to an object of type `U`, a
+When a `polymorphic_value` is constructed from a pointer to an object of type `U`, a
 copier `c`, and a deleter `d`, then a move-constructed copy of the copier and
-deleter is stored in the `indirect` along with the pointer `u`.
+deleter is stored in the `polymorphic_value` along with the pointer `u`.
 
-When copies of a `indirect` are required due to copy construction or copy
+When copies of a `polymorphic_value` are required due to copy construction or copy
 assignment, copies are made using `c(*u)`.
 
-an `indirect` object is empty if it does not own a pointer.  
+an `polymorphic_value` object is empty if it does not own a pointer.  
 
-The template parameter `T` of `indirect` may be an incomplete type.
+The template parameter `T` of `polymorphic_value` may be an incomplete type.
 
 
-### X.Y.2 Class template `indirect` synopsis [indirect.synopsis]
+### X.Y.2 Class template `polymorphic_value` synopsis [polymorphic_value.synopsis]
 
 ```
 namespace std {
-template <class T> class indirect {
+template <class T> class polymorphic_value {
  public:
   typedef T element_type;
 
   // Constructors
-  indirect() noexcept; // see below
+  polymorphic_value() noexcept; // see below
   template <class U, class C=default_copy<U>, class D=default_delete<U>> 
-    explicit indirect(U* p, C c=C{}, D d=D{}); // see below
+    explicit polymorphic_value(U* p, C c=C{}, D d=D{}); // see below
   
-  indirect(const indirect& p);
-  template <class U> indirect(const indirect<U>& p); // see below
-  template <class U> indirect(const U& u); // see below
+  polymorphic_value(const polymorphic_value& p);
+  template <class U> polymorphic_value(const polymorphic_value<U>& p); // see below
+  template <class U> polymorphic_value(const U& u); // see below
   
-  indirect(indirect&& p) noexcept;
-  template <class U> indirect(indirect<U>&& p); // see below
-  template <class U> indirect(U&& u); // see below
+  polymorphic_value(polymorphic_value&& p) noexcept;
+  template <class U> polymorphic_value(polymorphic_value<U>&& p); // see below
+  template <class U> polymorphic_value(U&& u); // see below
 
   // Destructor
-  ~indirect();
+  ~polymorphic_value();
 
   // Assignment
-  indirect &operator=(const indirect& p);
-  template <class U> indirect &operator=(const indirect<U>& p); // see below
-  template <class U> indirect &operator=(const U& u); // see below
-  indirect &operator=(indirect &&p) noexcept;
-  template <class U> indirect &operator=(indirect<U>&& p); // see below
-  template <class U> indirect &operator=(U&& u); // see below
+  polymorphic_value &operator=(const polymorphic_value& p);
+  template <class U> polymorphic_value &operator=(const polymorphic_value<U>& p); // see below
+  template <class U> polymorphic_value &operator=(const U& u); // see below
+  polymorphic_value &operator=(polymorphic_value &&p) noexcept;
+  template <class U> polymorphic_value &operator=(polymorphic_value<U>&& p); // see below
+  template <class U> polymorphic_value &operator=(U&& u); // see below
 
   // Modifiers
-  void swap(indirect<T>& p) noexcept;
+  void swap(polymorphic_value<T>& p) noexcept;
 
   // Observers
   T& operator*();
@@ -377,40 +379,40 @@ template <class T> class indirect {
   explicit operator bool() const noexcept;
 };
 
-// indirect creation
-template <class T, class ...Ts> indirect<T>
-  make_indirect(Ts&& ...ts); // see below
+// polymorphic_value creation
+template <class T, class ...Ts> polymorphic_value<T>
+  make_polymorphic_value(Ts&& ...ts); // see below
 
-// indirect specialized algorithms
+// polymorphic_value specialized algorithms
 template<class T>
-  void swap(indirect<T>& p, indirect<T>& u) noexcept;
+  void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
 
-// indirect I/O
+// polymorphic_value I/O
 template<class E, class T, class Y>
   basic_ostream<E, T>& operator<< (basic_ostream<E, T>& os,
-                                   const indirect<Y>& p);
+                                   const polymorphic_value<Y>& p);
 
 } // end namespace std
 ```
 
 
-### X.Y.3 Class template `indirect` constructors [indirect.ctor]
+### X.Y.3 Class template `polymorphic_value` constructors [polymorphic_value.ctor]
 
 ```
-indirect() noexcept;
+polymorphic_value() noexcept;
 ```
 
-* _Effects:_  Constructs an empty `indirect`.
+* _Effects:_  Constructs an empty `polymorphic_value`.
 
 * _Postconditions:_  `bool(*this) == false`
 
 
 ```
 template <class U, class C=default_copy<U>, class D=default_delete<U>> 
-  explicit indirect(U* p, C c=C{}, D d=D{});
+  explicit polymorphic_value(U* p, C c=C{}, D d=D{});
 ```
 
-* _Effects_: Creates a `indirect` object that _owns_ the pointer `p` and has
+* _Effects_: Creates a `polymorphic_value` object that _owns_ the pointer `p` and has
   a move-constructed copy of both `c` and `d`.
 
 * _Preconditions:_  `p` is non-null. `c` and `d` are copy constructible. The
@@ -433,63 +435,63 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 
 
 ```
-indirect(const indirect &p);
-template <class U> indirect(const indirect<U> &p);
+polymorphic_value(const polymorphic_value &p);
+template <class U> polymorphic_value(const polymorphic_value<U> &p);
 ```
 
 * _Remarks:_ The second constructor shall not participate in overload
   resolution unless `U` is derived from `T`.
 
-* _Effects:_ Creates a `indirect` object that owns a copy of the object
+* _Effects:_ Creates a `polymorphic_value` object that owns a copy of the object
   managed by `p`.
 
 * _Postconditions:_  `bool(*this) == bool(p)`.
 
 ```
-template <class U> indirect(const U& u);
+template <class U> polymorphic_value(const U& u);
 ```
 
 * _Remarks_: This constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
 
-* _Effects:_ Copy-constructs a `indirect` instance from `u`.
+* _Effects:_ Copy-constructs a `polymorphic_value` instance from `u`.
 
 
 ```
-indirect(indirect &&p) noexcept;
-template <class U> indirect(indirect<U> &&p);
+polymorphic_value(polymorphic_value &&p) noexcept;
+template <class U> polymorphic_value(polymorphic_value<U> &&p);
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
 
-* _Effects:_ Move-constructs a `indirect` instance from `p`.
+* _Effects:_ Move-constructs a `polymorphic_value` instance from `p`.
 
 * _Postconditions:_  `*this` shall contain the old value of `p`. `p` shall be
   empty.
 
 ```
-template <class U> indirect(U&& u);
+template <class U> polymorphic_value(U&& u);
 ```
 
 * _Remarks_: This constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
 
-* _Effects:_ Move-constructs a `indirect` instance from `u`.
+* _Effects:_ Move-constructs a `polymorphic_value` instance from `u`.
 
-### X.Y.4 Class template `indirect` destructor [indirect.dtor]
+### X.Y.4 Class template `polymorphic_value` destructor [polymorphic_value.dtor]
 
 ```
-~indirect();
+~polymorphic_value();
 ```
 
 * _Effects:_ `d(u)` is called.
 
-### X.Y.5 Class template `indirect` assignment [indirect.assignment]
+### X.Y.5 Class template `polymorphic_value` assignment [polymorphic_value.assignment]
 
 ```
-indirect &operator=(const indirect &p);
-template <class U> indirect &operator=(const indirect<U>& p);
+polymorphic_value &operator=(const polymorphic_value &p);
+template <class U> polymorphic_value &operator=(const polymorphic_value<U>& p);
 ```
 
 * _Remarks_: The second function shall not participate in overload resolution
@@ -503,8 +505,8 @@ template <class U> indirect &operator=(const indirect<U>& p);
 
 
 ```
-indirect &operator=(indirect&& p) noexcept;
-template <class U> indirect &operator=(indirect<U> &&p);
+polymorphic_value &operator=(polymorphic_value&& p) noexcept;
+template <class U> polymorphic_value &operator=(polymorphic_value<U> &&p);
 ```
 
 * _Remarks:_ The second constructor shall not participate in overload
@@ -517,16 +519,16 @@ template <class U> indirect &operator=(indirect<U> &&p);
 * _Postconditions:_  `*this` shall contain the old value of `p`. `p` shall be empty.
 
 
-### X.Y.6 Class template `indirect` modifiers [indirect.modifiers]
+### X.Y.6 Class template `polymorphic_value` modifiers [polymorphic_value.modifiers]
 
 ```
-void swap(indirect<T>& p) noexcept;
+void swap(polymorphic_value<T>& p) noexcept;
 ```
 
 * _Effects:_ Exchanges the contents of `p` and `*this`.
 
 
-### X.Y.7 Class template `indirect` observers [indirect.observers]
+### X.Y.7 Class template `polymorphic_value` observers [polymorphic_value.observers]
 
 ```const T& operator*() const;```
 
@@ -558,34 +560,34 @@ void swap(indirect<T>& p) noexcept;
 
 ```explicit operator bool() const noexcept;```
 
-* _Returns:_ `false` if the `indirect` is empty, otherwise `true`.
+* _Returns:_ `false` if the `polymorphic_value` is empty, otherwise `true`.
 
-#### X.Y.8 Class template `indirect` creation [indirect.creation]
+#### X.Y.8 Class template `polymorphic_value` creation [polymorphic_value.creation]
 
 ```
-template <class T, class ...Ts> indirect<T>
-  make_indirect(Ts&& ...ts);
+template <class T, class ...Ts> polymorphic_value<T>
+  make_polymorphic_value(Ts&& ...ts);
 ```
 
-* _Returns:_ `indirect<T>(new T(std::forward<Ts>(ts)...)`;
+* _Returns:_ `polymorphic_value<T>(new T(std::forward<Ts>(ts)...)`;
 
 
-### X.Y.9 Class template `indirect` specialized algorithms [indirect.spec]
+### X.Y.9 Class template `polymorphic_value` specialized algorithms [polymorphic_value.spec]
 
 ```
 template <typename T>
-void swap(indirect<T>& p, indirect<T>& u) noexcept;
+void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
 ```
 
 * _Effects:_ Equivalent to `p.swap(u)`.
 
 
 
-### X.Y.10 Class template `indirect` I/O [indirect.io]
+### X.Y.10 Class template `polymorphic_value` I/O [polymorphic_value.io]
 ```
 template<class E, class T, class Y>
   basic_ostream<E, T>& operator<< (basic_ostream<E, T>& os, 
-                                   const indirect<Y>& p);
+                                   const polymorphic_value<Y>& p);
 ```
 
 * _Effects:_ `os << *p`.
@@ -596,9 +598,10 @@ template<class E, class T, class Y>
 
 
 ## Acknowledgements
-The authors would like to thank Maciej Bogus, Germán Diago, Bengt Gustafsson,
-David Krauss, Nevin Liber, Nathan Meyers, Roger Orr, Sean Parent, Patrice Roy
-and Ville Voutilainen for useful discussion.
+The authors would like to thank Maciej Bogus, Matthew Calbrese, Germán Diago,
+Louis Dionne, Bengt Gustafsson, David Krauss, Nevin Liber, Nathan Meyers, Roger
+Orr, Sean Parent, Patrice Roy, Tony van Eerd and Ville Voutilainen for useful
+discussion.
 
 
 ## References
@@ -610,6 +613,6 @@ W.E.Brown, 2012
 [S.Parent] "C++ Seasoning", Sean Parent, 2013  
 ```<https://github.com/sean-parent/sean-parent.github.io/wiki/Papers-and-Presentations>```
 
-[Impl] Reference implementation: `indirect`, J.B.Coe  
+[Impl] Reference implementation: `polymorphic_value`, J.B.Coe  
 ```<https://github.com/jbcoe/indirect>```
 

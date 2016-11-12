@@ -106,55 +106,54 @@ public:
 };
 
 template <typename T>
-class indirect;
+class polymorphic_value;
 
 template <typename T>
-struct is_indirect : std::false_type
+struct is_polymorphic_value : std::false_type
 {
 };
 
 template <typename T>
-struct is_indirect<indirect<T>> : std::true_type
+struct is_polymorphic_value<polymorphic_value<T>> : std::true_type
 {
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// `indirect` class definition
+// `polymorphic_value` class definition
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-class indirect
+class polymorphic_value
 {
 
   template <typename U>
-  friend class indirect;
+  friend class polymorphic_value;
   template <typename T_, typename... Ts>
-  friend indirect<T_> make_indirect(Ts&&... ts);
+  friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
 
   T* ptr_ = nullptr;
   std::unique_ptr<control_block<T>> cb_;
 
 public:
-
   //
   // Destructor
   //
 
-  ~indirect() = default;
+  ~polymorphic_value() = default;
 
 
   //
   // Constructors
   //
 
-  indirect()
+  polymorphic_value()
   {
   }
 
   template <typename U, typename C = default_copy<U>,
             typename D = default_delete<U>,
             typename V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
-  explicit indirect(U* u, C copier = C{}, D deleter = D{})
+  explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{})
   {
     if (!u)
     {
@@ -173,7 +172,7 @@ public:
   // Copy-constructors
   //
 
-  indirect(const indirect& p)
+  polymorphic_value(const polymorphic_value& p)
   {
     if (!p)
     {
@@ -187,17 +186,17 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  indirect(const indirect<U>& p)
+  polymorphic_value(const polymorphic_value<U>& p)
   {
-    indirect<U> tmp(p);
+    polymorphic_value<U> tmp(p);
     ptr_ = tmp.ptr_;
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(tmp.cb_));
   }
 
   template <typename U,
             typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
-                                          !is_indirect<U>::value>>
-  indirect(const U& u) : indirect(new U(u))
+                                          !is_polymorphic_value<U>::value>>
+  polymorphic_value(const U& u) : polymorphic_value(new U(u))
   {
   }
 
@@ -206,7 +205,7 @@ public:
   // Move-constructors
   //
 
-  indirect(indirect&& p) noexcept
+  polymorphic_value(polymorphic_value&& p) noexcept
   {
     ptr_ = p.ptr_;
     cb_ = std::move(p.cb_);
@@ -216,7 +215,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  indirect(indirect<U>&& p)
+  polymorphic_value(polymorphic_value<U>&& p)
   {
     ptr_ = p.ptr_;
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
@@ -225,8 +224,8 @@ public:
 
   template <typename U,
             typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
-                                          !is_indirect<U>::value>>
-  indirect(U&& u) : indirect(new U(std::move(u)))
+                                          !is_polymorphic_value<U>::value>>
+  polymorphic_value(U&& u) : polymorphic_value(new U(std::move(u)))
   {
   }
 
@@ -235,7 +234,7 @@ public:
   // Assignment
   //
 
-  indirect& operator=(const indirect& p)
+  polymorphic_value& operator=(const polymorphic_value& p)
   {
     if (&p == this)
     {
@@ -258,19 +257,19 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  indirect& operator=(const indirect<U>& p)
+  polymorphic_value& operator=(const polymorphic_value<U>& p)
   {
-    indirect<U> tmp(p);
+    polymorphic_value<U> tmp(p);
     *this = std::move(tmp);
     return *this;
   }
 
   template <typename U,
             typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
-                                          !is_indirect<U>::value>>
-  indirect& operator=(const U& u)
+                                          !is_polymorphic_value<U>::value>>
+  polymorphic_value& operator=(const U& u)
   {
-    indirect tmp(u);
+    polymorphic_value tmp(u);
     *this = std::move(tmp);
     return *this;
   }
@@ -280,7 +279,7 @@ public:
   // Move-assignment
   //
 
-  indirect& operator=(indirect&& p) noexcept
+  polymorphic_value& operator=(polymorphic_value&& p) noexcept
   {
     if (&p == this)
     {
@@ -296,7 +295,7 @@ public:
   template <typename U,
             typename V = std::enable_if_t<!std::is_same<T, U>::value &&
                                           std::is_convertible<U*, T*>::value>>
-  indirect& operator=(indirect<U>&& p)
+  polymorphic_value& operator=(polymorphic_value<U>&& p)
   {
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
     ptr_ = p.ptr_;
@@ -306,10 +305,10 @@ public:
 
   template <typename U,
             typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
-                                          !is_indirect<U>::value>>
-  indirect& operator=(U&& u)
+                                          !is_polymorphic_value<U>::value>>
+  polymorphic_value& operator=(U&& u)
   {
-    indirect tmp(std::move(u));
+    polymorphic_value tmp(std::move(u));
     *this = std::move(tmp);
     return *this;
   }
@@ -319,7 +318,7 @@ public:
   // Modifiers
   //
 
-  void swap(indirect& p) noexcept
+  void swap(polymorphic_value& p) noexcept
   {
     using std::swap;
     swap(ptr_, p.ptr_);
@@ -366,16 +365,15 @@ public:
   {
     return *ptr_;
   }
-
 };
 
 //
-// indirect creation
+// polymorphic_value creation
 //
 template <typename T, typename... Ts>
-indirect<T> make_indirect(Ts&&... ts)
+polymorphic_value<T> make_polymorphic_value(Ts&&... ts)
 {
-  indirect<T> p;
+  polymorphic_value<T> p;
   p.cb_ = std::make_unique<direct_control_block<T>>(std::forward<Ts>(ts)...);
   p.ptr_ = p.cb_->ptr();
   return std::move(p);
@@ -385,7 +383,7 @@ indirect<T> make_indirect(Ts&&... ts)
 // non-member swap
 //
 template <typename T>
-void swap(indirect<T>& t, indirect<T>& u) noexcept
+void swap(polymorphic_value<T>& t, polymorphic_value<T>& u) noexcept
 {
   t.swap(u);
 }

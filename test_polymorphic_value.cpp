@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
 
 #include <catch.hpp>
-#include "indirect.h"
+#include "polymorphic_value.h"
 #include <new>
 #include <stdexcept>
 
@@ -46,11 +46,11 @@ struct DerivedType : BaseType
 
 size_t DerivedType::object_count = 0;
 
-TEST_CASE("Default constructor","[indirect.constructors]")
+TEST_CASE("Default constructor","[polymorphic_value.constructors]")
 {
-  GIVEN("A default constructed indirect to BaseType")
+  GIVEN("A default constructed polymorphic_value to BaseType")
   {
-    indirect<BaseType> cptr;
+    polymorphic_value<BaseType> cptr;
 
     THEN("operator bool returns false")
     {
@@ -58,9 +58,9 @@ TEST_CASE("Default constructor","[indirect.constructors]")
     }
   }
 
-  GIVEN("A default constructed const indirect to BaseType")
+  GIVEN("A default constructed const polymorphic_value to BaseType")
   {
-    const indirect<BaseType> ccptr;
+    const polymorphic_value<BaseType> ccptr;
 
     THEN("operator bool returns false")
     {
@@ -69,50 +69,50 @@ TEST_CASE("Default constructor","[indirect.constructors]")
   }
 }
 
-TEST_CASE("Value constructor", "[indirect.constructors]")
+TEST_CASE("Value constructor", "[polymorphic_value.constructors]")
 {
   DerivedType d(7);
 
-  indirect<BaseType> i(d);
+  polymorphic_value<BaseType> i(d);
 
   REQUIRE(i->value() == 7);
 }
 
-TEST_CASE("Value move-constructor", "[indirect.constructors]")
+TEST_CASE("Value move-constructor", "[polymorphic_value.constructors]")
 {
   DerivedType d(7);
 
-  indirect<BaseType> i(d);
+  polymorphic_value<BaseType> i(d);
 
   REQUIRE(i->value() == 7);
 }
 
-TEST_CASE("Value assignment", "[indirect.constructors]")
+TEST_CASE("Value assignment", "[polymorphic_value.constructors]")
 {
   DerivedType d(7);
 
-  indirect<BaseType> i;
+  polymorphic_value<BaseType> i;
   i = d;
 
   REQUIRE(i->value() == 7);
 }
 
-TEST_CASE("Value move-assignment", "[indirect.constructors]")
+TEST_CASE("Value move-assignment", "[polymorphic_value.constructors]")
 {
   DerivedType d(7);
 
-  indirect<BaseType> i;
+  polymorphic_value<BaseType> i;
   i = std::move(d);
 
   REQUIRE(i->value() == 7);
 }
 
-TEST_CASE("Pointer constructor","[indirect.constructors]")
+TEST_CASE("Pointer constructor","[polymorphic_value.constructors]")
 {
-  GIVEN("A pointer-constructed indirect")
+  GIVEN("A pointer-constructed polymorphic_value")
   {
     int v = 7;
-    indirect<BaseType> cptr(new DerivedType(v));
+    polymorphic_value<BaseType> cptr(new DerivedType(v));
 
     THEN("Operator-> calls the pointee method")
     {
@@ -124,10 +124,10 @@ TEST_CASE("Pointer constructor","[indirect.constructors]")
       REQUIRE((bool)cptr == true);
     }
   }
-  GIVEN("A pointer-constructed const indirect")
+  GIVEN("A pointer-constructed const polymorphic_value")
   {
     int v = 7;
-    const indirect<BaseType> ccptr(new DerivedType(v));
+    const polymorphic_value<BaseType> ccptr(new DerivedType(v));
 
     THEN("Operator-> calls the pointee method")
     {
@@ -166,11 +166,11 @@ struct invoke_clone_member
   }
 };
 
-TEST_CASE("indirect constructed with copier and deleter",
-          "[indirect.constructor]") {
+TEST_CASE("polymorphic_value constructed with copier and deleter",
+          "[polymorphic_value.constructor]") {
   size_t copy_count = 0;
   size_t deletion_count = 0;
-  auto cp = indirect<DerivedType>(new DerivedType(),
+  auto cp = polymorphic_value<DerivedType>(new DerivedType(),
                                     [&](const DerivedType &d) {
                                       ++copy_count;
                                       return new DerivedType(d);
@@ -186,7 +186,7 @@ TEST_CASE("indirect constructed with copier and deleter",
   REQUIRE(deletion_count == 1);
 }
 
-TEST_CASE("indirect destructor","[indirect.destructor]")
+TEST_CASE("polymorphic_value destructor","[polymorphic_value.destructor]")
 {
   GIVEN("No derived objects")
   {
@@ -196,7 +196,7 @@ TEST_CASE("indirect destructor","[indirect.destructor]")
     {
       // begin and end scope to force destruction
       {
-        indirect<BaseType> tmp(new DerivedType());
+        polymorphic_value<BaseType> tmp(new DerivedType());
         REQUIRE(DerivedType::object_count == 1);
       }
       REQUIRE(DerivedType::object_count == 0);
@@ -204,12 +204,12 @@ TEST_CASE("indirect destructor","[indirect.destructor]")
   }
 }
 
-TEST_CASE("indirect copy constructor","[indirect.constructors]")
+TEST_CASE("polymorphic_value copy constructor","[polymorphic_value.constructors]")
 {
-  GIVEN("A indirect copied from a default-constructed indirect")
+  GIVEN("A polymorphic_value copied from a default-constructed polymorphic_value")
   {
-    indirect<BaseType> original_cptr;
-    indirect<BaseType> cptr(original_cptr);
+    polymorphic_value<BaseType> original_cptr;
+    polymorphic_value<BaseType> cptr(original_cptr);
 
     THEN("operator bool returns false")
     {
@@ -217,13 +217,13 @@ TEST_CASE("indirect copy constructor","[indirect.constructors]")
     }
   }
 
-  GIVEN("A indirect copied from a pointer-constructed indirect")
+  GIVEN("A polymorphic_value copied from a pointer-constructed polymorphic_value")
   {
     REQUIRE(DerivedType::object_count == 0);
 
     int v = 7;
-    indirect<BaseType> original_cptr(new DerivedType(v));
-    indirect<BaseType> cptr(original_cptr);
+    polymorphic_value<BaseType> original_cptr(new DerivedType(v));
+    polymorphic_value<BaseType> cptr(original_cptr);
 
     THEN("values are distinct")
     {
@@ -259,35 +259,35 @@ TEST_CASE("indirect copy constructor","[indirect.constructors]")
   }
 }
 
-TEST_CASE("indirect move constructor","[indirect.constructors]")
+TEST_CASE("polymorphic_value move constructor","[polymorphic_value.constructors]")
 {
-  GIVEN("A indirect move-constructed from a default-constructed indirect")
+  GIVEN("A polymorphic_value move-constructed from a default-constructed polymorphic_value")
   {
-    indirect<BaseType> original_cptr;
-    indirect<BaseType> cptr(std::move(original_cptr));
+    polymorphic_value<BaseType> original_cptr;
+    polymorphic_value<BaseType> cptr(std::move(original_cptr));
 
-    THEN("The original indirect is empty")
+    THEN("The original polymorphic_value is empty")
     {
       REQUIRE(!(bool)original_cptr);
     }
 
-    THEN("The move-constructed indirect is empty")
+    THEN("The move-constructed polymorphic_value is empty")
     {
       REQUIRE(!(bool)cptr);
     }
   }
 
-  GIVEN("A indirect move-constructed from a default-constructed indirect")
+  GIVEN("A polymorphic_value move-constructed from a default-constructed polymorphic_value")
   {
     int v = 7;
-    indirect<BaseType> original_cptr(new DerivedType(v));
+    polymorphic_value<BaseType> original_cptr(new DerivedType(v));
     auto original_pointer = &original_cptr.value();
     CHECK(DerivedType::object_count == 1);
 
-    indirect<BaseType> cptr(std::move(original_cptr));
+    polymorphic_value<BaseType> cptr(std::move(original_cptr));
     CHECK(DerivedType::object_count == 1);
 
-    THEN("The original indirect is empty")
+    THEN("The original polymorphic_value is empty")
     {
       REQUIRE(!(bool)original_cptr);
     }
@@ -306,12 +306,12 @@ TEST_CASE("indirect move constructor","[indirect.constructors]")
   }
 }
 
-TEST_CASE("indirect assignment","[indirect.assignment]")
+TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
 {
-  GIVEN("A default-constructed indirect assigned-to a default-constructed indirect")
+  GIVEN("A default-constructed polymorphic_value assigned-to a default-constructed polymorphic_value")
   {
-    indirect<BaseType> cptr1;
-    const indirect<BaseType> cptr2;
+    polymorphic_value<BaseType> cptr1;
+    const polymorphic_value<BaseType> cptr2;
     const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 0);
@@ -331,12 +331,12 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
     }
   }
 
-  GIVEN("A default-constructed indirect assigned to a pointer-constructed indirect")
+  GIVEN("A default-constructed polymorphic_value assigned to a pointer-constructed polymorphic_value")
   {
     int v1 = 7;
 
-    indirect<BaseType> cptr1(new DerivedType(v1));
-    const indirect<BaseType> cptr2;
+    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
+    const polymorphic_value<BaseType> cptr2;
     const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -356,12 +356,12 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed indirect assigned to a default-constructed indirect")
+  GIVEN("A pointer-constructed polymorphic_value assigned to a default-constructed polymorphic_value")
   {
     int v1 = 7;
 
-    indirect<BaseType> cptr1;
-    const indirect<BaseType> cptr2(new DerivedType(v1));
+    polymorphic_value<BaseType> cptr1;
+    const polymorphic_value<BaseType> cptr2(new DerivedType(v1));
     const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -392,13 +392,13 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
 
   }
 
-  GIVEN("A pointer-constructed indirect assigned to a pointer-constructed indirect")
+  GIVEN("A pointer-constructed polymorphic_value assigned to a pointer-constructed polymorphic_value")
   {
     int v1 = 7;
     int v2 = 87;
 
-    indirect<BaseType> cptr1(new DerivedType(v1));
-    const indirect<BaseType> cptr2(new DerivedType(v2));
+    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
+    const polymorphic_value<BaseType> cptr2(new DerivedType(v2));
     const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 2);
@@ -428,11 +428,11 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed indirect assigned to itself")
+  GIVEN("A pointer-constructed polymorphic_value assigned to itself")
   {
     int v1 = 7;
 
-    indirect<BaseType> cptr1(new DerivedType(v1));
+    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
     const auto p = &cptr1.value();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -448,12 +448,12 @@ TEST_CASE("indirect assignment","[indirect.assignment]")
   }
 }
 
-TEST_CASE("indirect move-assignment","[indirect.assignment]")
+TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
 {
-  GIVEN("A default-constructed indirect move-assigned-to a default-constructed indirect")
+  GIVEN("A default-constructed polymorphic_value move-assigned-to a default-constructed polymorphic_value")
   {
-    indirect<BaseType> cptr1;
-    indirect<BaseType> cptr2;
+    polymorphic_value<BaseType> cptr1;
+    polymorphic_value<BaseType> cptr2;
     const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 0);
@@ -473,12 +473,12 @@ TEST_CASE("indirect move-assignment","[indirect.assignment]")
     }
   }
 
-  GIVEN("A default-constructed indirect move-assigned to a pointer-constructed indirect")
+  GIVEN("A default-constructed polymorphic_value move-assigned to a pointer-constructed polymorphic_value")
   {
     int v1 = 7;
 
-    indirect<BaseType> cptr1(new DerivedType(v1));
-    indirect<BaseType> cptr2;
+    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
+    polymorphic_value<BaseType> cptr2;
     const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -498,12 +498,12 @@ TEST_CASE("indirect move-assignment","[indirect.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed indirect move-assigned to a default-constructed indirect")
+  GIVEN("A pointer-constructed polymorphic_value move-assigned to a default-constructed polymorphic_value")
   {
     int v1 = 7;
 
-    indirect<BaseType> cptr1;
-    indirect<BaseType> cptr2(new DerivedType(v1));
+    polymorphic_value<BaseType> cptr1;
+    polymorphic_value<BaseType> cptr2(new DerivedType(v1));
     const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -523,13 +523,13 @@ TEST_CASE("indirect move-assignment","[indirect.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed indirect move-assigned to a pointer-constructed indirect")
+  GIVEN("A pointer-constructed polymorphic_value move-assigned to a pointer-constructed polymorphic_value")
   {
     int v1 = 7;
     int v2 = 87;
 
-    indirect<BaseType> cptr1(new DerivedType(v1));
-    indirect<BaseType> cptr2(new DerivedType(v2));
+    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
+    polymorphic_value<BaseType> cptr2(new DerivedType(v2));
     const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 2);
@@ -550,16 +550,16 @@ TEST_CASE("indirect move-assignment","[indirect.assignment]")
   }
 }
 
-TEST_CASE("Derived types", "[indirect.derived_types]")
+TEST_CASE("Derived types", "[polymorphic_value.derived_types]")
 {
-  GIVEN("A indirect<BaseType> constructed from make_indirect<DerivedType>")
+  GIVEN("A polymorphic_value<BaseType> constructed from make_polymorphic_value<DerivedType>")
   {
     int v = 7;
-    auto cptr = make_indirect<DerivedType>(v);
+    auto cptr = make_polymorphic_value<DerivedType>(v);
 
-    WHEN("A indirect<BaseType> is copy-constructed")
+    WHEN("A polymorphic_value<BaseType> is copy-constructed")
     {
-      indirect<BaseType> bptr(cptr);
+      polymorphic_value<BaseType> bptr(cptr);
 
       THEN("Operator-> calls the pointee method")
       {
@@ -572,9 +572,9 @@ TEST_CASE("Derived types", "[indirect.derived_types]")
       }
     }
 
-    WHEN("A indirect<BaseType> is assigned")
+    WHEN("A polymorphic_value<BaseType> is assigned")
     {
-      indirect<BaseType> bptr;
+      polymorphic_value<BaseType> bptr;
       bptr = cptr;
 
       THEN("Operator-> calls the pointee method")
@@ -588,9 +588,9 @@ TEST_CASE("Derived types", "[indirect.derived_types]")
       }
     }
 
-    WHEN("A indirect<BaseType> is move-constructed")
+    WHEN("A polymorphic_value<BaseType> is move-constructed")
     {
-      indirect<BaseType> bptr(std::move(cptr));
+      polymorphic_value<BaseType> bptr(std::move(cptr));
 
       THEN("Operator-> calls the pointee method")
       {
@@ -603,9 +603,9 @@ TEST_CASE("Derived types", "[indirect.derived_types]")
       }
     }
 
-    WHEN("A indirect<BaseType> is move-assigned")
+    WHEN("A polymorphic_value<BaseType> is move-assigned")
     {
-      indirect<BaseType> bptr;
+      polymorphic_value<BaseType> bptr;
       bptr = std::move(cptr);
 
       THEN("Operator-> calls the pointee method")
@@ -621,12 +621,12 @@ TEST_CASE("Derived types", "[indirect.derived_types]")
   }
 }
 
-TEST_CASE("make_indirect return type can be converted to base-type", "[indirect.make_indirect]")
+TEST_CASE("make_polymorphic_value return type can be converted to base-type", "[polymorphic_value.make_polymorphic_value]")
 {
-  GIVEN("A indirect<BaseType> constructed from make_indirect<DerivedType>")
+  GIVEN("A polymorphic_value<BaseType> constructed from make_polymorphic_value<DerivedType>")
   {
     int v = 7;
-    indirect<BaseType> cptr = make_indirect<DerivedType>(v);
+    polymorphic_value<BaseType> cptr = make_polymorphic_value<DerivedType>(v);
 
     THEN("Operator-> calls the pointee method")
     {
@@ -645,23 +645,23 @@ struct IntermediateBaseA : virtual Base { int a_ = 3; };
 struct IntermediateBaseB : virtual Base { int b_ = 101; };
 struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int value_ = 0; MultiplyDerived(int value) : value_(value) {}; };
 
-TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[indirect.constructors]")
+TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[polymorphic_value.constructors]")
 {
-  GIVEN("A value-constructed multiply-derived-class indirect")
+  GIVEN("A value-constructed multiply-derived-class polymorphic_value")
   {
     int v = 7;
-    indirect<MultiplyDerived> cptr(new MultiplyDerived(v));
+    polymorphic_value<MultiplyDerived> cptr(new MultiplyDerived(v));
 
-    THEN("When copied to a indirect to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a polymorphic_value to an intermediate base type, data is accessible as expected")
     {
-      indirect<IntermediateBaseA> cptr_IA = cptr;
+      polymorphic_value<IntermediateBaseA> cptr_IA = cptr;
       REQUIRE(cptr_IA->a_ == 3);
       REQUIRE(cptr_IA->v_ == 42);
     }
 
-    THEN("When copied to a indirect to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a polymorphic_value to an intermediate base type, data is accessible as expected")
     {
-      indirect<IntermediateBaseB> cptr_IB = cptr;
+      polymorphic_value<IntermediateBaseB> cptr_IB = cptr;
       REQUIRE(cptr_IB->b_ == 101);
       REQUIRE(cptr_IB->v_ == 42);
     }
@@ -709,25 +709,25 @@ struct ThrowsOnCopy : Tracked
   ThrowsOnCopy& operator=(const ThrowsOnCopy& rhs) = default;
 };
 
-TEST_CASE("Exception safety: throw in copy constructor", "[indirect.exception_safety.copy]")
+TEST_CASE("Exception safety: throw in copy constructor", "[polymorphic_value.exception_safety.copy]")
 {
-  GIVEN("A value-constructed indirect to a ThrowsOnCopy")
+  GIVEN("A value-constructed polymorphic_value to a ThrowsOnCopy")
   {
     const int v = 7;
-    indirect<ThrowsOnCopy> cptr(new ThrowsOnCopy(v));
+    polymorphic_value<ThrowsOnCopy> cptr(new ThrowsOnCopy(v));
 
-    THEN("When copying to another indirect, after an exception, the source remains valid")
+    THEN("When copying to another polymorphic_value, after an exception, the source remains valid")
     {
       Tracked::reset_counts();
-      REQUIRE_THROWS_AS(indirect<ThrowsOnCopy> another = cptr, std::runtime_error);
+      REQUIRE_THROWS_AS(polymorphic_value<ThrowsOnCopy> another = cptr, std::runtime_error);
       REQUIRE(cptr->value_ == v);
       REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
     }
 
-    THEN("When copying to another indirect, after an exception, the destination is not changed")
+    THEN("When copying to another polymorphic_value, after an exception, the destination is not changed")
     {
       const int v2 = 5;
-      indirect<ThrowsOnCopy> another(new ThrowsOnCopy(v2));
+      polymorphic_value<ThrowsOnCopy> another(new ThrowsOnCopy(v2));
       Tracked::reset_counts();
       REQUIRE_THROWS_AS(another = cptr, std::runtime_error);
       REQUIRE(another->value_ == v2);
@@ -751,16 +751,16 @@ struct TrackedValue : Tracked
   explicit TrackedValue(const int v) : value_(v) {}
 };
 
-TEST_CASE("Exception safety: throw in copier", "[indirect.exception_safety.copier]")
+TEST_CASE("Exception safety: throw in copier", "[polymorphic_value.exception_safety.copier]")
 {
-  GIVEN("A value-constructed indirect")
+  GIVEN("A value-constructed polymorphic_value")
   {
     const int v = 7;
-    indirect<TrackedValue> cptr(new TrackedValue(v), throwing_copier<TrackedValue>{});
+    polymorphic_value<TrackedValue> cptr(new TrackedValue(v), throwing_copier<TrackedValue>{});
 
     THEN("When an exception occurs in the copier, the source is unchanged")
     {
-      indirect<TrackedValue> another;
+      polymorphic_value<TrackedValue> another;
       Tracked::reset_counts();
       REQUIRE_THROWS_AS(another = cptr, std::bad_alloc);
       REQUIRE(cptr->value_ == v);
@@ -770,7 +770,7 @@ TEST_CASE("Exception safety: throw in copier", "[indirect.exception_safety.copie
     THEN("When an exception occurs in the copier, the destination is unchanged")
     {
       const int v2 = 5;
-      indirect<TrackedValue> another(new TrackedValue(v2));
+      polymorphic_value<TrackedValue> another(new TrackedValue(v2));
       Tracked::reset_counts();
       REQUIRE_THROWS_AS(another = cptr, std::bad_alloc);
       REQUIRE(another->value_ == v2);

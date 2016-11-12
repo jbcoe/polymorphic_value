@@ -1,15 +1,15 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(indirect)
+project(polymorphic_value)
 
 set(CMAKE_CXX_FLAGS "-std=c++14")
 
 include_directories(externals/catch/include)
-add_executable(TestIndirect TestIndirect.cpp)
+add_executable(test_polymorphic_value test_polymorphic_value.cpp)
 
 enable_testing()
 add_test(
-  NAME TestIndirect
-  COMMAND TestIndirect
+  NAME test_polymorphic_value
+  COMMAND test_polymorphic_value
   WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
