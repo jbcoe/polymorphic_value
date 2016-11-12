@@ -366,6 +366,7 @@ template <class T> class polymorphic_value {
   polymorphic_value &operator=(const polymorphic_value& p);
   template <class U> polymorphic_value &operator=(const polymorphic_value<U>& p); // see below
   template <class U> polymorphic_value &operator=(const U& u); // see below
+  
   polymorphic_value &operator=(polymorphic_value &&p) noexcept;
   template <class U> polymorphic_value &operator=(polymorphic_value<U>&& p); // see below
   template <class U> polymorphic_value &operator=(U&& u); // see below
