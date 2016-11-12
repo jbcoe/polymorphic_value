@@ -123,14 +123,6 @@ struct is_indirect<indirect<T>> : std::true_type
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-struct in_place_tag
-{
-};
-
-template <typename T>
-in_place_tag<T> in_place;
-
-template <typename T>
 class indirect
 {
 
@@ -174,12 +166,6 @@ public:
     cb_ = std::make_unique<pointer_control_block<T, U, C, D>>(
         u, std::move(copier), std::move(deleter));
     ptr_ = u;
-  }
-
-  template <typename U, typename... Ts>
-  indirect(in_place_tag<U>, Ts&&... ts)
-      : indirect(std::make_unique<U>(std::forward<Ts>(ts)...).release())
-  {
   }
 
 
