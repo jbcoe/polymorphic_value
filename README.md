@@ -1,27 +1,27 @@
-# indirect : a free-store-allocated value-type for C++
+# polymorphic_value : a free-store-allocated value-type for C++
 
-The class template `indirect` is proposed for addition to the C++ Standard Library.
+The class template `polymorphic_value` is proposed for addition to the C++ Standard Library.
 
-The class template, `indirect`, confers value-like semantics on a free-store
-allocated object.  An `indirect<T>` may hold a an object of a class publicly
-derived from T, and copying the indirect<T> will copy the object of the derived
+The class template, `polymorphic_value`, confers value-like semantics on a free-store
+allocated object.  An `polymorphic_value<T>` may hold a an object of a class publicly
+derived from T, and copying the polymorphic_value<T> will copy the object of the derived
 type.
 
-Using `indirect` a copyable composite object with polymorphic components can be
+Using `polymorphic_value` a copyable composite object with polymorphic components can be
 written as:
 
 ~~~ {.cpp}
     // Copyable composite with mutable polymorphic components
     class CompositeObject {
-      std::indirect<IComponent1> c1_;
-      std::indirect<IComponent2> c2_;
+      std::polymorphic_value<IComponent1> c1_;
+      std::polymorphic_value<IComponent2> c2_;
 
      public:
-      CompositeObject(std::indirect<IComponent1> c1,
-                        std::indirect<IComponent2> c2) :
+      CompositeObject(std::polymorphic_value<IComponent1> c1,
+                        std::polymorphic_value<IComponent2> c2) :
                         c1_(std::move(c1)), c2_(std::move(c2)) {}
 
-      // `indirect` propagates constness so const methods call 
+      // `polymorphic_value` propagates constness so const methods call 
       // corresponding const methods of components
       void foo() const { c1_->foo(); }
       void bar() const { c2_->bar(); }
