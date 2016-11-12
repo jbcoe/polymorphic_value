@@ -18,6 +18,8 @@ Changes in P0201R2
 
 * Change name to `polymorphic_value`.
 
+* Remove `operator <<`.
+
 * Add construction and assignment from values.
 
 * Use `std::default_delete`.
@@ -387,11 +389,6 @@ template <class T, class ...Ts> polymorphic_value<T>
 template<class T>
   void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
 
-// polymorphic_value I/O
-template<class E, class T, class Y>
-  basic_ostream<E, T>& operator<< (basic_ostream<E, T>& os,
-                                   const polymorphic_value<Y>& p);
-
 } // end namespace std
 ```
 
@@ -580,21 +577,6 @@ void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
 ```
 
 * _Effects:_ Equivalent to `p.swap(u)`.
-
-
-
-### X.Y.10 Class template `polymorphic_value` I/O [polymorphic_value.io]
-```
-template<class E, class T, class Y>
-  basic_ostream<E, T>& operator<< (basic_ostream<E, T>& os, 
-                                   const polymorphic_value<Y>& p);
-```
-
-* _Effects:_ `os << *p`.
-
-* _Requires:_ `bool(*this)`.
-
-* _Returns:_ `os`.
 
 
 ## Acknowledgements
