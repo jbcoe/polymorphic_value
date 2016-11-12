@@ -9,7 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-struct default_copier
+struct default_copy
 {
   T* operator()(const T& t) const
   {
@@ -18,7 +18,7 @@ struct default_copier
 };
 
 template <typename T>
-struct default_deleter
+struct default_delete
 {
   void operator()(const T* t) const
   {
@@ -34,8 +34,8 @@ struct control_block
   virtual T* ptr() = 0;
 };
 
-template <typename T, typename U, typename C = default_copier<U>,
-          typename D = default_deleter<U>>
+template <typename T, typename U, typename C = default_copy<U>,
+          typename D = default_delete<U>>
 class pointer_control_block : public control_block<T>
 {
   std::unique_ptr<U, D> p_;
@@ -151,8 +151,8 @@ public:
   {
   }
 
-  template <typename U, typename C = default_copier<U>,
-            typename D = default_deleter<U>,
+  template <typename U, typename C = default_copy<U>,
+            typename D = default_delete<U>,
             typename V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
   explicit indirect(U* u, C copier = C{}, D deleter = D{})
   {
