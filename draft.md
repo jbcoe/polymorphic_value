@@ -206,17 +206,17 @@ The requirements of deep-copying can be illustrated by some simple test code:
 ```
 // GIVEN base and derived classes.
 class Base { virtual void foo() const = 0; };
-class Derived : Base { void foo() const override {} };
+class Derived : public Base { void foo() const override {} };
 
 // WHEN an polymorphic_value to base is formed from a derived pointer
-polymorphic_value<Base> dptr(new Derived());
+polymorphic_value<Base> poly(new Derived());
 // AND the polymorphic_value to base is copied.
-auto dptr_copy = dptr;
+auto poly_copy = poly;
 
 // THEN the copy points to a distinct object
-assert(&*dptr != &*dptr_copy);
+assert(&*poly != &*poly_copy);
 // AND the copy points to a derived type.
-assert(dynamic_cast<Derived*>(*&dptr_copy);
+assert(dynamic_cast<Derived*>(*&poly_copy);
 ```
 
 Note that while deep-destruction of a derived class object from a base class
@@ -227,10 +227,46 @@ deep-destruction without needing virtual destructors. deep-destruction and
 deep-copying can be implemented using type-erasure [Impl].
 
 ## Pointer constructor
-TODO
+`polymorphic_value` can be constructed from a pointer and optionally a copier
+and/or deleter. The `polymorphic_value` constructed in this manner takes
+ownership of the pointer. This constructor is potentially dangerous as a
+mismatch in the dynamic and static type of the pointer will result in
+incorrectly synthesized copiers and deleters potentiall resulting in slicing
+when copying and incomplete deletion during destruction. 
+
+```
+class Base { /* methods and members */ };
+class Derived : public Base { /* methods and members */ };
+
+Derived d = new Derived();
+Base* p = d; // static type and dynamic type differ
+polymorphic_value<Base> poly(p);
+
+// This copy will have been made using Base's copy constructor.
+polymorphic_value<Base> poly_copy = poly;
+
+// Destruction of poly and poly_copy uses Base's destructor.
+```
+
+While this is potentially error prone, we have elected to trust users with the
+tools they are given. `shared_ptr` and `unique_ptr` have similar constructors
+and issues.  There are more constructors for `polymorphic_value` of a less
+expert-friendly nature that do not present such dangers including a factory
+method `make_polymorphic_value`. 
+
+Static analysis tools can be written to find cases where static and dynamic
+types for pointers passed in to `polymorphic_value` constructors are not
+provably equivalent.
 
 ## Empty state
-TODO
+`polymorphic_value` presents an empty state as it is desirable for it to be
+cheaply constructed and then later assigned.  In addition, it may not be
+possible to construct the `T` of a `polymorphic_value<T>` if it is an abstract
+class (a common intended use pattern).  While permitting an empty state will
+necessitate occasional checks for `null`, `polymorphic_value` is intended to
+replace uses of pointers or smart pointers where such checks are also
+necessary. The benefits of default constructability (use in vectors and maps)
+outweight the costs of a possible empty state.
 
 ## Lack of hashing and comparisons
 For a given user-defined type, `T`, there are multiple strategies to make
