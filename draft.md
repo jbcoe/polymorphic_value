@@ -596,7 +596,7 @@ void swap(polymorphic_value<T>& p) noexcept;
 
 * _Returns:_ `false` if the `polymorphic_value` is empty, otherwise `true`.
 
-#### X.Y.8 Class template `polymorphic_value` creation [polymorphic_value.creation]
+### X.Y.8 Class template `polymorphic_value` creation [polymorphic_value.creation]
 
 ```
 template <class T, class ...Ts> polymorphic_value<T>
