@@ -633,5 +633,5 @@ W.E.Brown, 2012
 ```<https://github.com/sean-parent/sean-parent.github.io/wiki/Papers-and-Presentations>```
 
 [Impl] Reference implementation: `polymorphic_value`, J.B.Coe  
-```<https://github.com/jbcoe/indirect>```
+```<https://github.com/jbcoe/polymorphic_value>```
 
