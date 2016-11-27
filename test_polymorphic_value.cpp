@@ -1,7 +1,8 @@
 #define CATCH_CONFIG_MAIN
 
-#include <catch.hpp>
 #include "polymorphic_value.h"
+
+#include <catch.hpp>
 #include <new>
 #include <stdexcept>
 
