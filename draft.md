@@ -1,4 +1,4 @@
-# A polymorphic_value value-type for C++
+# A polymorphic value-type for C++
 
 ISO/IEC JTC1 SC22 WG21 Programming Language C++
 
