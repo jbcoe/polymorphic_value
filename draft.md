@@ -352,27 +352,24 @@ template <class T> struct default_copy {
 T* operator()(const T& t) const;
 ```
 
-* _Returns:_  `new T(t)`.
+* _Returns_:  `new T(t)`.
           
 
 ## X.Y Class template `polymorphic_value` [polymorphic_value]
 
 ### X.Y.1 Class template `polymorphic_value` general [polymorphic_value.general]
 
-An _polymorphic_value_ is an object that owns another object and manages that other
-object through a pointer.  
+A _polymorphic_value_ is an object that owns another object and manages that other
+object through a pointer. To manage the object a `polymorphic_value` has a
+copier and deleter that are used to copy and delete the owned object when
+required.
 
-When a `polymorphic_value` is constructed from a pointer to an object of type `U`, a
-copier `c`, and a deleter `d`, then a move-constructed copy of the copier and
-deleter is stored in the `polymorphic_value` along with the pointer `u`.
+A `polymorphic_value` object is empty if it does not own a pointer.  
 
-When copies of a `polymorphic_value` are required due to copy construction or copy
-assignment, copies are made using `c(*u)`.
-
-an `polymorphic_value` object is empty if it does not own a pointer.  
+Copying from an empty `polymorphic_value` produces another empty
+`polymorphic_value`.
 
 The template parameter `T` of `polymorphic_value` may be an incomplete type.
-
 
 ### X.Y.2 Class template `polymorphic_value` synopsis [polymorphic_value.synopsis]
 
@@ -436,9 +433,9 @@ template<class T>
 polymorphic_value() noexcept;
 ```
 
-* _Effects:_  Constructs an empty `polymorphic_value`.
+* _Effects_:  Constructs an empty `polymorphic_value`.
 
-* _Postconditions:_  `bool(*this) == false`
+* _Postconditions_:  `bool(*this) == false`
 
 
 ```
@@ -446,25 +443,26 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
   explicit polymorphic_value(U* p, C c=C{}, D d=D{});
 ```
 
-* _Effects_: Creates a `polymorphic_value` object that _owns_ the pointer `p` and has
-  a move-constructed copy of both `c` and `d`.
+* _Effects_: Creates a `polymorphic_value` object that _owns_ the pointer `p`.
+The copier and deleter of the `polymorphic_value` constructed shall be moved
+from `c` and `d`.
 
-* _Preconditions:_  `p` is non-null. `c` and `d` are copy constructible. The
-  expression `c(*p)` shall return an object of type `U*`. The expression `d(p)`
-  shall be well formed, shall have well defined behavior, and shall not throw
-  exceptions.  Either `U` and `T` must be the same type, or the dynamic and
-  static type of `U` must be the same.
+* _Preconditions_:  `c` and `d` are copy constructible. If `p` is non-null then
+  the expression `c(*p)` shall return an object of type `U*`. The expression
+  `d(p)` shall be well formed, shall have well defined behavior, and shall not
+  throw exceptions.  Either `U` and `T` must be the same type, or the dynamic
+  and static type of `U` must be the same.
 
-* _Postconditions:_  `operator->() == p`
-
-* _Throws:_ `bad_alloc`, or an implementation-defined exception when a resource
+* _Throws_: `bad_alloc`, or an implementation-defined exception when a resource
   other than memory could not be obtained.
 
-* _Exception safety:_ If an exception is thrown, `d(p)` is called.
+* _Postconditions_:  `bool(*this) == bool(p)`.
 
-* _Requires:_ `U` is copy-constructible. 
+* _Exception safety_: If an exception is thrown, `d(p)` is called.
 
-* _Remarks:_ This constructor shall not participate in overload
+* _Requires_: `U` is copy-constructible. 
+
+* _Remarks_: This constructor shall not participate in overload
   resolution unless `U` is derived from `T`.
 
 
@@ -473,13 +471,15 @@ polymorphic_value(const polymorphic_value &p);
 template <class U> polymorphic_value(const polymorphic_value<U> &p);
 ```
 
-* _Remarks:_ The second constructor shall not participate in overload
+* _Remarks_: The second constructor shall not participate in overload
   resolution unless `U` is derived from `T`.
 
-* _Effects:_ Creates a `polymorphic_value` object that owns a copy of the object
-  managed by `p`.
+* _Effects_: Creates a `polymorphic_value` object that owns a copy of the object
+  managed by `p`. The copy shall be created by the copier in `p`.
+The copier and deleter of the `polymorphic_value` constructed shall be copied
+from those in `p`.
 
-* _Postconditions:_  `bool(*this) == bool(p)`.
+* _Postconditions_:  `bool(*this) == bool(p)`.
 
 ```
 template <class U> polymorphic_value(const U& u);
@@ -488,7 +488,9 @@ template <class U> polymorphic_value(const U& u);
 * _Remarks_: This constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
 
-* _Effects:_ Copy-constructs a `polymorphic_value` instance from `u`.
+* _Effects_: Copy-constructs a `polymorphic_value` instance from `u`.
+The copier and deleter of the `polymorphic_value` constructed shall be
+`default_copy` and `default_delete`.
 
 
 ```
@@ -499,9 +501,11 @@ template <class U> polymorphic_value(polymorphic_value<U> &&p);
 * _Remarks_: The second constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
 
-* _Effects:_ Move-constructs a `polymorphic_value` instance from `p`.
+* _Effects_: Move-constructs a `polymorphic_value` instance from `p`.
+The copier and deleter of the `polymorphic_value` constructed shall be the same
+as those in `p`.
 
-* _Postconditions:_  `*this` shall contain the old value of `p`. `p` shall be
+* _Postconditions_:  `*this` shall contain the old value of `p`. `p` shall be
   empty.
 
 ```
@@ -511,7 +515,7 @@ template <class U> polymorphic_value(U&& u);
 * _Remarks_: This constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
 
-* _Effects:_ Move-constructs a `polymorphic_value` instance from `u`.
+* _Effects_: Move-constructs a `polymorphic_value` instance from `u`.
 
 ### X.Y.4 Class template `polymorphic_value` destructor [polymorphic_value.dtor]
 
@@ -519,7 +523,7 @@ template <class U> polymorphic_value(U&& u);
 ~polymorphic_value();
 ```
 
-* _Effects:_ `d(u)` is called.
+* _Effects_: `d(u)` is called.
 
 ### X.Y.5 Class template `polymorphic_value` assignment [polymorphic_value.assignment]
 
@@ -531,11 +535,13 @@ template <class U> polymorphic_value &operator=(const polymorphic_value<U>& p);
 * _Remarks_: The second function shall not participate in overload resolution
   unless `U*` is convertible to `T*`.
 
-* _Effects:_ `*this` shall own a copy of the resource managed by `p`.
+* _Effects_: `*this` shall own a copy of the resource managed by `p`.
+The copy shall be created by the copier in `p`.  The copier and deleter of
+`*this` shall be copied from those in `p`.
 
-* _Returns:_ `*this`.
+* _Returns_: `*this`.
 
-* _Postconditions:_  `bool(*this) == bool(p)`.
+* _Postconditions_:  `bool(*this) == bool(p)`.
 
 
 ```
@@ -543,14 +549,15 @@ polymorphic_value &operator=(polymorphic_value&& p) noexcept;
 template <class U> polymorphic_value &operator=(polymorphic_value<U> &&p);
 ```
 
-* _Remarks:_ The second constructor shall not participate in overload
+* _Remarks_: The second constructor shall not participate in overload
   resolution unless `U` is derived from `T`.
 
 * _Effects_: Ownership of the resource managed by `p` shall be transferred to `this`.
+The copier and deleter of `*this` shall be the same as those in `p`.
 
-* _Returns:_ `*this`.
+* _Returns_: `*this`.
 
-* _Postconditions:_  `*this` shall contain the old value of `p`. `p` shall be empty.
+* _Postconditions_:  `*this` shall contain the old value of `p`. `p` shall be empty.
 
 
 ### X.Y.6 Class template `polymorphic_value` modifiers [polymorphic_value.modifiers]
@@ -559,42 +566,42 @@ template <class U> polymorphic_value &operator=(polymorphic_value<U> &&p);
 void swap(polymorphic_value<T>& p) noexcept;
 ```
 
-* _Effects:_ Exchanges the contents of `p` and `*this`.
+* _Effects_: Exchanges the contents of `p` and `*this`.
 
 
 ### X.Y.7 Class template `polymorphic_value` observers [polymorphic_value.observers]
 
 ```const T& operator*() const;```
 
-* _Requires:_ `bool(*this)`.
+* _Requires_: `bool(*this)`.
 
-* _Returns:_ A reference to the owned object.
+* _Returns_: A reference to the owned object.
 
 
 ```const T* operator->() const;```
 
-* _Requires:_ `bool(*this)`.
+* _Requires_: `bool(*this)`.
 
-* _Returns:_ A pointer to the owned object.
+* _Returns_: A pointer to the owned object.
 
 
 ```T& operator*();```
 
-* _Requires:_ `bool(*this)`.
+* _Requires_: `bool(*this)`.
 
-* _Returns:_ A reference to the owned object.
+* _Returns_: A reference to the owned object.
 
 
 ```T* operator->();```
 
-* _Requires:_ `bool(*this)`.
+* _Requires_: `bool(*this)`.
 
-* _Returns:_ A pointer to the owned object.
+* _Returns_: A pointer to the owned object.
 
 
 ```explicit operator bool() const noexcept;```
 
-* _Returns:_ `false` if the `polymorphic_value` is empty, otherwise `true`.
+* _Returns_: `false` if the `polymorphic_value` is empty, otherwise `true`.
 
 ### X.Y.8 Class template `polymorphic_value` creation [polymorphic_value.creation]
 
@@ -603,7 +610,7 @@ template <class T, class ...Ts> polymorphic_value<T>
   make_polymorphic_value(Ts&& ...ts);
 ```
 
-* _Returns:_ `polymorphic_value<T>(new T(std::forward<Ts>(ts)...)`;
+* _Returns_: `polymorphic_value<T>(new T(std::forward<Ts>(ts)...)`;
 
 
 ### X.Y.9 Class template `polymorphic_value` specialized algorithms [polymorphic_value.spec]
@@ -613,7 +620,7 @@ template <typename T>
 void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
 ```
 
-* _Effects:_ Equivalent to `p.swap(u)`.
+* _Effects_: Equivalent to `p.swap(u)`.
 
 
 ## Acknowledgements
