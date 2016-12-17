@@ -1,4 +1,4 @@
-# polymorphic_value : a free-store-allocated value-type for C++
+# A polymorphic value-type for C++
 
 The class template `polymorphic_value` is proposed for addition to the C++ Standard Library.
 
@@ -50,3 +50,6 @@ The build uses cmake driven by a simple Python script. To build and run tests, r
 ## Continuous integration
 **Build status (on Travis-CI):** [![Build Status](https://travis-ci.org/jbcoe/inline_visitor.svg?branch=master)](https://travis-ci.org/jbcoe/indirect)
 
+## ISO Standardisation
+`polymorphic_value` has been proposed for standardisation for C++20 in P0201: <http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0201r1.pdf>.
+The draft in this repository is more up to date than the paper linked above, in particular the class has been renamed from `indirect` to `polymorphic_value`.
