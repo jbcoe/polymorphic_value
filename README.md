@@ -11,24 +11,24 @@ Using `polymorphic_value` a copyable composite object with polymorphic component
 written as:
 
 ~~~ {.cpp}
-    // Copyable composite with mutable polymorphic components
-    class CompositeObject {
-      std::polymorphic_value<IComponent1> c1_;
-      std::polymorphic_value<IComponent2> c2_;
+// Copyable composite with mutable polymorphic components
+class CompositeObject {
+  std::polymorphic_value<IComponent1> c1_;
+  std::polymorphic_value<IComponent2> c2_;
 
-     public:
-      CompositeObject(std::polymorphic_value<IComponent1> c1,
-                        std::polymorphic_value<IComponent2> c2) :
-                        c1_(std::move(c1)), c2_(std::move(c2)) {}
+ public:
+  CompositeObject(std::polymorphic_value<IComponent1> c1,
+                  std::polymorphic_value<IComponent2> c2) :
+                    c1_(std::move(c1)), c2_(std::move(c2)) {}
 
-      // `polymorphic_value` propagates constness so const methods call 
-      // corresponding const methods of components
-      void foo() const { c1_->foo(); }
-      void bar() const { c2_->bar(); }
-      
-      void foo() { c1_->foo(); }
-      void bar() { c2_->bar(); }
-    };
+  // `polymorphic_value` propagates constness so const methods call 
+  // corresponding const methods of components
+  void foo() const { c1_->foo(); }
+  void bar() const { c2_->bar(); }
+
+  void foo() { c1_->foo(); }
+  void bar() { c2_->bar(); }
+};
 ~~~
 
 ## Submodules
@@ -37,14 +37,14 @@ Tests use the 'catch' test framework: <https://github.com/philsquared/Catch.git>
 To get the submodule run:
 
 ```
-    git submodule update --init
+git submodule update --init
 ```
 
 ## Building
 The build uses cmake driven by a simple Python script. To build and run tests, run the following from the console:
 
 ```
-  ./scripts/build.py --tests
+./scripts/build.py --tests
 ```
 
 ## Continuous integration
