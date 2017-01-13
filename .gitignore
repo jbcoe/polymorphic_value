@@ -1,3 +1,4 @@
 build
 *.pyc
 
+talks/.ipynb_checkpoints
