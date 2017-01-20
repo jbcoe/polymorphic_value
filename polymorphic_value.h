@@ -61,7 +61,7 @@ public:
 };
 
 template <typename T, typename U = T>
-class direct_control_block : public control_block<U>
+class direct_control_block : public control_block<T>
 {
   U u_;
 
@@ -71,7 +71,15 @@ public:
   {
   }
 
-  std::unique_ptr<control_block<U>> clone() const override
+  explicit direct_control_block(const U& u) : u_(u)
+  {
+  }
+
+  explicit direct_control_block(U&& u) : u_(std::move(u))
+  {
+  }
+
+  std::unique_ptr<control_block<T>> clone() const override
   {
     return std::make_unique<direct_control_block>(*this);
   }
@@ -85,7 +93,6 @@ public:
 template <typename T, typename U>
 class delegating_control_block : public control_block<T>
 {
-
   std::unique_ptr<control_block<U>> delegate_;
 
 public:
@@ -196,8 +203,10 @@ public:
   template <typename U,
             typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
                                           !is_polymorphic_value<U>::value>>
-  polymorphic_value(const U& u) : polymorphic_value(new U(u))
+  polymorphic_value(const U& u)
+      : cb_(std::make_unique<direct_control_block<T, U>>(u))
   {
+    ptr_ = cb_->ptr();
   }
 
 
@@ -225,8 +234,10 @@ public:
   template <typename U,
             typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
                                           !is_polymorphic_value<U>::value>>
-  polymorphic_value(U&& u) : polymorphic_value(new U(std::move(u)))
+  polymorphic_value(U&& u)
+      : cb_(std::make_unique<direct_control_block<T, U>>(std::move(u)))
   {
+    ptr_ = cb_->ptr();
   }
 
 
