@@ -7,25 +7,14 @@ Jonathan B. Coe
 
 ---
 
-### Overview
-
-The class template `polymorphic_value` is proposed for addition to the C++ Standard Library.
-
-A `polymorphic_value<T>` may hold an object of a class publicly derived from T.
-
-Copying a `polymorphic_value<T>` will copy the object of the derived type.
-
-We will look at motivation for and implementation of `polymorphic_value<T>`.
-
----
-
 ## Component-based object design
 
 Object orientated languages let us design objects in terms of components:
 
-```
+```cpp
 class Composite {
-  FooComponent f_; BarComponent b_;
+  FooComponent f_; 
+  BarComponent b_;
   
  public:
   Composite(FooComponent f, BarComponent b) : 
@@ -41,11 +30,11 @@ class Composite {
 
 ---
 
-### Compiler-generated functions
+## Compiler-generated functions
 
 A very simple code example gives some illuminating assembler output:
 
-```
+```cpp
 struct FooComponent { 
   ~FooComponent(); 
   void foo() const; 
@@ -68,11 +57,11 @@ void f() {
 
 ---
 
-### Assembler output
+## Assembler output
 
 With gcc-7-trunk `-O3 -std=c++1z -fno-inline -fno-exceptions`
 
-```
+```text
 // A function we never wrote.
 Composite::~Composite():
         push    rbx
@@ -86,9 +75,9 @@ Composite::~Composite():
 
 ---
 
-### Assembler output (2)
+## Assembler output (2)
 
-```
+```text
 // A call to `f` which contains ...
 f():
         sub     rsp, 24
@@ -109,7 +98,7 @@ f():
 
 ---
 
-### Working with the compiler
+## Working with the compiler
 
 The compiler has written code for us.
 
@@ -127,15 +116,15 @@ Code written by the compiler _does_ _the_ _right_ _thing_...
 
 ---
 
-### Generated functions
+## Generated functions
 
 The compiler can generate the following special member functions:
 
 * A default constructor.
-* A copy constructor.
-* A copy assignment operator.
-* A move constructor.
-* A move assignment operator.
+* A copy-constructor.
+* A copy-assignment operator.
+* A move-constructor.
+* A move-assignment operator.
 * A destructor.
 
 There are rules about when these might get suppressed (which I won't go into in any depth). 
@@ -160,11 +149,11 @@ If a class contains objects of undecided type, it still needs to reserve storage
 
 ---
 
-### Hopes for a polymorphic Composite class
+## Hopes for a polymorphic Composite class
 
 We want code like this to work:
 
-```
+```cpp
 std::vector<Composite> composites;
 
 FooComponent0 f0;
@@ -187,9 +176,9 @@ Sadly it won't compile.
 
 ---
 
-### Compile-time polymorphism
+## Compile-time polymorphism
 
-```
+```cpp
 template <class FooComponent_t, class BarComponent_t>
 class GenericComposite {
   FooComponent f_; BarComponent b_;
@@ -212,11 +201,11 @@ If we want to treat all `Composite`s in the same way then `Composite`s with diff
 
 ---
 
-### Closed-set polymorphism
+## Closed-set polymorphism
 
 When the number of different types is known at compile time, we can represent polymorphism with a variant:
 
-```
+```cpp
 using vehicle = std::variant<plane, train, automobile>;
 ```
 
@@ -228,23 +217,24 @@ A variant keeps enough storage for its largest type and can use this storage to 
 
 ---
 
-### Closed-set polymorphism implementation
+## Closed-set polymorphism implementation
 
-```
+```cpp
 class ClosedSetComposite {
   using FooComponent = variant<Foo1, Foo2>;
   using BarComponent = variant<Bar1, Bar2, Bar3>;
-  FooComponent f_; BarComponent b_;
+  FooComponent f_; 
+  BarComponent b_;
   
  public:
   ClosedSetComposite(FooComponent f, BarComponent b) : 
     f_(std::move(f)), b_(std::move(b)) {}
   
-  void foo() const { std::visit([](const auto& x){x.foo();}, f_); }
-  void foo() { std::visit([](auto& x){x.foo();}, f_); }
+  void foo() const { visit([](const auto& x){x.foo();}, f_); }
+  void foo() { visit([](auto& x){x.foo();}, f_); }
     
-  void bar() const { std::visit([](const auto& x){x.bar();}, b_); }
-  void bar() { std::visit([](auto& x){x.bar();}, b_); }
+  void bar() const { visit([](const auto& x){x.bar();}, b_); }
+  void bar() { visit([](auto& x){x.bar();}, b_); }
 };
 ```
 
@@ -252,11 +242,11 @@ This will work nicely. The compiler generates all 5 special member functions for
 
 ---
 
-### Open-set polymorphism
+## Open-set polymorphism
 
 When the number of different types is not known at compile time or is intentionally open for extension, we can represent polymorphism with inheritance:
 
-```
+```cpp
 struct Animal {
   virtual ~Animal() = default;
   virtual const char* make_noise() const =0;
@@ -267,19 +257,18 @@ struct Lion : Animal {
 };
 ```
 
-To store an polymorphic object using inheritance we typically use a pointer to the base type. 
-
-The pointer will give us access to storage which can be allocated later.
-
 Polymorphism through inheritance can localize code changes as type-specific behaviour can be handled by each type.
 
 ---
 
-### Open-set polymorphism implementation
+## Open-set polymorphism implementation
 
-```
+If we store pointers they can be set to point to derived instances.
+
+```cpp
 class OpenSetComposite {
-  FooComponent* f_; BarComponent* b_;
+  FooComponent* f_; 
+  BarComponent* b_;
 
  public:
   OpenSetComposite(FooComponent* f, BarComponent* b) : 
@@ -293,13 +282,11 @@ class OpenSetComposite {
 };
 ```
 
-This has several significant problems.
-
-It compiles, the compiler generates all 5 special member functions, but they won't behave as we want them to.
+This compiles, the compiler generates all 5 special member functions, but they won't behave as we want them to.
 
 ---
 
-### Problems with our pointer-based open-set polymorphic composite
+## Problems...
 
 The compiler understands what pointers do.
 
@@ -308,12 +295,7 @@ The compiler understands what pointers do.
 
 This is at odds with what we want.
 
-The compiler will generate:
-* A copy constructor.
-* A copy assignment operator.
-* A move constructor.
-* A move assignment operator.
-* A destructor.
+The compiler will generate all 5 special member functions.
 
 None of them will do what we want as the compiler does not consider pointers to own resources.
 
@@ -335,11 +317,12 @@ Smart pointers have different semantics to raw pointers and can be used to expre
 
 ---
 
-### `unique_ptr<T>`
+## `unique_ptr<T>`
 
-```
+```cpp
 class OpenSetComposite {
-  std::unique_ptr<FooComponent> f_; std::unique_ptr<BarComponent> b_;
+  std::unique_ptr<FooComponent> f_; 
+  std::unique_ptr<BarComponent> b_;
 
  public:
   OpenSetComposite(std::unique_ptr<FooComponent> f, 
@@ -354,58 +337,72 @@ class OpenSetComposite {
 };
 ```
 
-This is an improvement, we now have a correct compiler-generated destructor, move constructor and move assignement operator.
+This is an improvement, we now have a correct compiler-generated destructor, move-constructor and move-assignment operator.
 
 ---
 
-### Issues with `unique_ptr<T>`: non-copyable
+## Issues with `unique_ptr<T>`: non-copyable
 
-```
+```cpp
 OpenSetComposite c(/* omitted */);
 auto cc = c; // won't compile
 ```
 
 I mentioned earlier that under some conditions the compiler will not generate special member functions.
 
-If a member variable cannot be neither copy-constructed nor assigned then the compiler will not generate a copy constructor or assignement operator.
+If a member variable cannot be neither copy-constructed nor assigned then the compiler will not generate a copy-constructor or an assignment operator.
 
-`std::unique_ptr` does not provide a copy-constructor or assignement operator, this supresses compiler generation of those functions for any class with `std::unique_ptr` members.
+`std::unique_ptr` does not provide a copy-constructor or assignment operator, this supresses compiler generation of those functions for any class with `std::unique_ptr` members.
 
 ---
 
-### Issues with `unique_ptr<T>`: const-propagation
+## Issues with `unique_ptr<T>`: const-propagation
 
-```
-struct SimpleFooComponent : FooComponent {
-  void foo() const override { std::cout << "SimpleFooComponent::foo() const\n"; }
-  void foo() override { std::cout << "SimpleFooComponent::foo()\n"; }
+```cpp
+struct MyFooComponent : FooComponent {
+  void foo() const override { std::cout << "foo() const\n"; }
+  void foo() override { std::cout << "foo() non-const\n"; }
 }
 
-OpenSetComposite c(std::make_unique<SimpleFooComponent>(), /* omitted */ );
-c.foo(); // prints "SimpleFooComponent::foo()"
+OpenSetComposite c(std::make_unique<MyFooComponent>(), 
+                   std::make_unique<SomeBarComponent>());
+c.foo(); // prints "foo() non-const"
 
 const OpenSetComposite& cc = c;
-cc.foo(); // prints "SimpleFooComponent::foo()"
+cc.foo(); // prints "foo() non-const"
 ```
 
-The `const`-ness of the composite is _not_ propagated to the component. 
+`const`-ness of the composite is _not_ propagated to the component. 
 
 This is how pointers, including smart pointers, work.
 
-This _might_ be fine but in my experience it's not future-proof and is a bug-in-waiting.
+This _might_ be fine but in my experience is a bug-in-waiting.
 
 ---
 
-### `propagate_const<T>`
+## `propagate_const<T>`
 
 C++ Library Fundamentals Technical Specification 2 offers `propagate_const<T>`.
 
 <http://en.cppreference.com/w/cpp/experimental/propagate_const>
 
+`propagate_const<T>` behaves much like the underlying pointer.
 
+It has `const` and non-`const` accessors.
+
+```cpp
+const pointer propagate_const<T> operator->() const;
+pointer propagate_const<T> operator->();
+
+const reference propagate_const<T> operator*() const;
+reference propagate_const<T> operator*();
 ```
+
+---
+
+```cpp
 template <class T>
-using member_ptr = std::experimental::propagate_const<std::unique_ptr<T>>;
+using member_ptr = propagate_const<std::unique_ptr<T>>;
 
 class OpenSetComposite {
   member_ptr<FooComponent> f_; 
@@ -430,13 +427,11 @@ Our `OpenSetComposite` is still non-copyable though.
 
 ---
 
-### `shared_ptr<const T>`
+## `shared_ptr<const T>`
 
-`shared_ptr<T>` as a member variable of a copyable object will introduce shared mutable state. We don't want that.
+`shared_ptr<T>` as a member variable will lead to mutable shared state. `shared_ptr<const T>` might work.
 
-`shared_ptr<const T>` might work.
-
-```
+```cpp
 class OpenSetComposite {
   std::shared_ptr<const FooComponent> f_; 
   std::shared_ptr<const BarComponent> b_;
@@ -447,20 +442,19 @@ class OpenSetComposite {
     f_(std::move(f)), b_(std::move(b)) {}
 
   void foo() const { f_->foo(); }
-
   void bar() const { b_->bar(); }
 };
 ```
 
-Compiler-generated destructor, copy-constructor, move-constructor, copy-assignment and move-assignment operators all work as intended.
+Compiler-generated special member functions all work as intended.
 
 We've lost mutability.
 
 ---
 
-### `polymorphic_value<T>`
+## `polymorphic_value<T>`
 
-```
+```cpp
 class OpenSetComposite {
   polymorphic_value<FooComponent> f_; 
   polymorphic_value<BarComponent> b_;
@@ -478,133 +472,128 @@ class OpenSetComposite {
 };
 ```
 
-The compiler-generated destructor, copy-constructor, move-constructor, copy-assignment and move-assignment operators all work as intended.
+The compiler-generated special member functions all work as intended.
 
-We've added polymorphism to our original component-based design.
-
----
-
-## Design and implementation of `polymorphic_value<T>`
+We've added polymorphism to our original composite.
 
 ---
 
-### `polymorphic_value`: constructors
+# Design of `polymorphic_value` 
 
+```cpp
+template <class T>
+class polymorphic_value;
 ```
-template <class T> class polymorphic_value { 
-
-  polymorphic_value() noexcept;
-  
-  template <class U, // restrictions apply
-            class C=default_copy<U>, 
-            class D=default_delete<U>> 
-  explicit polymorphic_value(U* p, C c=C{}, D d=D{});
-
-  polymorphic_value(const polymorphic_value& p);
-  
-  template <class U> // restrictions apply
-  polymorphic_value(const polymorphic_value<U>& p);
-  
-  template <class U> // restrictions apply
-  polymorphic_value(const U& u);
-
-  polymorphic_value(polymorphic_value&& p) noexcept;
-  
-  template <class U> // restrictions apply
-  polymorphic_value(polymorphic_value<U>&& p);
-  
-  template <class U> // restrictions apply
-  polymorphic_value(U&& u);
-
-```
-
 ---
 
-### `polymorphic_value`: assignment
+## Constructors
 
-```
-  polymorphic_value &operator=(const polymorphic_value& p);
-  
-  template <class U> // restrictions apply
-  polymorphic_value& operator=(const polymorphic_value<U>& p);
-  
-  template <class U> // restrictions apply
-  polymorphic_value& operator=(const U& u);
+```cpp 
+polymorphic_value() noexcept;
 
-  polymorphic_value &operator=(polymorphic_value &&p) noexcept;
-  
-  template <class U> // restrictions apply
-  polymorphic_value& operator=(polymorphic_value<U>&& p);
-  
-  template <class U> // restrictions apply
-  polymorphic_value& operator=(U&& u);
+template <class U, // restrictions apply
+          class C=default_copy<U>, 
+          class D=default_delete<U>> 
+explicit polymorphic_value(U* p, C c=C{}, D d=D{});
+
+polymorphic_value(const polymorphic_value& p);
+
+template <class U> // restrictions apply
+polymorphic_value(const polymorphic_value<U>& p);
+
+template <class U> // restrictions apply
+polymorphic_value(const U& u);
+
+polymorphic_value(polymorphic_value&& p) noexcept;
+
+template <class U> // restrictions apply
+polymorphic_value(polymorphic_value<U>&& p);
+
+template <class U> // restrictions apply
+polymorphic_value(U&& u);
 ```
 
 ---
 
-### `polymorphic_value`: modifiers and observers
-```
-  void swap(polymorphic_value<T>& p) noexcept;
+## Assignment
 
-  T& operator*();
-  T* operator->();
-  const T& operator*() const;
-  const T* operator->() const;
-  explicit operator bool() const noexcept;
-};
+```cpp
+polymorphic_value& operator=(const polymorphic_value& p);
+
+template <class U> // restrictions apply
+polymorphic_value& operator=(const polymorphic_value<U>& p);
+
+template <class U> // restrictions apply
+polymorphic_value& operator=(const U& u);
+
+polymorphic_value& operator=(polymorphic_value &&p) noexcept;
+
+template <class U> // restrictions apply
+polymorphic_value& operator=(polymorphic_value<U>&& p);
+
+template <class U> // restrictions apply
+polymorphic_value& operator=(U&& u);
 ```
 
 ---
 
-### `polymorphic_value`: creation
+## Modifiers and observers
+```cpp
+void swap(polymorphic_value<T>& p) noexcept;
+
+T& operator*();
+T* operator->();
+const T& operator*() const;
+const T* operator->() const;
+explicit operator bool() const noexcept;
 ```
+
+## Creation
+```cpp
 template <class T, class ...Ts> 
 polymorphic_value<T> make_polymorphic_value(Ts&& ...ts); 
 ```
 
 ---
 
-## Implementing `polymorphic_value`
-
-```
-template <class T> class polymorphic_value {
-   std::unique_ptr<control_block<T>> cb_;
-   T* ptr_ = nullptr;
-   
- public:
-   polymorphic_value() = default;
-   
-   template<class U, 
-            class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
-   polymorphic_value(const U& u) : 
-     cb_(std::make_unique<direct_control_block<T,U>>(u)) 
-   {
-     ptr_ = cb_->ptr();
-   }
-  
-   polymorphic_value(const polymorphic_value& p) : 
-     cb_(p.cb_->clone()) 
-   {
-     ptr_ = cb_->ptr();
-   }
-   
-   // Some methods omitted for brevity.
-  
-   T* operator->() { assert(*this); return ptr_; }
-   
-   const T* operator->() const { assert(*this); return ptr_; }
-   
-   explicit operator bool() const noexcept { return bool(cb_); }
-};
-```
-
-The hard-work is done by the control block.
+# Implementation of `polymorphic_value` 
 
 ---
 
-### Implementing the control block
-
+```cpp
+template <class T> 
+class polymorphic_value {
+  std::unique_ptr<control_block<T>> cb_;
+  T* ptr_ = nullptr;
+   
+ public:
+  polymorphic_value() = default;
+  
+  polymorphic_value(const polymorphic_value& p) : 
+    cb_(p.cb_->clone()) 
+  {
+    ptr_ = cb_->ptr();
+  }
+  
+  T* operator->() { return ptr_; }
+  const T* operator->() const { return ptr_; }
+  
+  T& operator*() { return *ptr_; }
+  const T& operator*() const { return *ptr_; }
+  
+  // Some methods omitted/deferred.
+};
 ```
+
+The work is done by the control block.
+
+---
+
+## Implementing the control block
+
+Control blocks will inherit from a base-class:
+
+```cpp
 template <class T>
 struct control_block
 {
@@ -612,7 +601,26 @@ struct control_block
   virtual T* ptr() = 0;
   virtual std::unique_ptr<control_block> clone() const = 0;
 };
+```
 
+---
+
+
+## Construction from a value
+We can support constructors of the form:
+
+```cpp
+template<class U, 
+         class = std::enable_if_t<
+           std::is_convertible<U*, T*>::value>>
+   polymorphic_value(const U& u);
+```
+
+---
+
+with a suitable control block:
+
+```
 template <class T, class U>
 class direct_control_block : public control_block<T>
 {
@@ -620,40 +628,56 @@ class direct_control_block : public control_block<T>
  public:
   direct_control_block(const U& u) : u_(u) {}
   
-  virtual T* ptr() override { return &u_; }
+  T* ptr() override { return &u_; }
   
-  virtual std::unique_ptr<control_block<T>> clone() const override {
+  std::unique_ptr<control_block<T>> clone() const override {
     return std::make_unique<direct_control_block>(*this);
   }
 };
 ```
 
-The control block instance knows how to copy and delete the object it owns.
+The control block knows how to copy and delete the object it owns.
 
 ---
 
-### Copying from another polymorphic value
+```cpp
+template<class U, 
+         class = std::enable_if_t<
+           std::is_convertible<U*, T*>::value>>
+   polymorphic_value(const U& u) : 
+     cb_(std::make_unique<direct_control_block<T,U>>(u)) 
+   {
+     ptr_ = cb_->ptr();
+   }
+```
+
+---
+
+## Copying from another polymorphic value
 
 We can support constructors of the form:
 
-```
+```cpp
 template <class U> // restrictions apply
 polymorphic_value(const polymorphic_value<U>& p);
 ```
 
-with a special control block
+---
 
-```
+with a suitable control block:
+
+```cpp
 class delegating_control_block : public control_block<T> {
   std::unique_ptr<control_block<U>> delegate_;
 
 public:
-  explicit delegating_control_block(std::unique_ptr<control_block<U>> b) : 
-    delegate_(std::move(b)) {
-  }
+  explicit delegating_control_block(
+    std::unique_ptr<control_block<U>> b) : 
+      delegate_(std::move(b)) {}
 
   std::unique_ptr<control_block<T>> clone() const override {
-    return std::make_unique<delegating_control_block>(delegate_->clone());
+    return std::make_unique<delegating_control_block>(
+      delegate_->clone());
   }
 
   T* ptr() override {
@@ -664,34 +688,40 @@ public:
 
 ---
 
-### Copying from another polymorphic value (2)
-
-```
+```cpp
 template <class U, 
-          class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
-polymorphic_value(const polymorphic_value<U>& p) {
+          class = std::enable_if_t<
+            std::is_convertible<U*, T*>::value>>
+polymorphic_value(const polymorphic_value<U>& p) 
+{
   polymorphic_value<U> tmp(p);
+  
   ptr_ = tmp.ptr_;
-  cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(tmp.cb_));
+  cb_ = std::make_unique<delegating_control_block<T, U>>(
+    std::move(tmp.cb_));
 }
 ```
 
 ---
 
-### Construction from a pointer with custom copier and deleter
+## Construction from a pointer
 
 We can support constructors of the form:
 
-```
+```cpp
   template <class U, 
             class C = default_copy<U>, 
             class D = default_delete<U>> // restrictions apply
-  explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{})
+  explicit polymorphic_value(U* u, 
+                             C copier = C{}, 
+                             D deleter = D{});
 ```
 
-with a special control block
+---
 
-```
+with a suitable control block:
+
+```cpp
 class pointer_control_block : public control_block<T> {
   std::unique_ptr<U, D> p_;
   C c_;
@@ -715,18 +745,17 @@ public:
 
 ---
 
-### Construction from a pointer with custom copier and deleter (2)
-
-```
+```cpp
 template <class U, 
           class C = default_copy<U>, 
           class D = default_delete<U>,
-          class V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
-explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{})
+          class = std::enable_if_t<
+            std::is_convertible<U*, T*>::value>>
+explicit polymorphic_value(U* u, 
+                           C copier = C{}, 
+                           D deleter = D{})
 {
-  if (!u) {
-    return;
-  }
+  if (!u) return;
 
   assert(typeid(*u) == typeid(U)); // Here be dragons!
 
@@ -738,23 +767,9 @@ explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{})
 
 ---
 
-## Component objects
-
-| Polymorphism | Copyable | Mutable | Recommend |
-| :---: | :---: | :---: | :---: |
-| none |  |  | `T` |
-| compile-time |  |  | `template <class T>` |
-| closed-set |  |  | `std::variant<Ts...>` |
-| open-set | No | No | `std::unique_ptr<const T>` |
-| open-set | No | Yes | `propagate_const<std::unique_ptr<T>>` |
-| open-set | Yes | No | `std::shared_ptr<const T>` |
-| open-set | Yes | Yes | `polymorphic_value<T>` |
-
----
-
 ## Conclusion
 
-`polymorphic_value` confers value semantics on a (potentially) free-store allocated object. This is what we need for open-set polymorphism.
+`polymorphic_value` confers value-semantics on a (potentially) free-store allocated object. This is what we need for open-set polymorphism.
 
 Implementation of `polymorphic_value` is relatively simple and does not rely on exotic language features or compiler support.
 
@@ -766,13 +781,34 @@ In the meantime, anyone can still use it.
 
 ---
 
+## Component objects
+
+```cpp
+using namespace std; // Only for this slide.
+
+template <class T>
+using member_ptr = propagate_const<unique_ptr<T>>;
+
+```
+
+| Polymorphism | Copyable | Mutable | Recommend |
+| :---: | :---: | :---: | :---: |
+| none |  |  | `T` |
+| compile-time |  |  | `template <class T>` |
+| closed-set |  |  | `variant<Ts...>` |
+| open-set | No | No | `unique_ptr<const T>` |
+| open-set | No | Yes | `member_ptr<T>` |
+| open-set | Yes | No | `shared_ptr<const T>` |
+| open-set | Yes | Yes | `polymorphic_value<T>` |
+
+---
+
+
 ## Feedback
 
 The reference implementation is available on GitHub: <https://github.com/jbcoe/polymorphic_value>
 
-It is MIT licensed with the intention of making it widely useable. 
+It is MIT-licensed with the intention of making it widely useable. 
 
 [Please let me know if an MIT license is problematic for you.]
-
----
 
