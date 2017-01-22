@@ -39,6 +39,7 @@ class Composite {
 };
 ```
 
+---
 
 ### Compiler-generated functions
 
@@ -65,6 +66,8 @@ void f() {
 }
 ```
 
+---
+
 ### Assembler output
 
 With gcc-7-trunk `-O3 -std=c++1z -fno-inline -fno-exceptions`
@@ -80,6 +83,8 @@ Composite::~Composite():
         pop     rbx
         jmp     FooComponent::~FooComponent()
 ```
+
+---
 
 ### Assembler output (2)
 
@@ -102,6 +107,8 @@ f():
 
 [See Matt Godbolt's awesome compiler explorer - https://godbolt.org.]
 
+---
+
 ### Working with the compiler
 
 The compiler has written code for us.
@@ -118,6 +125,8 @@ Code written by the compiler _does_ _the_ _right_ _thing_...
 
 ... if the compiler can see what you're trying to do.
 
+---
+
 ### Generated functions
 
 The compiler can generate the following special member functions:
@@ -133,6 +142,8 @@ There are rules about when these might get suppressed (which I won't go into in 
 
 Prudent design of a class will ensure that the compiler only generates the right special member functions and generates them _correctly_.
 
+---
+
 ## Polymorphism
 
 It would be more flexible to build composite objects out of components where each component could be a member of a set of types.
@@ -146,6 +157,8 @@ It would be more flexible to build composite objects out of components where eac
 * A `Portfolio` could contain different kind of `FinancialInstrument`.
 
 If a class contains objects of undecided type, it still needs to reserve storage for something.
+
+---
 
 ### Hopes for a polymorphic Composite class
 
@@ -172,6 +185,8 @@ Sadly it won't compile.
 
 `Composite` has members of type `FooComponent` and `BarComponent` and takes objects with those types as constructor arguments.
 
+---
+
 ### Compile-time polymorphism
 
 ```
@@ -195,6 +210,8 @@ The downside here is that the generic nature of this class can leak into other f
 
 If we want to treat all `Composite`s in the same way then `Composite`s with different components need to be the same type.
 
+---
+
 ### Closed-set polymorphism
 
 When the number of different types is known at compile time, we can represent polymorphism with a variant:
@@ -208,6 +225,8 @@ using vehicle = std::variant<plane, train, automobile>;
 A variant keeps enough storage for its largest type and can use this storage to represent any of the types.
 
 [ It's not identical to `std::variant` but I've found `eggs::variant` intuitive, fast and fit-for-purpose <https://eggs-cpp.github.io/variant/>. ]
+
+---
 
 ### Closed-set polymorphism implementation
 
@@ -231,6 +250,8 @@ class ClosedSetComposite {
 
 This will work nicely. The compiler generates all 5 special member functions for us.
 
+---
+
 ### Open-set polymorphism
 
 When the number of different types is not known at compile time or is intentionally open for extension, we can represent polymorphism with inheritance:
@@ -251,6 +272,8 @@ To store an polymorphic object using inheritance we typically use a pointer to t
 The pointer will give us access to storage which can be allocated later.
 
 Polymorphism through inheritance can localize code changes as type-specific behaviour can be handled by each type.
+
+---
 
 ### Open-set polymorphism implementation
 
@@ -274,6 +297,8 @@ This has several significant problems.
 
 It compiles, the compiler generates all 5 special member functions, but they won't behave as we want them to.
 
+---
+
 ### Problems with our pointer-based open-set polymorphic composite
 
 The compiler understands what pointers do.
@@ -294,6 +319,8 @@ None of them will do what we want as the compiler does not consider pointers to 
 
 We have to write those functions ourselves, or encourage the compiler to help us.
 
+---
+
 ## Smart pointers
 
 Smart pointers have different semantics to raw pointers and can be used to express intent to the compiler.
@@ -305,6 +332,8 @@ Smart pointers have different semantics to raw pointers and can be used to expre
 `C++98` had `std::auto_ptr`. With the introduction of move semantics, we have improved smart pointers in C++11.
 
 [C++11 deprecated `std::auto_ptr`. C++17 will remove it.]
+
+---
 
 ### `unique_ptr<T>`
 
@@ -327,6 +356,8 @@ class OpenSetComposite {
 
 This is an improvement, we now have a correct compiler-generated destructor, move constructor and move assignement operator.
 
+---
+
 ### Issues with `unique_ptr<T>`: non-copyable
 
 ```
@@ -339,6 +370,8 @@ I mentioned earlier that under some conditions the compiler will not generate sp
 If a member variable cannot be neither copy-constructed nor assigned then the compiler will not generate a copy constructor or assignement operator.
 
 `std::unique_ptr` does not provide a copy-constructor or assignement operator, this supresses compiler generation of those functions for any class with `std::unique_ptr` members.
+
+---
 
 ### Issues with `unique_ptr<T>`: const-propagation
 
@@ -360,6 +393,8 @@ The `const`-ness of the composite is _not_ propagated to the component.
 This is how pointers, including smart pointers, work.
 
 This _might_ be fine but in my experience it's not future-proof and is a bug-in-waiting.
+
+---
 
 ### `propagate_const<T>`
 
@@ -393,6 +428,8 @@ class OpenSetComposite {
 
 Our `OpenSetComposite` is still non-copyable though.
 
+---
+
 ### `shared_ptr<const T>`
 
 `shared_ptr<T>` as a member variable of a copyable object will introduce shared mutable state. We don't want that.
@@ -419,6 +456,8 @@ Compiler-generated destructor, copy-constructor, move-constructor, copy-assignme
 
 We've lost mutability.
 
+---
+
 ### `polymorphic_value<T>`
 
 ```
@@ -443,7 +482,11 @@ The compiler-generated destructor, copy-constructor, move-constructor, copy-assi
 
 We've added polymorphism to our original component-based design.
 
+---
+
 ## Design and implementation of `polymorphic_value<T>`
+
+---
 
 ### `polymorphic_value`: constructors
 
@@ -475,6 +518,8 @@ template <class T> class polymorphic_value {
 
 ```
 
+---
+
 ### `polymorphic_value`: assignment
 
 ```
@@ -495,6 +540,8 @@ template <class T> class polymorphic_value {
   polymorphic_value& operator=(U&& u);
 ```
 
+---
+
 ### `polymorphic_value`: modifiers and observers
 ```
   void swap(polymorphic_value<T>& p) noexcept;
@@ -507,11 +554,15 @@ template <class T> class polymorphic_value {
 };
 ```
 
+---
+
 ### `polymorphic_value`: creation
 ```
 template <class T, class ...Ts> 
 polymorphic_value<T> make_polymorphic_value(Ts&& ...ts); 
 ```
+
+---
 
 ## Implementing `polymorphic_value`
 
@@ -549,6 +600,8 @@ template <class T> class polymorphic_value {
 
 The hard-work is done by the control block.
 
+---
+
 ### Implementing the control block
 
 ```
@@ -576,6 +629,8 @@ class direct_control_block : public control_block<T>
 ```
 
 The control block instance knows how to copy and delete the object it owns.
+
+---
 
 ### Copying from another polymorphic value
 
@@ -607,6 +662,8 @@ public:
 };
 ```
 
+---
+
 ### Copying from another polymorphic value (2)
 
 ```
@@ -618,6 +675,8 @@ polymorphic_value(const polymorphic_value<U>& p) {
   cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(tmp.cb_));
 }
 ```
+
+---
 
 ### Construction from a pointer with custom copier and deleter
 
@@ -654,6 +713,8 @@ public:
 };
 ```
 
+---
+
 ### Construction from a pointer with custom copier and deleter (2)
 
 ```
@@ -675,6 +736,8 @@ explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{})
 }
 ```
 
+---
+
 ## Component objects
 
 | Polymorphism | Copyable | Mutable | Recommend |
@@ -686,6 +749,8 @@ explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{})
 | open-set | No | Yes | `propagate_const<std::unique_ptr<T>>` |
 | open-set | Yes | No | `std::shared_ptr<const T>` |
 | open-set | Yes | Yes | `polymorphic_value<T>` |
+
+---
 
 ## Conclusion
 
@@ -699,6 +764,8 @@ It may be ready in time for C++20.
 
 In the meantime, anyone can still use it.
 
+---
+
 ## Feedback
 
 The reference implementation is available on GitHub: <https://github.com/jbcoe/polymorphic_value>
@@ -706,3 +773,6 @@ The reference implementation is available on GitHub: <https://github.com/jbcoe/p
 It is MIT licensed with the intention of making it widely useable. 
 
 [Please let me know if an MIT license is problematic for you.]
+
+---
+
