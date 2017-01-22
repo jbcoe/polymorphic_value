@@ -5,6 +5,8 @@ Jonathan B. Coe
 
 <https://github.com/jbcoe/polymorphic_value/blob/master/draft.md>
 
+---
+
 ### Overview
 
 The class template `polymorphic_value` is proposed for addition to the C++ Standard Library.
@@ -14,6 +16,8 @@ A `polymorphic_value<T>` may hold an object of a class publicly derived from T.
 Copying a `polymorphic_value<T>` will copy the object of the derived type.
 
 We will look at motivation for and implementation of `polymorphic_value<T>`.
+
+---
 
 ## Component-based object design
 
