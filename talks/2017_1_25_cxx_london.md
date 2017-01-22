@@ -810,5 +810,3 @@ The reference implementation is available on GitHub: <https://github.com/jbcoe/p
 
 It is MIT-licensed with the intention of making it widely useable. 
 
-[Please let me know if an MIT license is problematic for you.]
-
