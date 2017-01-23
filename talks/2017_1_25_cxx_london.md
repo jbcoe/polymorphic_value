@@ -141,9 +141,9 @@ It would be more flexible to build composite objects out of components where eac
 
 * A `code_checker` could contain different `checking_tool`s.
 
-* A `Game` could contain different `Entities`.
+* A `Game` could contain different `GameEntities`.
 
-* A `Portfolio` could contain different kind of `FinancialInstrument`.
+* A `Portfolio` could contain different kinds of `FinancialInstrument`.
 
 If a class contains objects of undecided type, it still needs to reserve storage for something.
 
@@ -472,9 +472,9 @@ class OpenSetComposite {
 };
 ```
 
-The compiler-generated special member functions all work as intended.
+The compiler-generated special-member functions all work as intended. 
 
-We've added polymorphism to our original composite.
+`const`-ness is propagated to members.
 
 ---
 
