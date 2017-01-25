@@ -179,7 +179,7 @@ Sadly it won't compile.
 ```cpp
 template <class FooComponent_t, class BarComponent_t>
 class GenericComposite {
-  FooComponent f_; BarComponent b_;
+  FooComponent_t f_; BarComponent_t b_;
 
  public:
   GenericComposite(FooComponent_t f, BarComponent_t b) :
@@ -663,6 +663,7 @@ polymorphic_value(const polymorphic_value<U>& p);
 with a suitable control block:
 
 ```cpp
+template <class T, class U>
 class delegating_control_block : public control_block<T> {
   std::unique_ptr<control_block<U>> delegate_;
 
@@ -705,12 +706,12 @@ polymorphic_value(const polymorphic_value<U>& p)
 We can support constructors of the form:
 
 ```cpp
-  template <class U,
-            class C = default_copy<U>,
-            class D = default_delete<U>> // restrictions apply
-  explicit polymorphic_value(U* u,
-                             C copier = C{},
-                             D deleter = D{});
+template <class U,
+          class C = default_copy<U>,
+          class D = default_delete<U>> // restrictions apply
+explicit polymorphic_value(U* u,
+                           C copier = C{},
+                           D deleter = D{});
 ```
 
 ---
@@ -718,6 +719,9 @@ We can support constructors of the form:
 with a suitable control block:
 
 ```cpp
+template <class U,
+          class C = default_copy<U>,
+          class D = default_delete<U>>
 class pointer_control_block : public control_block<T> {
   std::unique_ptr<U, D> p_;
   C c_;
