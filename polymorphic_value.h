@@ -8,7 +8,7 @@
 // Implementation detail classes
 ////////////////////////////////////////////////////////////////////////////////
 
-template <typename T>
+template <class T>
 struct default_copy
 {
   T* operator()(const T& t) const
@@ -17,7 +17,7 @@ struct default_copy
   }
 };
 
-template <typename T>
+template <class T>
 struct default_delete
 {
   void operator()(const T* t) const
@@ -26,7 +26,7 @@ struct default_delete
   }
 };
 
-template <typename T>
+template <class T>
 struct control_block
 {
   virtual ~control_block() = default;
@@ -34,8 +34,30 @@ struct control_block
   virtual T* ptr() = 0;
 };
 
-template <typename T, typename U, typename C = default_copy<U>,
-          typename D = default_delete<U>>
+template <class T, class U = T>
+class direct_control_block : public control_block<T>
+{
+  U u_;
+
+public:
+  template <class... Ts>
+  explicit direct_control_block(Ts&&... ts) : u_(U(std::forward<Ts>(ts)...))
+  {
+  }
+
+  std::unique_ptr<control_block<T>> clone() const override
+  {
+    return std::make_unique<direct_control_block>(*this);
+  }
+
+  T* ptr() override
+  {
+    return &u_;
+  }
+};
+
+template <class T, class U, class C = default_copy<U>,
+          class D = default_delete<U>>
 class pointer_control_block : public control_block<T>
 {
   std::unique_ptr<U, D> p_;
@@ -60,32 +82,9 @@ public:
   }
 };
 
-template <typename T, typename U = T>
-class direct_control_block : public control_block<U>
-{
-  U u_;
-
-public:
-  template <typename... Ts>
-  explicit direct_control_block(Ts&&... ts) : u_(U(std::forward<Ts>(ts)...))
-  {
-  }
-
-  std::unique_ptr<control_block<U>> clone() const override
-  {
-    return std::make_unique<direct_control_block>(*this);
-  }
-
-  T* ptr() override
-  {
-    return &u_;
-  }
-};
-
-template <typename T, typename U>
+template <class T, class U>
 class delegating_control_block : public control_block<T>
 {
-
   std::unique_ptr<control_block<U>> delegate_;
 
 public:
@@ -105,15 +104,15 @@ public:
   }
 };
 
-template <typename T>
+template <class T>
 class polymorphic_value;
 
-template <typename T>
+template <class T>
 struct is_polymorphic_value : std::false_type
 {
 };
 
-template <typename T>
+template <class T>
 struct is_polymorphic_value<polymorphic_value<T>> : std::true_type
 {
 };
@@ -122,13 +121,13 @@ struct is_polymorphic_value<polymorphic_value<T>> : std::true_type
 // `polymorphic_value` class definition
 ////////////////////////////////////////////////////////////////////////////////
 
-template <typename T>
+template <class T>
 class polymorphic_value
 {
 
-  template <typename U>
+  template <class U>
   friend class polymorphic_value;
-  template <typename T_, typename... Ts>
+  template <class T_, class... Ts>
   friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
 
   T* ptr_ = nullptr;
@@ -150,9 +149,8 @@ public:
   {
   }
 
-  template <typename U, typename C = default_copy<U>,
-            typename D = default_delete<U>,
-            typename V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
+  template <class U, class C = default_copy<U>, class D = default_delete<U>,
+            class V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
   explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{})
   {
     if (!u)
@@ -183,9 +181,9 @@ public:
     cb_ = std::move(tmp_cb);
   }
 
-  template <typename U,
-            typename V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                          std::is_convertible<U*, T*>::value>>
+  template <class U,
+            class V = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_convertible<U*, T*>::value>>
   polymorphic_value(const polymorphic_value<U>& p)
   {
     polymorphic_value<U> tmp(p);
@@ -193,11 +191,13 @@ public:
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(tmp.cb_));
   }
 
-  template <typename U,
-            typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
-                                          !is_polymorphic_value<U>::value>>
-  polymorphic_value(const U& u) : polymorphic_value(new U(u))
+  template <class U,
+            class V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
+                                       !is_polymorphic_value<U>::value>>
+  polymorphic_value(const U& u)
+      : cb_(std::make_unique<direct_control_block<T, U>>(u))
   {
+    ptr_ = cb_->ptr();
   }
 
 
@@ -212,9 +212,9 @@ public:
     p.ptr_ = nullptr;
   }
 
-  template <typename U,
-            typename V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                          std::is_convertible<U*, T*>::value>>
+  template <class U,
+            class V = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_convertible<U*, T*>::value>>
   polymorphic_value(polymorphic_value<U>&& p)
   {
     ptr_ = p.ptr_;
@@ -222,11 +222,13 @@ public:
     p.ptr_ = nullptr;
   }
 
-  template <typename U,
-            typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
-                                          !is_polymorphic_value<U>::value>>
-  polymorphic_value(U&& u) : polymorphic_value(new U(std::move(u)))
+  template <class U,
+            class V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
+                                       !is_polymorphic_value<U>::value>>
+  polymorphic_value(U&& u)
+      : cb_(std::make_unique<direct_control_block<T, U>>(std::move(u)))
   {
+    ptr_ = cb_->ptr();
   }
 
 
@@ -254,9 +256,9 @@ public:
     return *this;
   }
 
-  template <typename U,
-            typename V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                          std::is_convertible<U*, T*>::value>>
+  template <class U,
+            class V = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_convertible<U*, T*>::value>>
   polymorphic_value& operator=(const polymorphic_value<U>& p)
   {
     polymorphic_value<U> tmp(p);
@@ -264,9 +266,9 @@ public:
     return *this;
   }
 
-  template <typename U,
-            typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
-                                          !is_polymorphic_value<U>::value>>
+  template <class U,
+            class V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
+                                       !is_polymorphic_value<U>::value>>
   polymorphic_value& operator=(const U& u)
   {
     polymorphic_value tmp(u);
@@ -292,9 +294,9 @@ public:
     return *this;
   }
 
-  template <typename U,
-            typename V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                          std::is_convertible<U*, T*>::value>>
+  template <class U,
+            class V = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_convertible<U*, T*>::value>>
   polymorphic_value& operator=(polymorphic_value<U>&& p)
   {
     cb_ = std::make_unique<delegating_control_block<T, U>>(std::move(p.cb_));
@@ -303,9 +305,9 @@ public:
     return *this;
   }
 
-  template <typename U,
-            typename V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
-                                          !is_polymorphic_value<U>::value>>
+  template <class U,
+            class V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
+                                       !is_polymorphic_value<U>::value>>
   polymorphic_value& operator=(U&& u)
   {
     polymorphic_value tmp(std::move(u));
@@ -370,7 +372,7 @@ public:
 //
 // polymorphic_value creation
 //
-template <typename T, typename... Ts>
+template <class T, class... Ts>
 polymorphic_value<T> make_polymorphic_value(Ts&&... ts)
 {
   polymorphic_value<T> p;
@@ -382,7 +384,7 @@ polymorphic_value<T> make_polymorphic_value(Ts&&... ts)
 //
 // non-member swap
 //
-template <typename T>
+template <class T>
 void swap(polymorphic_value<T>& t, polymorphic_value<T>& u) noexcept
 {
   t.swap(u);

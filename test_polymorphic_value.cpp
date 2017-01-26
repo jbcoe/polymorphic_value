@@ -47,6 +47,14 @@ struct DerivedType : BaseType
 
 size_t DerivedType::object_count = 0;
 
+TEST_CASE("Support for incomplete types","[polymorphic_value.class]")
+{
+  class Incomplete;
+  polymorphic_value<Incomplete> p;
+
+  REQUIRE_FALSE(bool(p));
+}
+
 TEST_CASE("Default constructor","[polymorphic_value.constructors]")
 {
   GIVEN("A default constructed polymorphic_value to BaseType")
