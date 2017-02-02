@@ -8,7 +8,7 @@ Working Group: Library Evolution
 
 Date: 2016-11-12
 
-_Jonathan Coe \<jonathanbcoe@gmail.com\>_
+_Jonathan Coe \<jbcoe@me.com\>_
 
 _Sean Parent \<sparent@adobe.com\>_
 
