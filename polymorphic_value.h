@@ -65,7 +65,7 @@ class pointer_control_block : public control_block<T>
 
 public:
   explicit pointer_control_block(U* u, C c = C{}, D d = D{})
-      : c_(std::move(c)), p_(u, std::move(d))
+      :  p_(u, std::move(d)), c_(std::move(c))
   {
   }
 
