@@ -1,4 +1,3 @@
-# clone directory
 clone_folder: c:\projects\polymorphic_value
 
 before_build:
