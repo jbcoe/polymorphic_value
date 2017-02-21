@@ -49,7 +49,7 @@ The build uses cmake driven by a simple Python script. To build and run tests, r
 
 ## Build status
 - on Travis: [![Travis Build Status](https://travis-ci.org/jbcoe/polymorphic_value.svg?branch=master)](https://travis-ci.org/jbcoe/polymorphic_value)
-- on AppVeyor: [![AppVeyor Build Status](https://ci.appveyor.com/project/jbcoe/polymorphic-value/branch/master?svg=true)](https://ci.appveyor.com/project/jbcoe/polymorphic-value)
+- on AppVeyor: [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/jbcoe/polymorphic_value?svg=true&branch=master)](https://ci.appveyor.com/project/jbcoe/polymorphic-value)
 
 ## ISO Standardisation
 `polymorphic_value` has been proposed for standardisation for C++20 in P0201: <http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0201r1.pdf>.
