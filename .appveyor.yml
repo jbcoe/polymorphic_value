@@ -1,0 +1,9 @@
+# clone directory
+clone_folder: c:\projects\polymorphic_value
+
+before_build:
+  - cd c:\projects\polymorphic_value
+  
+build_script:
+  - python scripts\build.py -t
+
