@@ -69,7 +69,7 @@ public:
   }
 
   explicit pointer_control_block(std::unique_ptr<U, D> p, C c = C{})
-      : p_(std::move(p)), c_(std::move(c))
+      : C(std::move(c)), p_(std::move(p))
   {
   }
 
