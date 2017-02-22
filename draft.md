@@ -447,11 +447,11 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 The copier and deleter of the `polymorphic_value` constructed shall be moved
 from `c` and `d`.
 
-* _Preconditions_:  `c` and `d` are copy constructible. If `p` is non-null then
-  the expression `c(*p)` shall return an object of type `U*`. The expression
-  `d(p)` shall be well formed, shall have well defined behavior, and shall not
-  throw exceptions.  Either `U` and `T` must be the same type, or the dynamic
-  and static type of `U` must be the same.
+* _Requires_: `C` and `D` are copy constructible.  If `p` is non-null then the
+  expression `c(*p)` shall return an object of type `U*`. The expression `d(p)`
+  shall be well formed, shall have well defined behavior, and shall not throw
+  exceptions.  Either `U` and `T` must be the same type, or the dynamic and
+  static type of `U` must be the same.
 
 * _Throws_: `bad_alloc`, or an implementation-defined exception when a resource
   other than memory could not be obtained.
@@ -459,8 +459,6 @@ from `c` and `d`.
 * _Postconditions_:  `bool(*this) == bool(p)`.
 
 * _Exception safety_: If an exception is thrown, `d(p)` is called.
-
-* _Requires_: `U` is copy-constructible. 
 
 * _Remarks_: This constructor shall not participate in overload
   resolution unless `U` is derived from `T`.
