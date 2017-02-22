@@ -14,16 +14,16 @@ def main():
         action='store_true',
         dest='clean')
     parser.add_argument(
-        '-t', help='run tests', action='store_true', dest='run_tests')
+        '-t', '--tests', help='run tests', action='store_true', dest='run_tests')
     parser.add_argument(
         '-v', help='verbose', action='store_true', dest='verbose')
     parser.add_argument(
-        '-o',
+        '-o', '--output',
         help='output dir (relative to source dir)',
         default='build',
         dest='out_dir')
     parser.add_argument(
-        '-c',
+        '-c', '--config'
         help='config (Debug or Release)',
         default='Debug',
         dest='config')
