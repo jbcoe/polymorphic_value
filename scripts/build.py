@@ -23,7 +23,7 @@ def main():
         default='build',
         dest='out_dir')
     parser.add_argument(
-        '-c', '--config'
+        '-c', '--config',
         help='config (Debug or Release)',
         default='Debug',
         dest='config')
