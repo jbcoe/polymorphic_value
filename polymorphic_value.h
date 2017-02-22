@@ -58,14 +58,13 @@ public:
 
 template <class T, class U, class C = default_copy<U>,
           class D = default_delete<U>>
-class pointer_control_block : public control_block<T>
+class pointer_control_block : public control_block<T>, public C
 {
   std::unique_ptr<U, D> p_;
-  C c_;
 
 public:
   explicit pointer_control_block(U* u, C c = C{}, D d = D{})
-      :  p_(u, std::move(d)), c_(std::move(c))
+      : C(std::move(c)), p_(u, std::move(d))
   {
   }
 
@@ -77,8 +76,8 @@ public:
   std::unique_ptr<control_block<T>> clone() const override
   {
     assert(p_);
-    return std::make_unique<pointer_control_block>(c_(*p_), c_,
-                                                   p_.get_deleter());
+    return std::make_unique<pointer_control_block>(
+        C::operator()(*p_), static_cast<const C&>(*this), p_.get_deleter());
   }
 
   T* ptr() override
