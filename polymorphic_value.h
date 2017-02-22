@@ -69,6 +69,11 @@ public:
   {
   }
 
+  explicit pointer_control_block(std::unique_ptr<U, D> p, C c = C{})
+      : p_(std::move(p)), c_(std::move(c))
+  {
+  }
+
   std::unique_ptr<control_block<T>> clone() const override
   {
     assert(p_);
@@ -159,9 +164,10 @@ public:
     }
 
     assert(typeid(*u) == typeid(U));
+    std::unique_ptr<U, D> p(u, std::move(deleter));
 
     cb_ = std::make_unique<pointer_control_block<T, U, C, D>>(
-        u, std::move(copier), std::move(deleter));
+        std::move(p), std::move(copier));
     ptr_ = u;
   }
 
