@@ -24,11 +24,12 @@ matrix:
           packages: ['g++-5']
       env: COMPILER='g++-5'
 
+    # Disabled as agents are scarce
     # 3/ OSX Clang Builds
-    - os: osx
-      osx_image: xcode8
-      compiler: clang
-      env: COMPILER='clang++'
+    #- os: osx
+    #  osx_image: xcode8
+    # compiler: clang
+    #  env: COMPILER='clang++'
 
 install:
   - DEPS_DIR="${TRAVIS_BUILD_DIR}/deps"
