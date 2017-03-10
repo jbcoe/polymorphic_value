@@ -787,3 +787,13 @@ TEST_CASE("Exception safety: throw in copier", "[polymorphic_value.exception_saf
     }
   }
 }
+
+TEST_CASE("polymorphic_value<const T>", "[polymorphic_value.compatible_types]")
+{
+  polymorphic_value<const DerivedType> p(DerivedType(7));
+  REQUIRE(p->value() == 7);
+  // Will not compile as p is polymorphic_value<const DerivedType> not
+  // polymorphic_value<DerivedType>
+  // p->set_value(42);
+}
+
