@@ -6,6 +6,8 @@
 #include <new>
 #include <stdexcept>
 
+using namespace jbcoe;
+
 struct BaseType
 {
   virtual int value() const = 0;
