@@ -1,4 +1,5 @@
-#pragma once
+#ifndef JBCOE_POLYMORPHIC_VALUE_H_INCLUDED
+#define JBCOE_POLYMORPHIC_VALUE_H_INCLUDED
 
 #include <cassert>
 #include <memory>
@@ -415,3 +416,5 @@ namespace jbcoe
   }
 
 } // end namespace jbcoe
+
+#endif
