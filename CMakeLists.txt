@@ -6,6 +6,8 @@ if(MSVC)
   add_compile_options("/EHsc")
 else()
   add_compile_options("-std=c++14")
+  set(CMAKE_CXX_FLAGS_SANITIZE "-fsanitize=address,undefined")
+  set(CMAKE_EXE_LINKER_FLAGS_SANITIZE "-fsanitize=address,undefined")
 endif()
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")

@@ -323,18 +323,12 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
   {
     polymorphic_value<BaseType> cptr1;
     const polymorphic_value<BaseType> cptr2;
-    const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 0);
 
     cptr1 = cptr2;
 
     REQUIRE(DerivedType::object_count == 0);
-
-    THEN("The assigned-from object is unchanged")
-    {
-      REQUIRE(&cptr2.value() == p);
-    }
 
     THEN("The assigned-to object is empty")
     {
@@ -348,18 +342,13 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
 
     polymorphic_value<BaseType> cptr1(new DerivedType(v1));
     const polymorphic_value<BaseType> cptr2;
-    const auto p = &cptr2.value();
+    const auto p = &cptr1.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
     cptr1 = cptr2;
 
     REQUIRE(DerivedType::object_count == 0);
-
-    THEN("The assigned-from object is unchanged")
-    {
-      REQUIRE(&cptr2.value() == p);
-    }
 
     THEN("The assigned-to object is empty")
     {
@@ -465,7 +454,6 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
   {
     polymorphic_value<BaseType> cptr1;
     polymorphic_value<BaseType> cptr2;
-    const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 0);
 
@@ -490,7 +478,6 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
 
     polymorphic_value<BaseType> cptr1(new DerivedType(v1));
     polymorphic_value<BaseType> cptr2;
-    const auto p = &cptr2.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
