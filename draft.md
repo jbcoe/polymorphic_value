@@ -514,6 +514,8 @@ template <class U> polymorphic_value(U&& u);
   resolution unless `U*` is convertible to `T*`.
 
 * _Effects_: Move-constructs a `polymorphic_value` instance from `u`.
+The copier and deleter of the `polymorphic_value` constructed shall be
+`default_copy` and `default_delete`.
 
 ### X.Y.4 Class template `polymorphic_value` destructor [polymorphic_value.dtor]
 
@@ -521,7 +523,7 @@ template <class U> polymorphic_value(U&& u);
 ~polymorphic_value();
 ```
 
-* _Effects_: `d(u)` is called.
+* _Effects_: `d(u)` is called. The copier and deleter shall be destroyed.
 
 ### X.Y.5 Class template `polymorphic_value` assignment [polymorphic_value.assignment]
 
