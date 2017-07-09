@@ -46,4 +46,4 @@ install:
 
 before_script: export CXX=${COMPILER}
 
-script: ${TRAVIS_BUILD_DIR}/scripts/build.py -t -c SANITIZE
+script: ${TRAVIS_BUILD_DIR}/scripts/build.py -t -c DEBUG
