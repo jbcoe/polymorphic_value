@@ -4,6 +4,15 @@ import os
 import platform
 import subprocess
 
+def check_for_executable(exe_name, args=['--version']):
+    try:
+        cmd = [exe_name]
+        cmd.extend(args)
+        subprocess.check_output(cmd)
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
 
 def main():
     import argparse
@@ -50,6 +59,9 @@ def main():
         else:
             cmake_invocation.extend(['-G', 'Visual Studio 14 2015 Win64'])
     else:
+        if check_for_executable('ninja'):
+            cmake_invocation.extend(['-GNinja'])
+        cmake_invocation.extend(['-DCMAKE_BUILD_TYPE={}'.format(args.config)])
         cmake_invocation.append('-DCMAKE_BUILD_TYPE={}'.format(args.config))
 
     if args.verbose:
