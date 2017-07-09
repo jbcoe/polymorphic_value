@@ -1,7 +1,7 @@
 # Based on .travis.yml from https://github.com/philsquared/Catch
-
 language: cpp
-sudo: false
+sudo: required
+dist: trusty
 
 matrix:
   include:
