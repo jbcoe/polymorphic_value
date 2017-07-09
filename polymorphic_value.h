@@ -392,26 +392,31 @@ namespace jbcoe
 
     const T& value() const
     {
+      assert(*this);
       return *ptr_;
     }
 
     const T& operator*() const
     {
+      assert(*this);
       return *ptr_;
     }
 
     T* operator->()
     {
+      assert(*this);
       return ptr_;
     }
 
     T& value()
     {
+      assert(*this);
       return *ptr_;
     }
 
     T& operator*()
     {
+      assert(*this);
       return *ptr_;
     }
   };
