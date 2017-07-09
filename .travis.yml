@@ -9,20 +9,20 @@ matrix:
     # 1/ Linux Clang Builds
     - os: linux
       compiler: clang
-      addons: &clang38
+      addons: &clang40
         apt:
-          sources: ['llvm-toolchain-precise-3.8', 'ubuntu-toolchain-r-test']
-          packages: ['clang-3.8']
-      env: COMPILER='clang++-3.8'
+          sources: ['llvm-toolchain-precise-4.0', 'ubuntu-toolchain-r-test']
+          packages: ['clang-4.0']
+      env: COMPILER='clang++-4.0'
 
     # 2/ Linux GCC Builds
     - os: linux
       compiler: gcc
-      addons: &gcc5
+      addons: &gcc6
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-5']
-      env: COMPILER='g++-5'
+          packages: ['g++-6']
+      env: COMPILER='g++-6'
 
     # Disabled as agents are scarce
     # 3/ OSX Clang Builds
