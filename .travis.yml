@@ -1,7 +1,7 @@
 # Based on .travis.yml from https://github.com/philsquared/Catch
+
 language: cpp
-sudo: required
-dist: trusty
+sudo: false
 
 matrix:
   include:
@@ -46,4 +46,4 @@ install:
 
 before_script: export CXX=${COMPILER}
 
-script: ${TRAVIS_BUILD_DIR}/scripts/build.py -t -c DEBUG
+script: ${TRAVIS_BUILD_DIR}/scripts/build.py -t
