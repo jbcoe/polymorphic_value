@@ -1,6 +1,6 @@
-# A polymorphic value-type for C++
+# A polymorphic value-type for `C++`
 
-ISO/IEC JTC1 SC22 WG21 Programming Language C++
+ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
 D0201R2
 
@@ -55,8 +55,8 @@ free-store-allocated objects with value-like semantics.
 ## Introduction
 
 The class template, `polymorphic_value`, confers value-like semantics on a free-store
-allocated object.  An `polymorphic_value<T>` may hold a an object of a class publicly
-derived from T, and copying the polymorphic_value<T> will copy the object of the derived
+allocated object.  A `polymorphic_value<T>` may hold a an object of a class publicly
+derived from T, and copying the `polymorphic_value<T>` will copy the object of the derived
 type.
 
 ## Motivation: Composite objects
@@ -208,7 +208,7 @@ The requirements of deep-copying can be illustrated by some simple test code:
 class Base { virtual void foo() const = 0; };
 class Derived : public Base { void foo() const override {} };
 
-// WHEN an polymorphic_value to base is formed from a derived pointer
+// WHEN a polymorphic_value to base is formed from a derived pointer
 polymorphic_value<Base> poly(new Derived());
 // AND the polymorphic_value to base is copied.
 auto poly_copy = poly;
@@ -221,9 +221,9 @@ assert(dynamic_cast<Derived*>(*&poly_copy);
 
 Note that while deep-destruction of a derived class object from a base class
 pointer can be performed with a virtual destructor, the same is not true for
-deep-copying. C++ has no concept of a virtual copy constructor and we are not
+deep-copying. `C++` has no concept of a virtual copy constructor and we are not
 proposing its addition.  The class template `shared_ptr` already implements
-deep-destruction without needing virtual destructors. deep-destruction and
+deep-destruction without needing virtual destructors: deep-destruction and
 deep-copying can be implemented using type-erasure [Impl].
 
 ## Pointer constructor
@@ -231,7 +231,7 @@ deep-copying can be implemented using type-erasure [Impl].
 and/or deleter. The `polymorphic_value` constructed in this manner takes
 ownership of the pointer. This constructor is potentially dangerous as a
 mismatch in the dynamic and static type of the pointer will result in
-incorrectly synthesized copiers and deleters potentiall resulting in slicing
+incorrectly synthesized copiers and deleters, potentially resulting in slicing
 when copying and incomplete deletion during destruction. 
 
 ```
@@ -256,7 +256,7 @@ method `make_polymorphic_value`.
 
 Static analysis tools can be written to find cases where static and dynamic
 types for pointers passed in to `polymorphic_value` constructors are not
-provably equivalent.
+provably identical.
 
 ## Empty state
 `polymorphic_value` presents an empty state as it is desirable for it to be
@@ -266,7 +266,7 @@ class (a common intended use pattern).  While permitting an empty state will
 necessitate occasional checks for `null`, `polymorphic_value` is intended to
 replace uses of pointers or smart pointers where such checks are also
 necessary. The benefits of default constructability (use in vectors and maps)
-outweight the costs of a possible empty state.
+outweigh the costs of a possible empty state.
 
 ## Lack of hashing and comparisons
 For a given user-defined type, `T`, there are multiple strategies to make
@@ -274,10 +274,10 @@ For a given user-defined type, `T`, there are multiple strategies to make
 member functions on the type, `T`, or mandating that `T` has virtual functions
 and RTTI, the authors do not see how `polymorphic_value` can generically support hashing
 or comparisons. Incurring a cost for functionality that is not required goes
-against the 'pay for what you use' philosophy of C++.
+against the 'pay for what you use' philosophy of `C++`.
 
 For a given user-defined type `T` the user is free to specialize
-`std::hash<polymorphic_value<T>>` and implement comparison operators for `polymorphic_value<T>`.
+`std::hash` and implement comparison operators for `polymorphic_value<T>`.
 
 ## Custom copiers and deleters
 The resource management performed by `polymorphic_value` - copying and destruction of
@@ -308,10 +308,10 @@ propagated to the owned object. The first revision of this paper presented
 `cloned_ptr<T>` which had mixed pointer/value semantics: copies are deep but
 `const` is not propagated to the owned object. `polymorphic_value` can be built from
 `cloned_ptr` and `propagate_const` but there is no way to remove `const`
-propagation from polymorphic_value.
+propagation from `polymorphic_value`.
 
 As `polymorphic_value` is a value, `dynamic_pointer_cast`, `static_pointer_cast` and
-`const_pointer_cast` are not provided.  If an `polymorphic_value` is constructed with a
+`const_pointer_cast` are not provided.  If a `polymorphic_value` is constructed with a
 custom copier or deleter, then there is no way for a user to implement the cast
 operations provided for `cloned_ptr`.
 
@@ -381,13 +381,13 @@ template <class T> class polymorphic_value {
 
   // Constructors
   polymorphic_value() noexcept; // see below
+
   template <class U, class C=default_copy<U>, class D=default_delete<U>> 
     explicit polymorphic_value(U* p, C c=C{}, D d=D{}); // see below
   
   polymorphic_value(const polymorphic_value& p);
   template <class U> polymorphic_value(const polymorphic_value<U>& p); // see below
   template <class U> polymorphic_value(const U& u); // see below
-  
   polymorphic_value(polymorphic_value&& p) noexcept;
   template <class U> polymorphic_value(polymorphic_value<U>&& p); // see below
   template <class U> polymorphic_value(U&& u); // see below
@@ -397,12 +397,16 @@ template <class T> class polymorphic_value {
 
   // Assignment
   polymorphic_value &operator=(const polymorphic_value& p);
-  template <class U> polymorphic_value &operator=(const polymorphic_value<U>& p); // see below
-  template <class U> polymorphic_value &operator=(const U& u); // see below
-  
+  template <class U> 
+    polymorphic_value& operator=(const polymorphic_value<U>& p); // see below
+  template <class U> 
+    polymorphic_value& operator=(const U& u); // see below
   polymorphic_value &operator=(polymorphic_value &&p) noexcept;
-  template <class U> polymorphic_value &operator=(polymorphic_value<U>&& p); // see below
-  template <class U> polymorphic_value &operator=(U&& u); // see below
+  template <class U> 
+    polymorphic_value& operator=(polymorphic_value<U>&& p); // see below
+  template <class U> 
+    polymorphic_value& operator=(U&& u); // see below
+  
 
   // Modifiers
   void swap(polymorphic_value<T>& p) noexcept;
@@ -444,8 +448,8 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 ```
 
 * _Effects_: Creates a `polymorphic_value` object that _owns_ the pointer `p`.
-The copier and deleter of the `polymorphic_value` constructed shall be moved
-from `c` and `d`.
+  If `p` is non-null then the copier and deleter of the `polymorphic_value`
+  constructed shall be moved from `c` and `d`.
 
 * _Requires_: `C` and `D` are copy constructible.  If `p` is non-null then the
   expression `c(*p)` shall return an object of type `U*`. The expression `d(p)`
@@ -461,7 +465,7 @@ from `c` and `d`.
 * _Exception safety_: If an exception is thrown, `d(p)` is called.
 
 * _Remarks_: This constructor shall not participate in overload
-  resolution unless `U` is derived from `T`.
+  resolution unless `U*` is convertible to `T*`.
 
 
 ```
@@ -470,7 +474,7 @@ template <class U> polymorphic_value(const polymorphic_value<U> &p);
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
-  resolution unless `U` is derived from `T`.
+  resolution unless `U*` is convertible to `T*`.
 
 * _Effects_: Creates a `polymorphic_value` object that owns a copy of the object
   managed by `p`. The copy shall be created by the copier in `p`.
@@ -550,7 +554,7 @@ template <class U> polymorphic_value &operator=(polymorphic_value<U> &&p);
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
-  resolution unless `U` is derived from `T`.
+  resolution unless `U*` is convertible to `T*`.
 
 * _Effects_: Ownership of the resource managed by `p` shall be transferred to `this`.
 The copier and deleter of `*this` shall be the same as those in `p`.
