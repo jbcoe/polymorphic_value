@@ -235,15 +235,6 @@ namespace jbcoe
           std::move(tmp.cb_));
     }
 
-    template <class U,
-              class V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
-                                         !is_polymorphic_value<U>::value>>
-    polymorphic_value(const U& u)
-        : cb_(std::make_unique<detail::direct_control_block<T, U>>(u))
-    {
-      ptr_ = cb_->ptr();
-    }
-
 
     //
     // Move-constructors
@@ -267,12 +258,16 @@ namespace jbcoe
       p.ptr_ = nullptr;
     }
 
+    //
+    // Forwarding constructor
+    //
+    
     template <class U,
-              class V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
+              class V = std::enable_if_t<std::is_convertible<std::decay_t<U>*, T*>::value &&
                                          !is_polymorphic_value<U>::value>>
     polymorphic_value(U&& u)
         : cb_(std::make_unique<detail::direct_control_block<T, U>>(
-              std::move(u)))
+              std::forward<U>(u)))
     {
       ptr_ = cb_->ptr();
     }
@@ -312,16 +307,6 @@ namespace jbcoe
       return *this;
     }
 
-    template <class U,
-              class V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
-                                         !is_polymorphic_value<U>::value>>
-    polymorphic_value& operator=(const U& u)
-    {
-      polymorphic_value tmp(u);
-      *this = std::move(tmp);
-      return *this;
-    }
-
 
     //
     // Move-assignment
@@ -352,12 +337,16 @@ namespace jbcoe
       return *this;
     }
 
+    //
+    // Forwarding assignment
+    //
+
     template <class U,
-              class V = std::enable_if_t<std::is_convertible<U*, T*>::value &&
+              class V = std::enable_if_t<std::is_convertible<std::decay_t<U>*, T*>::value &&
                                          !is_polymorphic_value<U>::value>>
     polymorphic_value& operator=(U&& u)
     {
-      polymorphic_value tmp(std::move(u));
+      polymorphic_value tmp(std::forward<U>(u));
       *this = std::move(tmp);
       return *this;
     }
