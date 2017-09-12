@@ -12,7 +12,7 @@ matrix:
         apt:
           sources: ['llvm-toolchain-precise-3.9', 'ubuntu-toolchain-r-test']
           packages: ['clang-3.9', 'g++-6']
-      env: COMPILER='clang++-3.8'
+      env: COMPILER='clang++-3.9'
 
     # 2/ Linux GCC Builds
     - os: linux
