@@ -505,12 +505,12 @@ as those in `p`.
 template <class U> polymorphic_value(U&& u);
 ```
 
-* _Remarks_: Let `V` be `std::remove_cv_t<std::remove_reference<U>>`. This
+* _Remarks_: Let `V` be `std::remove_cv_t<std::remove_reference_t<U>>`. This
   constructor does not participate in overload resolution unless `V*` is
   convertible to `T*`.
 
 * _Effects_: Constructs a `polymorphic_value` whose owned object  is allocated
-  with `new U(std::forward<U>(u))`.  The copier and deleter of the
+  with `new V(std::forward<U>(u))`.  The copier and deleter of the
   `polymorphic_value` constructed are `default_copy` and `default_delete`.
 
 ### X.Y.4 Class template `polymorphic_value` destructor [polymorphic_value.dtor]
