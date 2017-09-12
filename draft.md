@@ -545,7 +545,7 @@ The copy is created by the copier in `p`.  The copier and deleter of
 template <class U> polymorphic_value &operator=(U&& u);
 ```
 
-* _Remarks_: The second function does not participate in overload resolution
+* _Remarks_: This function does not participate in overload resolution
   if `U` is an instance of `polymorphic_value`.
 
 * _Effects_: the owned object of `*this` is allocated with `new
