@@ -1,5 +1,3 @@
-# Based on .travis.yml from https://github.com/philsquared/Catch
-
 language: cpp
 sudo: required
 dist: trusty
@@ -10,29 +8,13 @@ matrix:
     # 1/ Linux Clang Builds
     - os: linux
       compiler: clang
-      addons: &clang37
+      addons: &clang39
         apt:
-          sources: ['llvm-toolchain-precise-3.7', 'ubuntu-toolchain-r-test']
-          packages: ['clang-3.7', 'g++-6']
-      env: COMPILER='clang++-3.7'
-
-    - os: linux
-      compiler: clang
-      addons: &clang38
-        apt:
-          sources: ['llvm-toolchain-precise-3.8', 'ubuntu-toolchain-r-test']
-          packages: ['clang-3.8', 'g++-6']
-      env: COMPILER='clang++-3.8'
+          sources: ['llvm-toolchain-precise-3.9', 'ubuntu-toolchain-r-test']
+          packages: ['clang-3.9', 'g++-6']
+      env: COMPILER='clang++-3.9'
 
     # 2/ Linux GCC Builds
-    - os: linux
-      compiler: gcc
-      addons: &gcc5
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-5']
-      env: COMPILER='g++-5'
-
     - os: linux
       compiler: gcc
       addons: &gcc6
@@ -42,11 +24,6 @@ matrix:
       env: COMPILER='g++-6'
 
 #    # 3/ OSX Clang Builds
-#    - os: osx
-#      osx_image: xcode7
-#      compiler: clang
-#      env: COMPILER='clang++'
-#
 #    - os: osx
 #      osx_image: xcode8
 #      compiler: clang
