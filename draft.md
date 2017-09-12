@@ -546,9 +546,8 @@ template <class U> polymorphic_value &operator=(U&& u);
 ```
 
 * _Remarks_: Let `V` be `std::remove_cv_t<std::remove_reference_t<U>>`. This
-  function shall not participate in overload resolution unless
-  `std::remove_cv_t<std::remove_reference<U>>` is not a specialization of
-  `polymorphic_value` and .  `V*` is convertible to `T*`.
+  function shall not participate in overload resolution unless `V>` is not a
+  specialization of `polymorphic_value` and `V*` is convertible to `T*`.
 
 * _Effects_: the owned object of `*this` is allocated with `new
   V(std::forward<U>(u))`.  The copier and deleter constructed are
