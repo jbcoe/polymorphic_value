@@ -519,8 +519,8 @@ template <class U> polymorphic_value(U&& u);
 ~polymorphic_value();
 ```
 
-* _Effects_: `d(p)` is called if the `polymorphic_value` is non-empty. The copier
-  and deleter are destroyed.
+* _Effects_: If get() == nullptr there are no effects. Otherwise `d(p)` is
+  called and the copier and deleter are destroyed.
 
 ### X.Y.5 Class template `polymorphic_value` assignment [polymorphic_value.assignment]
 
