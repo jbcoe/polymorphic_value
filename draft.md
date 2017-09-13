@@ -292,10 +292,11 @@ We define the default copier in technical specifications below.
 
 
 ## Custom allocators
-Custom allocators are not explicitly supported by `polymorphic_value`. Since all
-memory allocation and deallocation performed by `polymorphic_value` is done by copying
-and deletion, any requirement for custom allocators can be handled by suitable
-choices for a custom copier and custom deleter.
+Custom allocators are not explicitly supported by `polymorphic_value`. 
+Additional constructor(s) along with custom copiers and deleters can be added
+to support custom allocators. The sepcification the the additional constructors
+and copiers would depend on whether the allocator is to be used for only
+internal use or for allocation of the managed object too.
 
 
 ## Design changes from `cloned_ptr`
@@ -360,9 +361,9 @@ T* operator()(const T& t) const;
 ### X.Y.1 Class template `polymorphic_value` general [polymorphic_value.general]
 
 A _polymorphic_value_ is an object that owns another object and manages that other
-object through a pointer. To manage the object a `polymorphic_value` has a
-copier and deleter that are used to copy and delete the owned object when
-required.
+object through a pointer. 
+
+Copying and deletion can be customised by supplying a copier and deleter.
 
 A `polymorphic_value` object is empty if it does not own a pointer.  
 
@@ -372,6 +373,8 @@ Copying from an empty `polymorphic_value` produces another empty
 The template parameter `T` of `polymorphic_value` may be an incomplete type.
 
 The template parameter `T` of `polymorphic_value` may not be an array type.
+
+The template parameter `T` of `polymorphic_value` may not be a function pointer.
 
 
 ### X.Y.2 Class template `polymorphic_value` synopsis [polymorphic_value.synopsis]
@@ -480,9 +483,9 @@ template <class U> polymorphic_value(const polymorphic_value<U> &p);
   resolution unless `U*` is convertible to `T*`.
 
 * _Effects_: Creates a `polymorphic_value` object that owns a copy of the object
-  managed by `p`. The copy is created by the copier in `p`.  The copier and
-  deleter of the `polymorphic_value` constructed are copied from those in
-  `p`.
+  managed by `p`. The copy is created by the copier in `p`.  
+  If `p` has a custom copier and deleter then the custom copier and deleter of
+  the `polymorphic_value` constructed are copied from those in `p`.
 
 * _Postconditions_:  `bool(*this) == bool(p)`.
 
@@ -495,9 +498,9 @@ template <class U> polymorphic_value(polymorphic_value<U> &&p);
 * _Remarks_: The second constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
 
-* _Effects_: Move-constructs a `polymorphic_value` instance from `p`.
-The copier and deleter of the `polymorphic_value` constructed are the same
-as those in `p`.
+* _Effects_: Move-constructs a `polymorphic_value` instance from `p`.  If `p`
+  has a custom copier and deleter then the copier and deleter of the
+  `polymorphic_value` constructed are the same as those in `p`.
 
 * _Postconditions_:  `*this` contains the old value of `p`. `p` is empty.
 
@@ -509,9 +512,8 @@ template <class U> polymorphic_value(U&& u);
   constructor shall not participate in overload resolution unless `V*` is
   convertible to `T*`.
 
-* _Effects_: Constructs a `polymorphic_value` whose owned object  is allocated
-  with `new V(std::forward<U>(u))`.  The copier and deleter of the
-  `polymorphic_value` constructed are `default_copy` and `default_delete`.
+* _Effects_: Constructs a `polymorphic_value` whose owned object is initialised
+  with `V(std::forward<U>(u))`.  
 
 ### X.Y.4 Class template `polymorphic_value` destructor [polymorphic_value.dtor]
 
@@ -519,8 +521,9 @@ template <class U> polymorphic_value(U&& u);
 ~polymorphic_value();
 ```
 
-* _Effects_: If get() == nullptr there are no effects. Otherwise `d(p)` is
-  called and the copier and deleter are destroyed.
+* _Effects_: If get() == nullptr there are no effects. If a custom deleter `d` is present then `d(p)` is
+  called and the copier and deleter are destroyed. Otherwise the destructor of
+  the managed object is called.
 
 ### X.Y.5 Class template `polymorphic_value` assignment [polymorphic_value.assignment]
 
@@ -532,9 +535,12 @@ template <class U> polymorphic_value &operator=(const polymorphic_value<U>& p);
 * _Remarks_: The second function shall not participate in overload resolution
   unless `U*` is convertible to `T*`.
 
-* _Effects_: `*this` owns a copy of the resource managed by `p`.
-The copy is created by the copier in `p`.  The copier and deleter of
-`*this` are copied from those in `p`.
+* _Effects_: `*this` owns a copy of the resource managed by `p`.  
+If `p` has a
+  custom copier and deleter then the copy is created by the copier in `p`, and
+  the copier and deleter of `*this` are copied from those in `p`. Otherwise the
+  resource managed by `*this` is initialised by the copy constructor of the
+  resource managed by `p`.
 
 * _Returns_: `*this`.
 
@@ -549,9 +555,8 @@ template <class U> polymorphic_value &operator=(U&& u);
   function shall not participate in overload resolution unless `V>` is not a
   specialization of `polymorphic_value` and `V*` is convertible to `T*`.
 
-* _Effects_: the owned object of `*this` is allocated with `new
-  V(std::forward<U>(u))`.  The copier and deleter constructed are
-  `default_copy` and `default_delete`.
+* _Effects_: the owned object of `*this` is initialised with
+  `V(std::forward<U>(u))`.  
 
 * _Returns_: `*this`.
 
@@ -568,7 +573,8 @@ template <class U> polymorphic_value &operator=(polymorphic_value<U> &&p);
   resolution unless `U*` is convertible to `T*`.
 
 * _Effects_: Ownership of the resource managed by `p` is transferred to `this`.
-The copier and deleter of `*this` is the same as those in `p`.
+  If `p` has a custom copier and deleter then the copier and deleter of `*this`
+  is the same as those in `p`.
 
 * _Returns_: `*this`.
 
@@ -625,7 +631,9 @@ template <class T, class ...Ts> polymorphic_value<T>
   make_polymorphic_value(Ts&& ...ts);
 ```
 
-* _Returns_: `polymorphic_value<T>(new T(std::forward<Ts>(ts)...)`;
+* _Returns_: A `polymorphic_value<T>` owning an object initialised with `T(std::forward<Ts>(ts)...)`. 
+
+[Note: Implementations are encouraged to avoid multiple allocations.]
 
 
 ### X.Y.9 Class template `polymorphic_value` specialized algorithms [polymorphic_value.spec]
@@ -640,9 +648,9 @@ void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
 
 ## Acknowledgements
 The authors would like to thank Maciej Bogus, Matthew Calbrese, Germán Diago,
-Louis Dionne, Bengt Gustafsson, David Krauss, Nevin Liber, Nathan Meyers, Roger
-Orr, Patrice Roy, Tony van Eerd and Ville Voutilainen for useful
-discussion.
+Louis Dionne, Bengt Gustafsson, David Krauss, Thomas Koeppe, Nevin Liber,
+Nathan Meyers, Roger Orr, Patrice Roy, Tony van Eerd and Ville Voutilainen for
+useful discussion.
 
 
 ## References
