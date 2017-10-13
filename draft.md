@@ -6,7 +6,7 @@ D0201R2
 
 Working Group: Library Evolution
 
-Date: 2016-11-12
+Date: 2017-10-13
 
 _Jonathan Coe \<jonathanbcoe@gmail.com\>_
 
@@ -27,6 +27,11 @@ Changes in P0201R2
 * Rename `std::default_copier` to `std::default_copy`.
 
 * Add notes on empty state and pointer constructor.
+
+* Add `bad_polymorphic_value_construction` exception when static and dynamic
+  type of pointee mismatch and no custom copier or deleter are supplied.
+
+* Add clarifying note to say that a small object optimisation is allowed.
 
 Changes in P0201R1
 
@@ -294,7 +299,7 @@ We define the default copier in technical specifications below.
 ## Custom allocators
 Custom allocators are not explicitly supported by `polymorphic_value`. 
 Additional constructor(s) along with custom copiers and deleters can be added
-to support custom allocators. The sepcification the the additional constructors
+to support custom allocators. The specification the the additional constructors
 and copiers would depend on whether the allocator is to be used for only
 internal use or for allocation of the managed object too.
 
@@ -330,14 +335,6 @@ the standard library header `<memory>`.
 
 ## X.X Class template `default_copy` [default.copy]
 
-### X.X.1 Class template `default_copy` general [default.copy.general]
-The class template `default_copy` serves as the default copier for the class
-template `polymorphic_value`.
-
-The template parameter `T` of `default_copy` may be an incomplete type.
-
-### X.X.2 Class template `default_copy` synopsis [default.copier.synopsis]
-
 ```
 namespace std {
 template <class T> struct default_copy {
@@ -347,14 +344,46 @@ template <class T> struct default_copy {
 } // namespace std
 ```
 
-### X.X.3 Class template `default_copy` [default.copier]
+The class template `default_copy` serves as the default copier for the class
+template `polymorphic_value`.
+
+The template parameter `T` of `default_copy` may be an incomplete type.
 
 ```
 T* operator()(const T& t) const;
 ```
 
 * _Returns_:  `new T(t)`.
-          
+
+## X.X Class `bad_polymorphic_value_construction` [bad_polymorphic_value_construction]
+
+```
+namespace std {
+class bad_polymorphic_value_construction : std::exception
+{
+  public:
+    bad_polymorphic_value_construction() noexcept;
+
+    const char* what() const noexcept override;
+};
+}
+```
+
+Objects of type `bad_polymorphic_value_construction` are thrown to report
+invalid construction of a `polymorphic_value` from a pointer argument.
+
+```
+bad_polymorphic_value_construction() noexcept;
+```
+
+* Constructs a `bad_polymorphic_value_construction` object.
+
+```
+const char* what() const noexcept override;
+```
+
+* _Returns_: An implementation-defined ntbs.
+
 
 ## X.Y Class template `polymorphic_value` [polymorphic_value]
 
@@ -376,6 +405,8 @@ The template parameter `T` of `polymorphic_value` may not be an array type.
 
 The template parameter `T` of `polymorphic_value` may not be a function pointer.
 
+[Note: Implementations are encouraged to avoid the use of dynamic memory for
+ownership of small objects.]
 
 ### X.Y.2 Class template `polymorphic_value` synopsis [polymorphic_value.synopsis]
 
@@ -463,12 +494,10 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
   and `T` must be the same type, or the dynamic and static type of `U` must be
   the same.
 
-* _Throws_: `bad_alloc`, or an implementation-defined exception when a resource
-  other than memory could not be obtained.
+* _Throws_: `bad_polymorphic_value_construction` if `C` is `default_copy<U>`,
+  `D` is `default_delete<U>` and `typeid(*u)!=typeid(U)`.  
 
 * _Postconditions_:  `bool(*this) == bool(p)`.
-
-* _Exception safety_: If an exception is thrown, `d(p)` is called.
 
 * _Remarks_: This constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
