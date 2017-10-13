@@ -25,6 +25,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define JBCOE_POLYMORPHIC_VALUE_H_INCLUDED
 
 #include <cassert>
+#include <exception>
 #include <memory>
 #include <type_traits>
 
@@ -143,6 +144,18 @@ namespace jbcoe
 
   } // end namespace detail
 
+  class bad_polymorphic_value_construction : std::exception
+  {
+    public:
+      bad_polymorphic_value_construction() noexcept = default;
+
+      const char* what() const noexcept override
+      {
+        return "Dynamic and static type mismatch in polymorphic_value "
+               "construction";
+      }
+  };
+
   template <class T>
   class polymorphic_value;
 
@@ -200,7 +213,14 @@ namespace jbcoe
         return;
       }
 
-      assert(typeid(*u) == typeid(U));
+      if(typeid(*u) != typeid(U))
+      {
+
+        if (std::is_same<D, detail::default_delete<U>>::value &&
+            std::is_same<C, detail::default_copy<U>>::value)
+          throw bad_polymorphic_value_construction();
+      }
+
       std::unique_ptr<U, D> p(u, std::move(deleter));
 
       cb_ = std::make_unique<detail::pointer_control_block<T, U, C, D>>(
