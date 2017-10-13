@@ -28,6 +28,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <exception>
 #include <memory>
 #include <type_traits>
+#include <typeinfo>
 
 namespace jbcoe
 {
@@ -213,13 +214,10 @@ namespace jbcoe
         return;
       }
 
-      if(typeid(*u) != typeid(U))
-      {
-
-        if (std::is_same<D, detail::default_delete<U>>::value &&
-            std::is_same<C, detail::default_copy<U>>::value)
-          throw bad_polymorphic_value_construction();
-      }
+      if (std::is_same<D, detail::default_delete<U>>::value &&
+          std::is_same<C, detail::default_copy<U>>::value &&
+          typeid(*u) != typeid(U))
+        throw bad_polymorphic_value_construction();
 
       std::unique_ptr<U, D> p(u, std::move(deleter));
 
