@@ -6,7 +6,7 @@ D0201R2
 
 Working Group: Library Evolution
 
-Date: 2017-10-13
+Date: 2017-15-13
 
 _Jonathan Coe \<jonathanbcoe@gmail.com\>_
 
@@ -55,14 +55,14 @@ Changes in P0201R1
 ## TL;DR
 
 Add a class template, `polymorphic_value<T>`, to the standard library to support
-free-store-allocated objects with value-like semantics.
+polymorphic objects with value-like semantics.
 
 ## Introduction
 
-The class template, `polymorphic_value`, confers value-like semantics on a free-store
-allocated object.  A `polymorphic_value<T>` may hold an object of a class publicly
-derived from T, and copying the `polymorphic_value<T>` will copy the object of the derived
-type.
+The class template, `polymorphic_value`, confers value-like semantics on a
+free-store allocated object.  A `polymorphic_value<T>` may hold an object of a
+class publicly derived from T, and copying the `polymorphic_value<T>` will copy
+the object of the derived type.
 
 ## Motivation: Composite objects
 
@@ -262,6 +262,15 @@ method `make_polymorphic_value`.
 Static analysis tools can be written to find cases where static and dynamic
 types for pointers passed in to `polymorphic_value` constructors are not
 provably identical.
+
+If the user has not supplied a custom copier or deleter, an exception
+`bad_polymorphic_value_construction` is thrown from the pointer-constructor if
+the dynamic and static types of the pointer argument do not agree.
+In cases where the user has supplied a custom copier or deleter it is assumed
+that they will do so to avoid slicing and incomplete destruction: a class
+heirarchy with a custom `Clone` method and virtual desctructor would make use
+of `Clone` in a user-supplied copier.
+
 
 ## Empty state
 `polymorphic_value` presents an empty state as it is desirable for it to be
