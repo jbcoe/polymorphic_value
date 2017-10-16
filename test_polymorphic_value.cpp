@@ -837,3 +837,12 @@ TEST_CASE("polymorphic_value dynamic and static type mismatch is not a problem "
   }());
 }
 
+TEST_CASE("Dangling reference in forwarding constructor", "[polymorphic_value.constructors]")
+{
+  int x = 7;
+  int& rx = x;
+  polymorphic_value<int> p(rx);
+  
+  x = 6;
+  CHECK(*p == 7);
+}
