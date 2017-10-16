@@ -1,4 +1,4 @@
-# A polymorphic value-type for `C++`
+A polymorphic value-type for `C++`
 
 ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
@@ -294,15 +294,22 @@ const char* what() const noexcept override;
 
 ### X.Z.1 Class template `polymorphic_value` general [polymorphic_value.general]
 
-A _polymorphic_value_ is an object that owns another object and manages that other
-object through a pointer. 
-
-Copying and deletion can be customised by supplying a copier and deleter.
+A _polymorphic_value_ is an object that owns another object and manages that
+other object through a pointer. More precisely, a `polymorphic value` is an
+object `v` that stores a pointer to a second object `p` and will dispose of `p`
+when `v` is itself destroyed (e.g., when leaving block scope (9.7)). In this
+context, `v` is said to own `p`.
 
 A `polymorphic_value` object is empty if it does not own a pointer.  
 
+Copying a non-empty `polymorphic_value` will copy the owned object so that the
+copied `polymorphic_value` will have its own unique copy of the owned object.
+
 Copying from an empty `polymorphic_value` produces another empty
 `polymorphic_value`.
+
+Copying and disposal of the owned object can be customised by supplying a
+copier and deleter.
 
 The template parameter `T` of `polymorphic_value` may be an incomplete type.
 
@@ -399,13 +406,16 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
   and `T` must be the same type, or the dynamic and static type of `U` must be
   the same.
 
-* _Throws_: `bad_polymorphic_value_construction` if `C` is `default_copy<U>`,
-  `D` is `default_delete<U>` and `typeid(*u)!=typeid(U)`.  
+* _Throws_: `bad_polymorphic_value_construction` if `std::is_same<C,
+  default_copy<U>>::value`, `std::is_same<D, default_delete<U>>::value` and
+  `typeid(*u)!=typeid(U)`.  
 
 * _Postconditions_:  `bool(*this) == bool(p)`.
 
 * _Remarks_: This constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
+  A custom copier and deleter are said to be 'present' in a `polymorphic_value`
+  initialised with this constructor.
 
 
 ```
@@ -526,35 +536,29 @@ void swap(polymorphic_value<T>& p) noexcept;
 
 ### X.Z.7 Class template `polymorphic_value` observers [polymorphic_value.observers]
 
-```const T& operator*() const;```
+```
+const T& operator*() const;
+T& operator*();
+```
 
 * _Requires_: `bool(*this)`.
 
 * _Returns_: A reference to the owned object.
 
 
-```const T* operator->() const;```
+```
+const T* operator->() const;
+T* operator->();
+```
 
 * _Requires_: `bool(*this)`.
 
 * _Returns_: A pointer to the owned object.
 
 
-```T& operator*();```
-
-* _Requires_: `bool(*this)`.
-
-* _Returns_: A reference to the owned object.
-
-
-```T* operator->();```
-
-* _Requires_: `bool(*this)`.
-
-* _Returns_: A pointer to the owned object.
-
-
-```explicit operator bool() const noexcept;```
+```
+explicit operator bool() const noexcept;
+```
 
 * _Returns_: `false` if the `polymorphic_value` is empty, otherwise `true`.
 
