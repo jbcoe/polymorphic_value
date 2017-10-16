@@ -1,8 +1,8 @@
-A polymorphic value-type for `C++`
+# A polymorphic value-type for `C++`
 
 ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
-D0201R3
+P0201R2
 
 Working Group: Library Evolution
 
