@@ -717,7 +717,8 @@ TEST_CASE("Exception safety: throw in copy constructor", "[polymorphic_value.exc
     THEN("When copying to another polymorphic_value, after an exception, the source remains valid")
     {
       Tracked::reset_counts();
-      REQUIRE_THROWS_AS(polymorphic_value<ThrowsOnCopy> another = cptr, std::runtime_error);
+      polymorphic_value<ThrowsOnCopy> another;
+      REQUIRE_THROWS_AS(another = cptr, std::runtime_error);
       REQUIRE(cptr->value_ == v);
       REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
     }
@@ -784,5 +785,72 @@ TEST_CASE("polymorphic_value<const T>", "[polymorphic_value.compatible_types]")
   // Will not compile as p is polymorphic_value<const DerivedType> not
   // polymorphic_value<DerivedType>
   // p->set_value(42);
+}
+
+class DeeplyDerivedType : public DerivedType
+{
+public:
+  DeeplyDerivedType() : DerivedType(0)
+  {
+  }
+};
+
+TEST_CASE("polymorphic_value dynamic and static type mismatch",
+          "[polymorphic_value.construction]")
+{
+  DeeplyDerivedType dd;
+  DerivedType* p = &dd;
+
+  CHECK(typeid(*p) != typeid(DerivedType));
+
+  bool exception_caught = false;
+  try
+  {
+    auto pv = polymorphic_value<BaseType>(p);
+  }
+  catch (const bad_polymorphic_value_construction&)
+  {
+    exception_caught = true;
+  }
+  // FIXME: use catch macros to check for thrown exceptions.
+  REQUIRE(exception_caught);
+}
+
+struct fake_copy
+{
+  template <class T>
+  DerivedType* operator()(const T& b) const
+  {
+    return nullptr;
+  }
+};
+
+struct no_deletion
+{
+  void operator()(const void*) const
+  {
+  }
+};
+
+TEST_CASE("polymorphic_value dynamic and static type mismatch is not a problem "
+          "with custom copier or deleter",
+          "[polymorphic_value.construction]")
+{
+  DeeplyDerivedType dd;
+  DerivedType* p = &dd;
+
+  CHECK(typeid(*p) != typeid(DerivedType));
+
+  bool exception_caught = false;
+  try
+  {
+    auto pv = polymorphic_value<BaseType>(p, fake_copy{}, no_deletion{});
+  }
+  catch (const bad_polymorphic_value_construction&)
+  {
+    exception_caught = true;
+  }
+  // FIXME: use catch macros to check for thrown exceptions.
+  REQUIRE_FALSE(exception_caught);
 }
 
