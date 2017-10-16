@@ -803,17 +803,8 @@ TEST_CASE("polymorphic_value dynamic and static type mismatch",
 
   CHECK(typeid(*p) != typeid(DerivedType));
 
-  bool exception_caught = false;
-  try
-  {
-    auto pv = polymorphic_value<BaseType>(p);
-  }
-  catch (const bad_polymorphic_value_construction&)
-  {
-    exception_caught = true;
-  }
-  // FIXME: use catch macros to check for thrown exceptions.
-  REQUIRE(exception_caught);
+  CHECK_THROWS_AS([p] { return polymorphic_value<BaseType>(p); }(),
+                  bad_polymorphic_value_construction);
 }
 
 struct fake_copy
@@ -841,16 +832,8 @@ TEST_CASE("polymorphic_value dynamic and static type mismatch is not a problem "
 
   CHECK(typeid(*p) != typeid(DerivedType));
 
-  bool exception_caught = false;
-  try
-  {
-    auto pv = polymorphic_value<BaseType>(p, fake_copy{}, no_deletion{});
-  }
-  catch (const bad_polymorphic_value_construction&)
-  {
-    exception_caught = true;
-  }
-  // FIXME: use catch macros to check for thrown exceptions.
-  REQUIRE_FALSE(exception_caught);
+  CHECK_NOTHROW([p] {
+    return polymorphic_value<BaseType>(p, fake_copy{}, no_deletion{});
+  }());
 }
 
