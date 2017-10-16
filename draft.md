@@ -260,7 +260,7 @@ T* operator()(const T& t) const;
 
 * _Returns_:  `new T(t)`.
 
-## X.X Class `bad_polymorphic_value_construction` [bad_polymorphic_value_construction]
+## X.Y Class `bad_polymorphic_value_construction` [bad_polymorphic_value_construction]
 
 ```
 namespace std {
@@ -290,9 +290,9 @@ const char* what() const noexcept override;
 * _Returns_: An implementation-defined ntbs.
 
 
-## X.Y Class template `polymorphic_value` [polymorphic_value]
+## X.Z Class template `polymorphic_value` [polymorphic_value]
 
-### X.Y.1 Class template `polymorphic_value` general [polymorphic_value.general]
+### X.Z.1 Class template `polymorphic_value` general [polymorphic_value.general]
 
 A _polymorphic_value_ is an object that owns another object and manages that other
 object through a pointer. 
@@ -313,7 +313,7 @@ The template parameter `T` of `polymorphic_value` may not be a function pointer.
 [Note: Implementations are encouraged to avoid the use of dynamic memory for
 ownership of small objects.]
 
-### X.Y.2 Class template `polymorphic_value` synopsis [polymorphic_value.synopsis]
+### X.Z.2 Class template `polymorphic_value` synopsis [polymorphic_value.synopsis]
 
 ```
 namespace std {
@@ -372,7 +372,7 @@ template<class T>
 ```
 
 
-### X.Y.3 Class template `polymorphic_value` constructors [polymorphic_value.ctor]
+### X.Z.3 Class template `polymorphic_value` constructors [polymorphic_value.ctor]
 
 ```
 constexpr polymorphic_value() noexcept;
@@ -449,7 +449,7 @@ template <class U> polymorphic_value(U&& u);
 * _Effects_: Constructs a `polymorphic_value` whose owned object is initialised
   with `V(std::forward<U>(u))`.  
 
-### X.Y.4 Class template `polymorphic_value` destructor [polymorphic_value.dtor]
+### X.Z.4 Class template `polymorphic_value` destructor [polymorphic_value.dtor]
 
 ```
 ~polymorphic_value();
@@ -459,7 +459,7 @@ template <class U> polymorphic_value(U&& u);
   called and the copier and deleter are destroyed. Otherwise the destructor of
   the managed object is called.
 
-### X.Y.5 Class template `polymorphic_value` assignment [polymorphic_value.assignment]
+### X.Z.5 Class template `polymorphic_value` assignment [polymorphic_value.assignment]
 
 ```
 polymorphic_value &operator=(const polymorphic_value &p);
@@ -515,7 +515,7 @@ template <class U> polymorphic_value &operator=(polymorphic_value<U> &&p);
 * _Postconditions_:  `*this` contains the old value of `p`. `p` is empty.
 
 
-### X.Y.6 Class template `polymorphic_value` modifiers [polymorphic_value.modifiers]
+### X.Z.6 Class template `polymorphic_value` modifiers [polymorphic_value.modifiers]
 
 ```
 void swap(polymorphic_value<T>& p) noexcept;
@@ -524,7 +524,7 @@ void swap(polymorphic_value<T>& p) noexcept;
 * _Effects_: Exchanges the contents of `p` and `*this`.
 
 
-### X.Y.7 Class template `polymorphic_value` observers [polymorphic_value.observers]
+### X.Z.7 Class template `polymorphic_value` observers [polymorphic_value.observers]
 
 ```const T& operator*() const;```
 
@@ -558,7 +558,7 @@ void swap(polymorphic_value<T>& p) noexcept;
 
 * _Returns_: `false` if the `polymorphic_value` is empty, otherwise `true`.
 
-### X.Y.8 Class template `polymorphic_value` creation [polymorphic_value.creation]
+### X.Z.8 Class template `polymorphic_value` creation [polymorphic_value.creation]
 
 ```
 template <class T, class ...Ts> polymorphic_value<T>
@@ -570,7 +570,7 @@ template <class T, class ...Ts> polymorphic_value<T>
 [Note: Implementations are encouraged to avoid multiple allocations.]
 
 
-### X.Y.9 Class template `polymorphic_value` specialized algorithms [polymorphic_value.spec]
+### X.Z.9 Class template `polymorphic_value` specialized algorithms [polymorphic_value.spec]
 
 ```
 template <typename T>
