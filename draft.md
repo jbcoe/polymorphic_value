@@ -6,7 +6,7 @@ D0201R2
 
 Working Group: Library Evolution
 
-Date: 2017-15-13
+Date: 2017-10-16
 
 _Jonathan Coe \<jonathanbcoe@gmail.com\>_
 
