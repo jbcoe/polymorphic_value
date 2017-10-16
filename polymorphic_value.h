@@ -71,6 +71,7 @@ namespace jbcoe
     template <class T, class U = T>
     class direct_control_block : public control_block<T>
     {
+      static_assert(!std::is_reference<U>::value, "");
       U u_;
 
     public:
@@ -279,12 +280,13 @@ namespace jbcoe
     //
     // Forwarding constructor
     //
-    
-    template <class U,
-              class V = std::enable_if_t<std::is_convertible<std::decay_t<U>*, T*>::value &&
-                                         !is_polymorphic_value<U>::value>>
+
+    template <class U, class V = std::enable_if_t<
+                           std::is_convertible<std::decay_t<U>*, T*>::value &&
+                           !is_polymorphic_value<std::decay_t<U>>::value>>
     polymorphic_value(U&& u)
-        : cb_(std::make_unique<detail::direct_control_block<T, U>>(
+        : cb_(std::make_unique<
+              detail::direct_control_block<T, std::decay_t<U>>>(
               std::forward<U>(u)))
     {
       ptr_ = cb_->ptr();
@@ -361,7 +363,7 @@ namespace jbcoe
 
     template <class U,
               class V = std::enable_if_t<std::is_convertible<std::decay_t<U>*, T*>::value &&
-                                         !is_polymorphic_value<U>::value>>
+                                         !is_polymorphic_value<std::decay_t<U>>::value>>
     polymorphic_value& operator=(U&& u)
     {
       polymorphic_value tmp(std::forward<U>(u));
