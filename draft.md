@@ -72,13 +72,121 @@ other composite classes.
 
 We can write a simple composite object formed from two components as follows:
 
+    // Simple composite
+    class CompositeObject_1 {
+      Component1 c1_;
+      Component2 c2_;
+
+     public:
+      CompositeObject_1(const Component1& c1,
+                        const Component2& c2) :
+                        c1_(c1), c2_(c2) {}
+
+      void foo() { c1_.foo(); }
+      void bar() { c2_.bar(); }
+    };
+
+The composite object can be made more flexible by storing pointers to objects
+allowing it to take derived components in its constructor.  (We store pointers
+to the components rather than references so that we can take ownership of
+them).
+
+    // Non-copyable composite with polymorphic components (BAD)
+    class CompositeObject_2 {
+      IComponent1* c1_;
+      IComponent2* c2_;
+
+     public:
+      CompositeObject_2(const IComponent1* c1,
+                        const IComponent2* c2) :
+                        c1_(c1), c2_(c2) {}
+
+      void foo() { c1_->foo(); }
+      void bar() { c2_->bar(); }
+
+      CompositeObject_2(const CompositeObject_2&) = delete;
+      CompositeObject_2& operator=(const CompositeObject_2&) = delete;
+
+      CompositeObject_2(CompositeObject_2&& o) : c1_(o.c1_), c2_(o.c2_) {
+        o.c1_ = nullptr;
+        o.c2_ = nullptr;
+      }
+
+      CompositeObject_2& operator=(CompositeObject_2&& o) {
+        delete c1_;
+        delete c2_;
+        c1_ = o.c1_;
+        c2_ = o.c2_;
+        o.c1_ = nullptr;
+        o.c2_ = nullptr;
+      }
+
+      ~CompositeObject_2()
+      {
+        delete c1_;
+        delete c2_;
+      }
+    };
+
+`CompositeObject_2`'s constructor API is unclear without knowing that the class
+takes ownership of the objects. We are forced to explicitly suppress the
+compiler-generated copy constructor and copy assignment operator to avoid
+double-deletion of the components `c1_` and `c2_`. We also need to write a move
+constructor and move assignment operator.
+
+Using `unique_ptr` makes ownership clear and saves us writing or deleting
+compiler generated methods:
+
+    // Non-copyable composite with polymorphic components
+    class CompositeObject_3 {
+      std::unique_ptr<IComponent1> c1_;
+      std::unique_ptr<IComponent2> c2_;
+
+     public:
+      CompositeObject_3(std::unique_ptr<IComponent1> c1,
+                        std::unique_ptr<IComponent2> c2) :
+                        c1_(std::move(c1)), c2_(std::move(c2)) {}
+
+      void foo() { c1_->foo(); }
+      void bar() { c2_->bar(); }
+    };
+
+The design of `CompositeObject_3` is good unless we want to copy the object.
+
+We can avoid having to define our own copy constructor by using shared
+pointers.  As `shared-ptr`'s copy constructor is shallow, we need to modify the
+component pointers to be pointers-to `const` to avoid introducing shared mutable
+state [S.Parent].
+
+    // Copyable composite with immutable polymorphic components class
+    class CompositeObject_4 {
+      std::shared_ptr<const IComponent1> c1_;
+      std::shared_ptr<const IComponent2> c2_;
+
+     public:
+      CompositeObject_4(std::shared_ptr<const IComponent1> c1,
+                        std::shared_ptr<const IComponent2> c2) :
+                        c1_(std::move(c1)), c2_(std::move(c2)) {}
+
+      void foo() { c1_->foo(); }
+      void bar() { c2_->bar(); }
+    };
+
+`CompositeObject_4` has polymorphism and compiler-generated destructor, copy,
+move and assignment operators. As long as the components are not mutated, this
+design is good. If non-const methods of components are used then this won't
+compile.
+
+Using `polymorphic_value` a copyable composite object with polymorphic components can be
+written as:
+
     // Copyable composite with mutable polymorphic components
-    class CompositeObject {
+    class CompositeObject_5 {
       std::polymorphic_value<IComponent1> c1_;
       std::polymorphic_value<IComponent2> c2_;
 
      public:
-      CompositeObject(std::polymorphic_value<IComponent1> c1,
+      CompositeObject_5(std::polymorphic_value<IComponent1> c1,
                         std::polymorphic_value<IComponent2> c2) :
                         c1_(std::move(c1)), c2_(std::move(c2)) {}
 
@@ -88,12 +196,10 @@ We can write a simple composite object formed from two components as follows:
 
 The component `c1_` can be constructed from an instance of any class that
 inherits from `IComponent1`.  Similarly, `c2_` can be constructed from an
-instance of any class that inherits from `IComponent2`.  The compiler-generated
-` compiler-generated destructor, copy, move, and assignment operators of
-`CompositeObject` behave correctly.  In addition to enabling
-compiler-generation of functions for composite objects, `polymorphic_value`
-performs deep copies of `c1_` and `c2_` without the class author needing to
-provide a special 'clone' method.
+instance of any class that inherits from `IComponent2`.  
+
+`CompositeObject_5` has a (correct) compiler-generated destructor, copy, move,
+and assignment operators. 
 
 ## Deep copies
 
