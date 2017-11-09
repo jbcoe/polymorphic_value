@@ -717,9 +717,9 @@ void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
 
 ## Acknowledgements
 The authors would like to thank Maciej Bogus, Matthew Calbrese, Germán Diago,
-Louis Dionne, Bengt Gustafsson, David Krauss, Thomas Koeppe, Nevin Liber,
-Nathan Meyers, Roger Orr, Patrice Roy, Tony van Eerd and Ville Voutilainen for
-useful discussion.
+Louis Dionne, Bengt Gustafsson, Tomasz Kamiński, David Krauss, Thomas Koeppe,
+Nevin Liber, Nathan Meyers, Roger Orr, Patrice Roy, Tony van Eerd and Ville
+Voutilainen for useful discussion.
 
 
 ## References
