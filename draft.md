@@ -14,6 +14,10 @@ _Sean Parent \<sparent@adobe.com\>_
 
 ## Change history
 
+Changes in D0201R3
+
+* Add rationale for absence of allocator support.
+
 Changes in P0201R2
 
 * Change name to `polymorphic_value`.
@@ -307,12 +311,19 @@ The default deleter is already defined by the standard library and used by
 We define the default copier in technical specifications below. 
 
 
-## Custom allocators
-Custom allocators are not explicitly supported by `polymorphic_value`. 
-Additional constructor(s) along with custom copiers and deleters can be added
-to support custom allocators. The specification the the additional constructors
-and copiers would depend on whether the allocator is to be used for only
-internal use or for allocation of the managed object too.
+## Allocator Support
+
+The design of `polymorphic_value` is similar to that of `std::any` which does
+not have support for allocators.
+
+`polymorphic_value`, like `std::any` and `std::function` is implemented in
+terms of type-erasure. There are technical issues with storing an allocator in
+a type-erased context and recovering it later for allocations needed during
+copy assignment [P0302r1].
+
+Until such technical obstacles can be overcome, `polymorphic_value` will follow
+the design of `std::any` and `std::function` (post C++17)  and will not support
+allocators. 
 
 
 ## Design changes from `cloned_ptr`
@@ -417,11 +428,9 @@ Copying from an empty `polymorphic_value` produces another empty
 Copying and disposal of the owned object can be customised by supplying a
 copier and deleter.
 
+The template parameter `T` of `polymorphic_value` must be a non-union class type.
+
 The template parameter `T` of `polymorphic_value` may be an incomplete type.
-
-The template parameter `T` of `polymorphic_value` may not be an array type.
-
-The template parameter `T` of `polymorphic_value` may not be a function pointer.
 
 [Note: Implementations are encouraged to avoid the use of dynamic memory for
 ownership of small objects.]
@@ -435,17 +444,17 @@ template <class T> class polymorphic_value {
   using element_type = T;
 
   // Constructors
-  constexpr polymorphic_value() noexcept; // see below
+  constexpr polymorphic_value() noexcept;
 
   template <class U, class C=default_copy<U>, class D=default_delete<U>> 
-    explicit polymorphic_value(U* p, C c=C{}, D d=D{}); // see below
+    explicit polymorphic_value(U* p, C c=C{}, D d=D{});
   
   polymorphic_value(const polymorphic_value& p);
-  template <class U> polymorphic_value(const polymorphic_value<U>& p); // see below
+  template <class U> polymorphic_value(const polymorphic_value<U>& p);
   polymorphic_value(polymorphic_value&& p) noexcept;
-  template <class U> polymorphic_value(polymorphic_value<U>&& p); // see below
+  template <class U> polymorphic_value(polymorphic_value<U>&& p);
   
-  template <class U> polymorphic_value(U&& u); // see below
+  template <class U> polymorphic_value(U&& u);
 
   // Destructor
   ~polymorphic_value();
@@ -453,13 +462,13 @@ template <class T> class polymorphic_value {
   // Assignment
   polymorphic_value &operator=(const polymorphic_value& p);
   template <class U> 
-    polymorphic_value& operator=(const polymorphic_value<U>& p); // see below
+    polymorphic_value& operator=(const polymorphic_value<U>& p);
   polymorphic_value &operator=(polymorphic_value &&p) noexcept;
   template <class U> 
-    polymorphic_value& operator=(polymorphic_value<U>&& p); // see below
+    polymorphic_value& operator=(polymorphic_value<U>&& p);
   
   template <class U> 
-    polymorphic_value& operator=(U&& u); // see below
+    polymorphic_value& operator=(U&& u);
   
 
   // Modifiers
@@ -475,7 +484,7 @@ template <class T> class polymorphic_value {
 
 // polymorphic_value creation
 template <class T, class ...Ts> polymorphic_value<T>
-  make_polymorphic_value(Ts&& ...ts); // see below
+  make_polymorphic_value(Ts&& ...ts);
 
 // polymorphic_value specialized algorithms
 template<class T>
@@ -708,4 +717,7 @@ W.E.Brown, 2012
 
 [Impl] Reference implementation: `polymorphic_value`, J.B.Coe  
 ```<https://github.com/jbcoe/polymorphic_value>```
+
+[P0302r1] "Removing Allocator support in std::function", Jonathan Wakely
+```<http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0302r1.html>```
 
