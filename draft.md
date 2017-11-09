@@ -200,10 +200,10 @@ written as:
 
 The component `c1_` can be constructed from an instance of any class that
 inherits from `IComponent1`.  Similarly, `c2_` can be constructed from an
-instance of any class that inherits from `IComponent2`.  
+instance of any class that inherits from `IComponent2`.
 
 `CompositeObject_5` has a (correct) compiler-generated destructor, copy, move,
-and assignment operators. 
+and assignment operators.
 
 ## Deep copies
 
@@ -243,7 +243,7 @@ and/or deleter. The `polymorphic_value` constructed in this manner takes
 ownership of the pointer. This constructor is potentially dangerous as a
 mismatch in the dynamic and static type of the pointer will result in
 incorrectly synthesized copiers and deleters, potentially resulting in slicing
-when copying and incomplete deletion during destruction. 
+when copying and incomplete deletion during destruction.
 
 ```
 class Base { /* methods and members */ };
@@ -263,7 +263,7 @@ While this is potentially error prone, we have elected to trust users with the
 tools they are given. `shared_ptr` and `unique_ptr` have similar constructors
 and issues.  There are more constructors for `polymorphic_value` of a less
 expert-friendly nature that do not present such dangers including a factory
-method `make_polymorphic_value`. 
+method `make_polymorphic_value`.
 
 Static analysis tools can be written to find cases where static and dynamic
 types for pointers passed in to `polymorphic_value` constructors are not
@@ -303,12 +303,12 @@ For a given user-defined type `T` the user is free to specialize
 The resource management performed by `polymorphic_value` - copying and destruction of
 the managed object - can be customized by supplying a _copier_ and _deleter_.
 If no copier or deleter is supplied then a default copier or deleter will be
-used. 
+used.
 
 The default deleter is already defined by the standard library and used by
 `unique_ptr`.
 
-We define the default copier in technical specifications below. 
+We define the default copier in technical specifications below.
 
 
 ## Allocator Support
@@ -323,7 +323,7 @@ copy assignment [P0302r1].
 
 Until such technical obstacles can be overcome, `polymorphic_value` will follow
 the design of `std::any` and `std::function` (post C++17)  and will not support
-allocators. 
+allocators.
 
 
 ## Design changes from `cloned_ptr`
@@ -350,7 +350,7 @@ composed (`propagate_const`, `cloned_ptr`)?]
 
 ## Impact on the standard
 This proposal is a pure library extension. It requires additions to be made to
-the standard library header `<memory>`. 
+the standard library header `<memory>`.
 
 
 ## Technical specifications
@@ -417,7 +417,7 @@ object `v` that stores a pointer to a second object `p` and will dispose of `p`
 when `v` is itself destroyed (e.g., when leaving block scope (9.7)). In this
 context, `v` is said to own `p`.
 
-A `polymorphic_value` object is empty if it does not own a pointer.  
+A `polymorphic_value` object is empty if it does not own a pointer.
 
 Copying a non-empty `polymorphic_value` will copy the owned object so that the
 copied `polymorphic_value` will have its own unique copy of the owned object.
@@ -446,14 +446,14 @@ template <class T> class polymorphic_value {
   // Constructors
   constexpr polymorphic_value() noexcept;
 
-  template <class U, class C=default_copy<U>, class D=default_delete<U>> 
+  template <class U, class C=default_copy<U>, class D=default_delete<U>>
     explicit polymorphic_value(U* p, C c=C{}, D d=D{});
-  
+
   polymorphic_value(const polymorphic_value& p);
   template <class U> polymorphic_value(const polymorphic_value<U>& p);
   polymorphic_value(polymorphic_value&& p) noexcept;
   template <class U> polymorphic_value(polymorphic_value<U>&& p);
-  
+
   template <class U> polymorphic_value(U&& u);
 
   // Destructor
@@ -461,15 +461,15 @@ template <class T> class polymorphic_value {
 
   // Assignment
   polymorphic_value &operator=(const polymorphic_value& p);
-  template <class U> 
+  template <class U>
     polymorphic_value& operator=(const polymorphic_value<U>& p);
   polymorphic_value &operator=(polymorphic_value &&p) noexcept;
-  template <class U> 
+  template <class U>
     polymorphic_value& operator=(polymorphic_value<U>&& p);
-  
-  template <class U> 
+
+  template <class U>
     polymorphic_value& operator=(U&& u);
-  
+
 
   // Modifiers
   void swap(polymorphic_value<T>& p) noexcept;
@@ -506,7 +506,7 @@ constexpr polymorphic_value() noexcept;
 
 
 ```
-template <class U, class C=default_copy<U>, class D=default_delete<U>> 
+template <class U, class C=default_copy<U>, class D=default_delete<U>>
   explicit polymorphic_value(U* p, C c=C{}, D d=D{});
 ```
 
@@ -515,7 +515,7 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
   constructed is moved from `c` and `d`.
 
 * _Requires_: `C` and `D` are copy constructible, nothrow destructible and
-  nothrow moveable.  If `p` is non-null then the expression `c(*p)` 
+  nothrow moveable.  If `p` is non-null then the expression `c(*p)`
   returns an object of type `U*`. The expression `d(p)` is well formed,
   has well defined behavior, and does not throw exceptions.  Either `U`
   and `T` must be the same type, or the dynamic and static type of `U` must be
@@ -523,7 +523,7 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 
 * _Throws_: `bad_polymorphic_value_construction` if `std::is_same<C,
   default_copy<U>>::value`, `std::is_same<D, default_delete<U>>::value` and
-  `typeid(*u)!=typeid(U)`.  
+  `typeid(*u)!=typeid(U)`; `bad_alloc` if required storage cannot be obtained.
 
 * _Postconditions_:  `bool(*this) == bool(p)`.
 
@@ -542,9 +542,12 @@ template <class U> polymorphic_value(const polymorphic_value<U> &p);
   resolution unless `U*` is convertible to `T*`.
 
 * _Effects_: Creates a `polymorphic_value` object that owns a copy of the object
-  managed by `p`. The copy is created by the copier in `p`.  
+  managed by `p`. The copy is created by the copier in `p`.
   If `p` has a custom copier and deleter then the custom copier and deleter of
   the `polymorphic_value` constructed are copied from those in `p`.
+
+* _Throws_: Any exception thrown by the copier or `bad_alloc` if required
+  storage cannot be obtained.
 
 * _Postconditions_:  `bool(*this) == bool(p)`.
 
@@ -561,6 +564,8 @@ template <class U> polymorphic_value(polymorphic_value<U> &&p);
   has a custom copier and deleter then the copier and deleter of the
   `polymorphic_value` constructed are the same as those in `p`.
 
+* _Throws_: `bad_alloc` if required storage cannot be obtained.
+
 * _Postconditions_:  `*this` contains the old value of `p`. `p` is empty.
 
 ```
@@ -572,7 +577,10 @@ template <class U> polymorphic_value(U&& u);
   convertible to `T*`.
 
 * _Effects_: Constructs a `polymorphic_value` whose owned object is initialised
-  with `V(std::forward<U>(u))`.  
+  with `V(std::forward<U>(u))`.
+
+* _Throws_: Any exception thrown by the selected constructor of `V` or
+  `bad_alloc` if required storage cannot be obtained.
 
 ### X.Z.4 Class template `polymorphic_value` destructor [polymorphic_value.dtor]
 
@@ -594,12 +602,15 @@ template <class U> polymorphic_value &operator=(const polymorphic_value<U>& p);
 * _Remarks_: The second function shall not participate in overload resolution
   unless `U*` is convertible to `T*`.
 
-* _Effects_: `*this` owns a copy of the resource managed by `p`.  
+* _Effects_: `*this` owns a copy of the resource managed by `p`.
 If `p` has a
   custom copier and deleter then the copy is created by the copier in `p`, and
   the copier and deleter of `*this` are copied from those in `p`. Otherwise the
   resource managed by `*this` is initialised by the copy constructor of the
   resource managed by `p`.
+
+* _Throws_: Any exception thrown by the copier or `bad_alloc` if required
+  storage cannot be obtained.
 
 * _Returns_: `*this`.
 
@@ -615,7 +626,10 @@ template <class U> polymorphic_value &operator=(U&& u);
   specialization of `polymorphic_value` and `V*` is convertible to `T*`.
 
 * _Effects_: the owned object of `*this` is initialised with
-  `V(std::forward<U>(u))`.  
+  `V(std::forward<U>(u))`.
+
+* _Throws_: Any exception thrown by the selected constructor of `V` or
+  `bad_alloc` if required storage cannot be obtained.
 
 * _Returns_: `*this`.
 
@@ -634,6 +648,8 @@ template <class U> polymorphic_value &operator=(polymorphic_value<U> &&p);
 * _Effects_: Ownership of the resource managed by `p` is transferred to `this`.
   If `p` has a custom copier and deleter then the copier and deleter of `*this`
   is the same as those in `p`.
+
+* _Throws_: `bad_alloc` if required storage cannot be obtained.
 
 * _Returns_: `*this`.
 
@@ -684,7 +700,7 @@ template <class T, class ...Ts> polymorphic_value<T>
   make_polymorphic_value(Ts&& ...ts);
 ```
 
-* _Returns_: A `polymorphic_value<T>` owning an object initialised with `T(std::forward<Ts>(ts)...)`. 
+* _Returns_: A `polymorphic_value<T>` owning an object initialised with `T(std::forward<Ts>(ts)...)`.
 
 [Note: Implementations are encouraged to avoid multiple allocations.]
 
@@ -708,16 +724,15 @@ useful discussion.
 
 ## References
 
-[N3339] "A Preliminary Proposal for a Deep-Copying Smart Pointer",  
-W.E.Brown, 2012  
+[N3339] "A Preliminary Proposal for a Deep-Copying Smart Pointer", W.E.Brown, 2012 
 ```<http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3339.pdf>```
 
-[S.Parent] "C++ Seasoning", Sean Parent, 2013  
+[S.Parent] "C++ Seasoning", Sean Parent, 2013 
 ```<https://github.com/sean-parent/sean-parent.github.io/wiki/Papers-and-Presentations>```
 
-[Impl] Reference implementation: `polymorphic_value`, J.B.Coe  
+[Impl] Reference implementation: `polymorphic_value`, J.B.Coe 
 ```<https://github.com/jbcoe/polymorphic_value>```
 
-[P0302r1] "Removing Allocator support in std::function", Jonathan Wakely
+[P0302r1] "Removing Allocator support in std::function", Jonathan Wakely 
 ```<http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0302r1.html>```
 
