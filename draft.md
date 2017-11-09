@@ -460,10 +460,10 @@ template <class T> class polymorphic_value {
   ~polymorphic_value();
 
   // Assignment
-  polymorphic_value &operator=(const polymorphic_value& p);
+  polymorphic_value& operator=(const polymorphic_value& p);
   template <class U>
     polymorphic_value& operator=(const polymorphic_value<U>& p);
-  polymorphic_value &operator=(polymorphic_value &&p) noexcept;
+  polymorphic_value& operator=(polymorphic_value&& p) noexcept;
   template <class U>
     polymorphic_value& operator=(polymorphic_value<U>&& p);
 
@@ -514,12 +514,11 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
   If `p` is non-null then the copier and deleter of the `polymorphic_value`
   constructed is moved from `c` and `d`.
 
-* _Requires_: `C` and `D` are copy constructible, nothrow destructible and
-  nothrow moveable.  If `p` is non-null then the expression `c(*p)`
-  returns an object of type `U*`. The expression `d(p)` is well formed,
-  has well defined behavior, and does not throw exceptions.  Either `U`
-  and `T` must be the same type, or the dynamic and static type of `U` must be
-  the same.
+* _Requires_: `C` and `D` satisfy the requirements of _CopyConstructible_.
+  If `p` is non-null then the expression `c(*p)` returns an object of type
+  `U*`. The expression `d(p)` is well formed, has well defined behavior, and
+  does not throw exceptions.  Either `U` and `T` must be the same type, or the
+  dynamic and static type of `U` must be the same.
 
 * _Throws_: `bad_polymorphic_value_construction` if `std::is_same<C,
   default_copy<U>>::value`, `std::is_same<D, default_delete<U>>::value` and
@@ -534,8 +533,8 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 
 
 ```
-polymorphic_value(const polymorphic_value &p);
-template <class U> polymorphic_value(const polymorphic_value<U> &p);
+polymorphic_value(const polymorphic_value& p);
+template <class U> polymorphic_value(const polymorphic_value<U>& p);
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
@@ -553,8 +552,8 @@ template <class U> polymorphic_value(const polymorphic_value<U> &p);
 
 
 ```
-polymorphic_value(polymorphic_value &&p) noexcept;
-template <class U> polymorphic_value(polymorphic_value<U> &&p);
+polymorphic_value(polymorphic_value&& p) noexcept;
+template <class U> polymorphic_value(polymorphic_value<U>&& p);
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
@@ -595,8 +594,8 @@ template <class U> polymorphic_value(U&& u);
 ### X.Z.5 Class template `polymorphic_value` assignment [polymorphic_value.assignment]
 
 ```
-polymorphic_value &operator=(const polymorphic_value &p);
-template <class U> polymorphic_value &operator=(const polymorphic_value<U>& p);
+polymorphic_value& operator=(const polymorphic_value& p);
+template <class U> polymorphic_value& operator=(const polymorphic_value<U>& p);
 ```
 
 * _Remarks_: The second function shall not participate in overload resolution
@@ -618,7 +617,7 @@ If `p` has a
 
 
 ```
-template <class U> polymorphic_value &operator=(U&& u);
+template <class U> polymorphic_value& operator=(U&& u);
 ```
 
 * _Remarks_: Let `V` be `std::remove_cv_t<std::remove_reference_t<U>>`. This
@@ -638,8 +637,8 @@ template <class U> polymorphic_value &operator=(U&& u);
 
 
 ```
-polymorphic_value &operator=(polymorphic_value&& p) noexcept;
-template <class U> polymorphic_value &operator=(polymorphic_value<U> &&p);
+polymorphic_value& operator=(polymorphic_value&& p) noexcept;
+template <class U> polymorphic_value& operator=(polymorphic_value<U>&& p);
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
