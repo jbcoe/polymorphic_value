@@ -21,8 +21,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
 
-#ifndef JBCOE_POLYMORPHIC_VALUE_H_INCLUDED
-#define JBCOE_POLYMORPHIC_VALUE_H_INCLUDED
+#ifndef BOOST_POLYMORPHIC_VALUE_H_INCLUDED
+#define BOOST_POLYMORPHIC_VALUE_H_INCLUDED
 
 #include <cassert>
 #include <exception>
@@ -30,39 +30,26 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <type_traits>
 #include <typeinfo>
 
-namespace jbcoe
-{
+namespace boost {
 
-  namespace detail
-  {
+  namespace detail {
 
     ////////////////////////////////////////////////////////////////////////////
     // Implementation detail classes
     ////////////////////////////////////////////////////////////////////////////
 
     template <class T>
-    struct default_copy
-    {
-      T* operator()(const T& t) const
-      {
-        return new T(t);
-      }
+    struct default_copy {
+      T* operator()(const T& t) const { return new T(t); }
     };
 
     template <class T>
-    struct default_delete
-    {
-      void operator()(const T* t) const
-      {
-        delete t;
-      }
+    struct default_delete {
+      void operator()(const T* t) const { delete t; }
     };
 
     template <class T>
-    struct control_block
-    {
-      static_assert(!std::is_const<T>::value,"");
-
+    struct control_block {
       virtual ~control_block() = default;
 
       virtual std::unique_ptr<control_block> clone() const = 0;
@@ -71,126 +58,88 @@ namespace jbcoe
     };
 
     template <class T, class U = T>
-    class direct_control_block : public control_block<T>
-    {
-      static_assert(!std::is_const<U>::value,"");
+    class direct_control_block : public control_block<T> {
       static_assert(!std::is_reference<U>::value, "");
       
       U u_;
 
     public:
       template <class... Ts>
-      explicit direct_control_block(Ts&&... ts) : u_(U(std::forward<Ts>(ts)...))
-      {
-      }
+      explicit direct_control_block(Ts&&... ts)
+          : u_(U(std::forward<Ts>(ts)...)) {}
 
-      std::unique_ptr<control_block<T>> clone() const override
-      {
+      std::unique_ptr<control_block<T>> clone() const override {
         return std::make_unique<direct_control_block>(*this);
       }
 
-      T* ptr() override
-      {
-        return &u_;
-      }
+      T* ptr() override { return &u_; }
     };
 
     template <class T, class U, class C = default_copy<U>,
               class D = default_delete<U>>
-    class pointer_control_block : public control_block<T>, public C
-    {
-      static_assert(!std::is_const<U>::value,"");
-      
+    class pointer_control_block : public control_block<T>, public C {
       std::unique_ptr<U, D> p_;
 
     public:
       explicit pointer_control_block(U* u, C c = C{}, D d = D{})
-          : C(std::move(c)), p_(u, std::move(d))
-      {
-      }
+          : C(std::move(c)), p_(u, std::move(d)) {}
 
       explicit pointer_control_block(std::unique_ptr<U, D> p, C c = C{})
-          : C(std::move(c)), p_(std::move(p))
-      {
-      }
+          : C(std::move(c)), p_(std::move(p)) {}
 
-      std::unique_ptr<control_block<T>> clone() const override
-      {
+      std::unique_ptr<control_block<T>> clone() const override {
         assert(p_);
         return std::make_unique<pointer_control_block>(
             C::operator()(*p_), static_cast<const C&>(*this), p_.get_deleter());
       }
 
-      T* ptr() override
-      {
-        return p_.get();
-      }
+      T* ptr() override { return p_.get(); }
     };
 
     template <class T, class U>
-    class delegating_control_block : public control_block<T>
-    {
+    class delegating_control_block : public control_block<T> {
       std::unique_ptr<control_block<U>> delegate_;
 
     public:
       explicit delegating_control_block(std::unique_ptr<control_block<U>> b)
-          : delegate_(std::move(b))
-      {
-      }
+          : delegate_(std::move(b)) {}
 
-      std::unique_ptr<control_block<T>> clone() const override
-      {
+      std::unique_ptr<control_block<T>> clone() const override {
         return std::make_unique<delegating_control_block>(delegate_->clone());
       }
 
-      T* ptr() override
-      {
-        return delegate_->ptr();
-      }
+      T* ptr() override { return delegate_->ptr(); }
     };
 
 
   } // end namespace detail
 
-  class bad_polymorphic_value_construction : std::exception
-  {
-    public:
-      bad_polymorphic_value_construction() noexcept = default;
+  class bad_polymorphic_value_construction : std::exception {
+  public:
+    bad_polymorphic_value_construction() noexcept = default;
 
-      const char* what() const noexcept override
-      {
-        return "Dynamic and static type mismatch in polymorphic_value "
-               "construction";
-      }
+    const char* what() const noexcept override {
+      return "Dynamic and static type mismatch in polymorphic_value "
+             "construction";
+    }
   };
 
   template <class T>
   class polymorphic_value;
 
   template <class T>
-  struct is_polymorphic_value : std::false_type
-  {
-  };
+  struct is_polymorphic_value : std::false_type {};
 
   template <class T>
-  struct is_polymorphic_value<polymorphic_value<T>> : std::true_type
-  {
-  };
+  struct is_polymorphic_value<polymorphic_value<T>> : std::true_type {};
 
 
   ////////////////////////////////////////////////////////////////////////////////
   // `polymorphic_value` class definition
   ////////////////////////////////////////////////////////////////////////////////
 
-  template <class cqT> // Take a const-qualified T. Control block owns a non-const T. 
-  class polymorphic_value
-  {
-    using T = std::remove_const_t<cqT>;
-
-    static_assert(!std::is_union<T>::value, "");
-    static_assert(!std::is_function<T>::value, "");
-    static_assert(!std::is_array<T>::value, "");
-    static_assert(!std::is_pointer<T>::value, "");
+  template <class T>
+  class polymorphic_value {
 
     template <class U>
     friend class polymorphic_value;
@@ -213,17 +162,13 @@ namespace jbcoe
     // Constructors
     //
 
-    polymorphic_value()
-    {
-    }
+    polymorphic_value() {}
 
     template <class U, class C = detail::default_copy<U>,
               class D = detail::default_delete<U>,
               class V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
-    explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{})
-    {
-      if (!u)
-      {
+    explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{}) {
+      if (!u) {
         return;
       }
 
@@ -244,10 +189,8 @@ namespace jbcoe
     // Copy-constructors
     //
 
-    polymorphic_value(const polymorphic_value& p)
-    {
-      if (!p)
-      {
+    polymorphic_value(const polymorphic_value& p) {
+      if (!p) {
         return;
       }
       auto tmp_cb = p.cb_->clone();
@@ -256,15 +199,9 @@ namespace jbcoe
     }
 
     template <class U,
-              class V = std::enable_if_t<
-                  !std::is_same<T, U>::value &&
-                  std::is_convertible<std::remove_const_t<U>*, T*>::value>>
-    polymorphic_value(const polymorphic_value<U>& p)
-    {
-      if (!p)
-      {
-        return;
-      }
+              class V = std::enable_if_t<!std::is_same<T, U>::value &&
+                                         std::is_convertible<U*, T*>::value>>
+    polymorphic_value(const polymorphic_value<U>& p) {
       polymorphic_value<U> tmp(p);
       cb_ = std::make_unique<
           detail::delegating_control_block<T, std::remove_const_t<U>>>(
@@ -277,8 +214,7 @@ namespace jbcoe
     // Move-constructors
     //
 
-    polymorphic_value(polymorphic_value&& p) noexcept
-    {
+    polymorphic_value(polymorphic_value&& p) noexcept {
       ptr_ = p.ptr_;
       cb_ = std::move(p.cb_);
       p.ptr_ = nullptr;
@@ -287,8 +223,7 @@ namespace jbcoe
     template <class U,
               class V = std::enable_if_t<!std::is_same<T, U>::value &&
                                          std::is_convertible<U*, T*>::value>>
-    polymorphic_value(polymorphic_value<U>&& p)
-    {
+    polymorphic_value(polymorphic_value<U>&& p) {
       ptr_ = p.ptr_;
       cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
           std::move(p.cb_));
@@ -305,8 +240,7 @@ namespace jbcoe
     polymorphic_value(U&& u)
         : cb_(std::make_unique<
               detail::direct_control_block<T, std::decay_t<U>>>(
-              std::forward<U>(u)))
-    {
+              std::forward<U>(u))) {
       ptr_ = cb_->ptr();
     }
 
@@ -315,15 +249,12 @@ namespace jbcoe
     // Assignment
     //
 
-    polymorphic_value& operator=(const polymorphic_value& p)
-    {
-      if (&p == this)
-      {
+    polymorphic_value& operator=(const polymorphic_value& p) {
+      if (&p == this) {
         return *this;
       }
 
-      if (!p)
-      {
+      if (!p) {
         cb_.reset();
         ptr_ = nullptr;
         return *this;
@@ -336,15 +267,9 @@ namespace jbcoe
     }
 
     template <class U,
-              class V = std::enable_if_t<
-                  !std::is_same<T, U>::value &&
-                  std::is_convertible<std::remove_const_t<U>*, T*>::value>>
-    polymorphic_value& operator=(const polymorphic_value<U>& p)
-    {
-      if (!p)
-      {
-        return *this;
-      }
+              class V = std::enable_if_t<!std::is_same<T, U>::value &&
+                                         std::is_convertible<U*, T*>::value>>
+    polymorphic_value& operator=(const polymorphic_value<U>& p) {
       polymorphic_value<U> tmp(p);
       cb_ = std::make_unique<
           detail::delegating_control_block<T, std::remove_const_t<U>>>(
@@ -358,10 +283,8 @@ namespace jbcoe
     // Move-assignment
     //
 
-    polymorphic_value& operator=(polymorphic_value&& p) noexcept
-    {
-      if (&p == this)
-      {
+    polymorphic_value& operator=(polymorphic_value&& p) noexcept {
+      if (&p == this) {
         return *this;
       }
 
@@ -374,8 +297,7 @@ namespace jbcoe
     template <class U,
               class V = std::enable_if_t<!std::is_same<T, U>::value &&
                                          std::is_convertible<U*, T*>::value>>
-    polymorphic_value& operator=(polymorphic_value<U>&& p)
-    {
+    polymorphic_value& operator=(polymorphic_value<U>&& p) {
       cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
           std::move(p.cb_));
       ptr_ = p.ptr_;
@@ -387,11 +309,10 @@ namespace jbcoe
     // Forwarding assignment
     //
 
-    template <class U,
-              class V = std::enable_if_t<std::is_convertible<std::decay_t<U>*, T*>::value &&
-                                         !is_polymorphic_value<std::decay_t<U>>::value>>
-    polymorphic_value& operator=(U&& u)
-    {
+    template <class U, class V = std::enable_if_t<
+                           std::is_convertible<std::decay_t<U>*, T*>::value &&
+                           !is_polymorphic_value<std::decay_t<U>>::value>>
+    polymorphic_value& operator=(U&& u) {
       polymorphic_value tmp(std::forward<U>(u));
       *this = std::move(tmp);
       return *this;
@@ -402,8 +323,7 @@ namespace jbcoe
     // Modifiers
     //
 
-    void swap(polymorphic_value& p) noexcept
-    {
+    void swap(polymorphic_value& p) noexcept {
       using std::swap;
       swap(ptr_, p.ptr_);
       swap(cb_, p.cb_);
@@ -414,43 +334,34 @@ namespace jbcoe
     // Observers
     //
 
-    explicit operator bool() const
-    {
-      return (bool)cb_;
-    }
+    explicit operator bool() const { return (bool)cb_; }
 
-    const T* operator->() const
-    {
+    const T* operator->() const {
       assert(ptr_);
       return ptr_;
     }
 
-    const T& value() const
-    {
+    const T& value() const {
       assert(*this);
       return *ptr_;
     }
 
-    const T& operator*() const
-    {
+    const T& operator*() const {
       assert(*this);
       return *ptr_;
     }
 
-    T* operator->()
-    {
+    T* operator->() {
       assert(*this);
       return ptr_;
     }
 
-    T& value()
-    {
+    T& value() {
       assert(*this);
       return *ptr_;
     }
 
-    T& operator*()
-    {
+    T& operator*() {
       assert(*this);
       return *ptr_;
     }
@@ -460,8 +371,7 @@ namespace jbcoe
   // polymorphic_value creation
   //
   template <class T, class... Ts>
-  polymorphic_value<T> make_polymorphic_value(Ts&&... ts)
-  {
+  polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
     polymorphic_value<T> p;
     p.cb_ = std::make_unique<detail::direct_control_block<T>>(
         std::forward<Ts>(ts)...);
@@ -473,11 +383,10 @@ namespace jbcoe
   // non-member swap
   //
   template <class T>
-  void swap(polymorphic_value<T>& t, polymorphic_value<T>& u) noexcept
-  {
+  void swap(polymorphic_value<T>& t, polymorphic_value<T>& u) noexcept {
     t.swap(u);
   }
 
-} // end namespace jbcoe
+} // end namespace boost
 
 #endif
