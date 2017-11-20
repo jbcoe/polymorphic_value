@@ -6,7 +6,9 @@
 #include <new>
 #include <stdexcept>
 
-using namespace jbcoe;
+using boost::bad_polymorphic_value_construction;
+using boost::make_polymorphic_value;
+using boost::polymorphic_value;
 
 struct BaseType {
   virtual int value() const = 0;
