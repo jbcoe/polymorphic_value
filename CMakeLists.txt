@@ -16,10 +16,20 @@ endif()
 
 include_directories(externals/catch/include)
 add_executable(test_polymorphic_value test_polymorphic_value.cpp)
+add_executable(boost_test_polymorphic_value boost_test_polymorphic_value.cpp)
+
+find_package(Boost REQUIRED)
+target_include_directories(boost_test_polymorphic_value PRIVATE ${BOOST_INCLUDE_DIRS})
+target_link_libraries(boost_test_polymorphic_value ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 enable_testing()
 add_test(
   NAME test_polymorphic_value
   COMMAND test_polymorphic_value
+  WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
+add_test(
+  NAME boost_test_polymorphic_value
+  COMMAND boost_test_polymorphic_value
   WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
