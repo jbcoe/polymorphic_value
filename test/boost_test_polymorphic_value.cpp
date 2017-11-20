@@ -1,8 +1,7 @@
 #define BOOST_TEST_MODULE polymorphic_value
-#include "polymorphic_value.h"
+#include "boost/polymorphic_value.h"
 #include <boost/test/included/unit_test.hpp>
 
-#include <catch.hpp>
 #include <new>
 #include <stdexcept>
 

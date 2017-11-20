@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 
 project(polymorphic_value)
 
@@ -14,11 +14,17 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" OR ${CMAKE_CXX_COMPILER_ID} MATCHES 
   add_compile_options("-Werror;-Wall")
 endif()
 
-include_directories(externals/catch/include)
-add_executable(test_polymorphic_value test_polymorphic_value.cpp)
-add_executable(boost_test_polymorphic_value boost_test_polymorphic_value.cpp)
+# Catch tests
+add_executable(test_polymorphic_value test/test_polymorphic_value.cpp)
+
+target_include_directories(test_polymorphic_value PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(test_polymorphic_value PRIVATE ${CMAKE_SOURCE_DIR}/externals/catch/include)
+
+# Boost tests
+add_executable(boost_test_polymorphic_value test/boost_test_polymorphic_value.cpp)
 
 find_package(Boost REQUIRED)
+target_include_directories(boost_test_polymorphic_value PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(boost_test_polymorphic_value PRIVATE ${BOOST_INCLUDE_DIRS})
 target_link_libraries(boost_test_polymorphic_value ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
