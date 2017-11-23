@@ -11,7 +11,7 @@ matrix:
       addons: &clang39
         apt:
           sources: ['llvm-toolchain-precise-3.9', 'ubuntu-toolchain-r-test']
-          packages: ['clang-3.9', 'g++-6']
+          packages: ['clang-3.9', 'g++-6', 'lib-boost-dev']
       env: COMPILER='clang++-3.9'
 
     # 2/ Linux GCC Builds
@@ -19,8 +19,8 @@ matrix:
       compiler: gcc
       addons: &gcc6
         apt:
-          sources: ['llvm-toolchain-precise-3.9', 'ubuntu-toolchain-r-test']
-          packages: ['g++-6']
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['g++-6', 'lib-boost-dev']
       env: COMPILER='g++-6'
 
 #    # 3/ OSX Clang Builds
@@ -43,6 +43,7 @@ install:
       sudo update-alternatives --config g++;
     elif [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then
       which cmake || brew install cmake
+      brew install boost
     fi
   - cd ${TRAVIS_BUILD_DIR}
 
