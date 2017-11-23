@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_MAIN
 
-#include "boost/polymorphic_value.h"
+#include "boost/polymorphic_value.hpp"
 
 #include <catch.hpp>
 #include <new>

@@ -1,5 +1,5 @@
 #define BOOST_TEST_MODULE polymorphic_value
-#include "boost/polymorphic_value.h"
+#include "boost/polymorphic_value.hpp"
 #include <boost/math/constants/constants.hpp>
 #include <boost/test/included/unit_test.hpp>
 #include <boost/utility/string_view.hpp>
