@@ -36,7 +36,7 @@ doxygen polymorphic_value_reference
 
 }
 
-run_doxygen [ glob ../*.h ] : "Reference" ;
+run_doxygen [ glob ../include/boost/*.h ] : "Reference" ;
 
 xml polymorphic_value
     :

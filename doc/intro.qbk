@@ -1,9 +1,53 @@
 [section Introduction]
+Class template `polymorphic_value` represents a polymorphic object with
+value-semantics.
 
-TODO
+[heading Problem]
+Suppose we want to design a class in terms of polymorphic components and have
+the compiler correctly generate special member functions.
+
+[heading Solution]
+
+This is how one would write a class made of polymorphic components using
+`polymorphic_value`:
+
+    #include <boost/polymorphic_value.hpp>
+    #include <vector>
+
+    class Zoo {
+      std::vector<boost::polymorphic_value<Animal>> animals_;
+     public:
+      Zoo() = default;
+      Zoo(std::vector<boost::polymorphic_value<Animal>> animals) :
+          animals_(std::move(animals)) {}
+
+      std::size_t size() const {
+        return animals_.size();
+      }
+
+      const Animal& operator[](std::size_t i) const {
+        return *animals_[i];
+      }
+
+      Animal& operator[](std::size_t i) {
+        return *animals_[i];
+      }
+
+      void AddAnimal(boost::polymorphic_value<Animal> animal) {
+        animals_.push_back(std::move(animal));
+      }
+    }
+
+[endsect]
+
+[section Tutorial]
 
 [heading Motivation]
 
-TODO
+[heading When to use]
+
+[heading Custom copiers and deleters]
+
+[heading Migrating from a `Clone` method]
 
 [endsect]
