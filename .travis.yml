@@ -41,7 +41,7 @@ install:
       sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 60;
       sudo update-alternatives --config gcc;
       sudo update-alternatives --config g++;
-      sudo apt install lib-boost-dev
+      sudo apt install libboost-all-dev
     elif [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then
       which cmake || brew install cmake
       brew install boost
