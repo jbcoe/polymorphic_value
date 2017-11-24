@@ -25,7 +25,7 @@ add_executable(boost_test_polymorphic_value test/boost_test_polymorphic_value.cp
 
 find_package(Boost REQUIRED)
 target_include_directories(boost_test_polymorphic_value PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(boost_test_polymorphic_value PRIVATE ${BOOST_INCLUDE_DIRS})
+target_include_directories(boost_test_polymorphic_value PRIVATE ${Boost_INCLUDE_DIRS})
 target_link_libraries(boost_test_polymorphic_value ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 enable_testing()
