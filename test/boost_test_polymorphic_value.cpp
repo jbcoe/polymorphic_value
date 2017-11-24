@@ -19,7 +19,7 @@ namespace {
     Shape() = default;
     Shape(const Shape&) = default;
     // polymorphic_value does not require the destructor to be virtual.
-    virtual ~Shape() = default; 
+    virtual ~Shape() = default;
     Shape& operator=(const Shape&) = default;
 
     Shape(Shape&& s) { s.moved_from = true; }
@@ -367,4 +367,16 @@ BOOST_AUTO_TEST_CASE(custom_copy_and_delete) {
     BOOST_TEST(copy_count == 1);
   }
   BOOST_TEST(deletion_count == 1);
+}
+
+BOOST_AUTO_TEST_CASE(reference_stability) {
+  struct tiny_t {};
+  auto pv = polymorphic_value<tiny_t>(tiny_t{});
+  tiny_t* p = pv.operator->();
+
+  auto moved_pv = std::move(pv);
+  auto moved_p = moved_pv.operator->();
+
+  // This will fail if a small-object optimisation is in place.
+  BOOST_TEST(p == moved_p);
 }
