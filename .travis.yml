@@ -2,6 +2,10 @@ language: cpp
 sudo: required
 dist: trusty
 
+cache:
+  directories:
+    - ${TRAVIS_BUILD_DIR}/deps/boost
+
 matrix:
   include:
 
@@ -23,11 +27,6 @@ matrix:
           packages: ['g++-6']
       env: COMPILER='g++-6'
 
-#    # 3/ OSX Clang Builds
-#    - os: osx
-#      osx_image: xcode8
-#      compiler: clang
-#      env: COMPILER='clang++'
 
 install:
   - DEPS_DIR="${TRAVIS_BUILD_DIR}/deps"
@@ -42,6 +41,11 @@ install:
       sudo update-alternatives --config gcc;
       sudo update-alternatives --config g++;
       sudo apt install libboost-all-dev
+  		DEPS_DIR="${TRAVIS_BUILD_DIR}/deps"
+      BOOST_DIR=${DEPS_DIR}/boost
+			BOOST_URL="http://github.com/boostorg/boost.git"
+			travis_retry git clone --depth 1 --recursive ${BOOST_URL} ${BOOST_DIR} || exit 1
+			(cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 install) || exit 1
     elif [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then
       which cmake || brew install cmake
       brew install boost
