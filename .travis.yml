@@ -5,6 +5,7 @@ dist: trusty
 cache:
   directories:
     - ${TRAVIS_BUILD_DIR}/deps/boost
+    - ${TRAVIS_BUILD_DIR}/deps/cmake
 
 matrix:
   include:
@@ -44,7 +45,7 @@ install:
       sudo update-alternatives --config g++;
       sudo apt install libboost-all-dev
       travis_retry git clone --depth 1 --recursive ${BOOST_URL} ${BOOST_DIR} || exit 1
-      (cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 install) || exit 1
+      (cd ${BOOST_DIR} && ./bootstrap.sh && ./b2 --with-test install) || exit 1
     elif [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then
       which cmake || brew install cmake
       brew install boost
