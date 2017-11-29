@@ -3,7 +3,7 @@
 The class template `polymorphic_value` is proposed for addition to the C++ Standard Library.
 
 The class template, `polymorphic_value`, confers value-like semantics on a free-store
-allocated object.  A `polymorphic_value<T>` may hold a an object of a class publicly
+allocated object.  A `polymorphic_value<T>` may hold an object of a class publicly
 derived from T, and copying the polymorphic_value<T> will copy the object of the derived
 type.
 
