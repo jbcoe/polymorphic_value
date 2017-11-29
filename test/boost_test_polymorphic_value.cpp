@@ -2,18 +2,19 @@
 #include "boost/polymorphic_value.hpp"
 #include <boost/math/constants/constants.hpp>
 #include <boost/test/included/unit_test.hpp>
-#include <boost/utility/string_view.hpp>
 
 #include <new>
 #include <stdexcept>
 
 using boost::polymorphic_value;
 
+using namespace std::string_literals;
+
 namespace {
 
   struct Shape {
     bool moved_from = false;
-    virtual boost::string_view name() const = 0;
+    virtual const char* name() const = 0;
     virtual double area() const = 0;
 
     Shape() = default;
@@ -35,7 +36,7 @@ namespace {
 
   public:
     Square(double side) : side_(side) {}
-    boost::string_view name() const override { return "square"; }
+    const char* name() const override { return "square"; }
     double area() const override { return side_ * side_; }
   };
 
@@ -44,7 +45,7 @@ namespace {
 
   public:
     Circle(double radius) : radius_(radius) {}
-    boost::string_view name() const override { return "circle"; }
+    const char* name() const override { return "circle"; }
     double area() const override {
       return boost::math::constants::pi<double>() * radius_ * radius_;
     }
@@ -262,28 +263,28 @@ BOOST_AUTO_TEST_CASE(swap) {
   polymorphic_value<Shape> square(Square(2));
   polymorphic_value<Shape> circle(Circle(2));
 
-  BOOST_TEST(square->name() == "square");
-  BOOST_TEST(circle->name() == "circle");
+  BOOST_TEST(square->name() == "square"s);
+  BOOST_TEST(circle->name() == "circle"s);
 
   using std::swap;
   swap(square, circle);
 
-  BOOST_TEST(square->name() == "circle");
-  BOOST_TEST(circle->name() == "square");
+  BOOST_TEST(square->name() == "circle"s);
+  BOOST_TEST(circle->name() == "square"s);
 }
 
 BOOST_AUTO_TEST_CASE(member_swap) {
   polymorphic_value<Shape> square(Square(2));
   polymorphic_value<Shape> circle(Circle(2));
 
-  BOOST_TEST(square->name() == "square");
-  BOOST_TEST(circle->name() == "circle");
+  BOOST_TEST(square->name() == "square"s);
+  BOOST_TEST(circle->name() == "circle"s);
 
   using std::swap;
   square.swap(circle);
 
-  BOOST_TEST(square->name() == "circle");
-  BOOST_TEST(circle->name() == "square");
+  BOOST_TEST(square->name() == "circle"s);
+  BOOST_TEST(circle->name() == "square"s);
 }
 
 BOOST_AUTO_TEST_CASE(multiple_inheritance_with_virtual_base_classes) {
@@ -340,7 +341,7 @@ BOOST_AUTO_TEST_CASE(dynamic_and_static_type_mismatch_throws_exception) {
   public:
     UnitSquare() : Square(1) {}
     double area() const { return 1.0; }
-    boost::string_view name() const { return "unit-square"; }
+    const char* name() const { return "unit-square"; }
   };
   UnitSquare u;
   Square* s = &u;
