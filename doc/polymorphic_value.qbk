@@ -37,4 +37,6 @@
 
 [include intro.qbk]
 
+[include tutorial.qbk]
+
 [xinclude polymorphic_value_reference.xml]

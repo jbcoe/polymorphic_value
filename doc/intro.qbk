@@ -40,14 +40,3 @@ This is how one would write a class made of polymorphic components using
 
 [endsect]
 
-[section Tutorial]
-
-[heading Motivation]
-
-[heading When to use]
-
-[heading Custom copiers and deleters]
-
-[heading Migrating from a `Clone` method]
-
-[endsect]
