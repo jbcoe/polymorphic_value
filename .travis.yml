@@ -16,7 +16,7 @@ matrix:
 
     - os: osx
       language: generic
-      osx_image: xcode8
+      osx_image: xcode9
       install:
         - brew update
         - brew install boost cmake ninja
