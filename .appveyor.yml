@@ -1,3 +1,7 @@
+# specify custom environment variables
+environment:
+  BOOST_ROOT: C:\Libraries\boost_1_63_0
+
 install:
   - git submodule update --init
 
