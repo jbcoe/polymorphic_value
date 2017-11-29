@@ -13,4 +13,12 @@ matrix:
         - docker build . -t travis-ci
       script:
         - docker run travis-ci /bin/bash -c "./scripts/build.py -t"
-    
+
+    - os: osx
+      language: generic
+      osx_image: xcode8
+      install:
+        - brew update
+        - brew install boost cmake ninja
+      script:
+        - ./scripts/build.py -t
