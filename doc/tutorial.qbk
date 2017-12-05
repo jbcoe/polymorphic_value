@@ -1,4 +1,5 @@
 [section Tutorial]
+
 [section Motivation]
 
 Object-oriented programming allows objects to be composed of other objects.  A
@@ -14,7 +15,7 @@ at compile time. For cases when components are base classes from an inheritance
 heirarchy - like `Shape`s in a `Picture` - we are unable to store components as
 values and will have to implement special member functions ourselves.
 
-`polymorphic_value` is a class template that imparts value semantics on a
+`polymorphic_value` is a class template that imparts value semantics to a
 polymorphic object. Use of it allows design of a composite object in terms of
 abstract or base class objects without the need to implement (and maintain)
 special member functions.
@@ -35,8 +36,8 @@ pointer and a reference. Like a pointer, `polymorphic_value` can be null so
 should probably be initialised within the parent object constructor. Unlike a
 pointer, `polymorphic_value` can be initialised with a derived-class object.
 
-`polymorphic_value` has value semantics: it will perform a deep copy of the
-owned object when copied and propagates `const` to the owned object.
+`polymorphic_value` has value semantics: when copied, it will perform a deep
+copy of the owned object, and it propagates `const` to the owned object.
 
 [heading Deep copies]
 
@@ -62,13 +63,13 @@ T*`.  For non-`const` access, a non-`const` `polymorphic_value<T>` is needed.
 For design of component-based objects, const-propagation is required as no part
 of a contextually immutable object should be mutable. Where access to a mutable
 `polymorphic_value<T>` is truly required from a `const` access path, a `mutable
-polymorphic_value<T>` member can be used (This should be rare).
+polymorphic_value<T>` member can be used (this should be rare).
 
 [heading Default construction and a null state]
 
 `polymorphic_value` is intended to be used with Standard Library collections
 which requires that it is default constructible. As `polymorphic_value<T>` can
-be instantiated for an abstract class `T`, the default constructor cannot in
+be instantiated for an abstract class `T`, the default constructor cannot, in
 general, default construct the managed object. There may also be cases where
 default construction of the managed object would be undesirably expensive in
 terms of memory or speed.

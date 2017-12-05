@@ -1,10 +1,14 @@
 [section Introduction]
+
 Class template `polymorphic_value` represents a polymorphic object with
 value-semantics.
 
 [heading Problem]
+
 Suppose we want to design a class in terms of polymorphic components and have
-the compiler correctly generate special member functions.
+the compiler correctly generate the special member functions: destructor, copy
+constructor, copy assignment operator, move constructor and move assignment
+operator.
 
 [heading Solution]
 
