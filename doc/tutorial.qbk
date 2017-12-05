@@ -1,0 +1,132 @@
+[section Tutorial]
+[section Motivation]
+
+Object-oriented programming allows objects to be composed of other objects.  A
+class heirarchy of `Shape`s might lead to a `Picture` class being a collection
+of `Shape`s and their respective positions.
+
+When components are stored as values, the compiler is able to generate special
+member functions: destructor, copy constructor, copy assignment operator, move
+constructor and move assignment operator.
+
+Storing components as values means that the type of the component must be known
+at compile time. For cases when components are base classes from an inheritance
+heirarchy - like `Shape`s in a `Picture` - we are unable to store components as
+values and will have to implement special member functions ourselves.
+
+`polymorphic_value` is a class template that imparts value semantics on a
+polymorphic object. Use of it allows design of a composite object in terms of
+abstract or base class objects without the need to implement (and maintain)
+special member functions.
+
+    class Shape;
+    class Picture {
+      std::vector<boost::polymorphic_value<Shape>> components_;
+      // ...
+    };
+
+[endsect]
+
+[section Design Overview]
+
+A `polymorphic_value` member can be used with the same syntax one would use for
+a pointer member: `operator->` and `operator*` will respectively return a
+pointer and a reference. Like a pointer, `polymorphic_value` can be null so
+should probably be initialised within the parent object constructor. Unlike a
+pointer, `polymorphic_value` can be initialised with a derived-class object.
+
+`polymorphic_value` has value semantics: it will perform a deep copy of the
+owned object when copied and propagates `const` to the owned object.
+
+[heading Deep copies]
+
+`polymorphic_value` enables deep-copies through inheritance heirarchies: a
+`polymorphic_value<Shape>` initialized with a `Circle` object will produce a
+`polymorphic_value<Shape>` managing a copy of the `Circle` object produced
+using `Circle`'s copy constructor.
+
+Virtual destructors can be used to ensure that a derived class object is
+correctly destroyed through a base class pointer. C++ offers no equivalent of
+virtual destructors for copy construction; `polymorphic_value` uses
+type-erasure to store type information about the managed object and call the
+copy constructor when required. Note that virtual destructors are not needed
+for `polymorphic_value` as the type-erasure mechanism used to produce copies is
+  also used to call the correct derived class destructor.
+
+[heading Const-propagation]
+
+As `polymorphic_value` is intended to be used to model a value-type, a
+`const` `polymorphic_value<T>` will only give access to a `const T&` and `const
+T*`.  For non-`const` access, a non-`const` `polymorphic_value<T>` is needed.
+
+For design of component-based objects, const-propagation is required as no part
+of a contextually immutable object should be mutable. Where access to a mutable
+`polymorphic_value<T>` is truly required from a `const` access path, a `mutable
+polymorphic_value<T>` member can be used (This should be rare).
+
+[heading Default construction and a null state]
+
+`polymorphic_value` is intended to be used with Standard Library collections
+which requires that it is default constructible. As `polymorphic_value<T>` can
+be instantiated for an abstract class `T`, the default constructor cannot in
+general, default construct the managed object. There may also be cases where
+default construction of the managed object would be undesirably expensive in
+terms of memory or speed.
+
+The default constructor puts `polymorphic_value` in an empty state where no
+object is managed. Both `operator->` and `operator*` have preconditions where
+calling them on an empty `polymorphic_value` is prohibited. An `explicit`
+`operator bool` is provided to allow idiomatic checking for a null state.
+
+[heading Reference stability]
+
+`polymorphic_value` makes no guarantees of the stability of pointers and
+references obtained from `operator->` and `operator*`. `polymorphic_value`
+models a value-type like optional or variant and may make use of a small object
+optimization to avoid heap allocation for small objects. Such an optimisation
+would render pointers and references to a managed object invalid after a move
+operation. The result of `operator->` and `operator*` should be used directly,
+not cached for later use.
+
+    // recommended use
+    polymorphic_value<Shape> pv(Circle(8));
+    foo(*pv);
+    double area = pv->Area();
+
+    // mis-use (pointer stability not guaranteed)
+    polymorphic_value<Shape> pv(Circle(8));
+    Shape* s = pv.operator->();
+    foo(*pv);
+    double area = s->Area();
+
+The unnatural looking code that one is required to write to cache a pointer to
+a `polymorphic_value`'s managed object should be a suitable deterrent.
+
+[endsect]
+
+[section When to use `polymorphic_value`]
+
+* Class with components
+
+* No polymorphism
+
+* Compile-time vs run-time polymorphism
+
+* Open-set vs closed-set polymorphism
+
+[endsect]
+
+[section Custom copiers and deleters]
+[endsect]
+
+[section Migrating from a `Clone()` method]
+[endsect]
+
+[section Gotchas]
+
+* Pointer constructor is dangerous
+
+* Reference stability guarantees
+
+[endsect]
+[endsect]
