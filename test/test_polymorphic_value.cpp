@@ -1,718 +1,383 @@
-#define CATCH_CONFIG_MAIN
-
+#define BOOST_TEST_MODULE polymorphic_value
 #include "boost/polymorphic_value.hpp"
+#include <boost/math/constants/constants.hpp>
+#include <boost/test/included/unit_test.hpp>
 
-#include <catch.hpp>
 #include <new>
 #include <stdexcept>
 
-using boost::bad_polymorphic_value_construction;
-using boost::make_polymorphic_value;
 using boost::polymorphic_value;
 
-struct BaseType {
-  virtual int value() const = 0;
-  virtual void set_value(int) = 0;
-  virtual ~BaseType() = default;
-};
+using namespace std::string_literals;
 
-struct DerivedType : BaseType {
-  int value_ = 0;
+namespace {
 
-  DerivedType() { ++object_count; }
+  struct Shape {
+    bool moved_from = false;
+    virtual const char* name() const = 0;
+    virtual double area() const = 0;
 
-  DerivedType(const DerivedType& d) {
-    value_ = d.value_;
-    ++object_count;
-  }
+    Shape() = default;
+    Shape(const Shape&) = default;
+    // polymorphic_value does not require the destructor to be virtual.
+    virtual ~Shape() = default;
+    Shape& operator=(const Shape&) = default;
 
-  DerivedType(int v) : value_(v) { ++object_count; }
+    Shape(Shape&& s) { s.moved_from = true; }
 
-  ~DerivedType() { --object_count; }
+    Shape& operator=(Shape&& s) {
+      s.moved_from = true;
+      return *this;
+    }
+  };
 
-  int value() const override { return value_; }
+  class Square : public Shape {
+    double side_;
 
-  void set_value(int i) override { value_ = i; }
+  public:
+    Square(double side) : side_(side) {}
+    const char* name() const override { return "square"; }
+    double area() const override { return side_ * side_; }
+  };
 
-  static size_t object_count;
-};
+  class Circle : public Shape {
+    double radius_;
 
-size_t DerivedType::object_count = 0;
+  public:
+    Circle(double radius) : radius_(radius) {}
+    const char* name() const override { return "circle"; }
+    double area() const override {
+      return boost::math::constants::pi<double>() * radius_ * radius_;
+    }
+  };
 
-TEST_CASE("Support for incomplete types", "[polymorphic_value.class]") {
-  class Incomplete;
-  polymorphic_value<Incomplete> p;
 
-  REQUIRE_FALSE(bool(p));
+} // end namespace
+
+BOOST_AUTO_TEST_CASE(empty_upon_default_construction) {
+  polymorphic_value<Shape> pv;
+
+  BOOST_TEST(!bool(pv));
 }
 
-TEST_CASE("Default constructor", "[polymorphic_value.constructors]") {
-  GIVEN("A default constructed polymorphic_value to BaseType") {
-    polymorphic_value<BaseType> cptr;
+BOOST_AUTO_TEST_CASE(support_for_incomplete_types) {
+  class Foo;
+  polymorphic_value<Foo> pv;
 
-    THEN("operator bool returns false") { REQUIRE((bool)cptr == false); }
-  }
-
-  GIVEN("A default constructed const polymorphic_value to BaseType") {
-    const polymorphic_value<BaseType> ccptr;
-
-    THEN("operator bool returns false") { REQUIRE((bool)ccptr == false); }
-  }
+  BOOST_TEST(!bool(pv));
 }
 
-TEST_CASE("Value constructor", "[polymorphic_value.constructors]") {
-  DerivedType d(7);
+BOOST_AUTO_TEST_CASE(non_empty_upon_value_construction) {
+  polymorphic_value<Square> pv(Square(2));
 
-  polymorphic_value<BaseType> i(d);
-
-  REQUIRE(i->value() == 7);
+  BOOST_TEST(bool(pv));
 }
 
-TEST_CASE("Value move-constructor", "[polymorphic_value.constructors]") {
-  DerivedType d(7);
+BOOST_AUTO_TEST_CASE(pointer_like_methods_access_owned_object) {
+  polymorphic_value<Shape> pv(Square(2));
 
-  polymorphic_value<BaseType> i(std::move(d));
-
-  REQUIRE(i->value() == 7);
+  BOOST_TEST(pv->area() == 4);
 }
 
-TEST_CASE("Value assignment", "[polymorphic_value.constructors]") {
-  DerivedType d(7);
+BOOST_AUTO_TEST_CASE(const_propagation) {
+  polymorphic_value<Shape> pv(Square(2));
+  static_assert(std::is_same<Shape*, decltype(pv.operator->())>::value, "");
+  static_assert(std::is_same<Shape&, decltype(pv.operator*())>::value, "");
 
-  polymorphic_value<BaseType> i;
-  i = d;
-
-  REQUIRE(i->value() == 7);
+  const polymorphic_value<Shape> cpv(Square(2));
+  static_assert(std::is_same<const Shape*, decltype(cpv.operator->())>::value,
+                "");
+  static_assert(std::is_same<const Shape&, decltype(cpv.operator*())>::value,
+                "");
 }
 
-TEST_CASE("Value move-assignment", "[polymorphic_value.constructors]") {
-  DerivedType d(7);
+BOOST_AUTO_TEST_CASE(copy_constructor) {
+  polymorphic_value<Square> pv(Square(2));
+  auto pv2 = pv;
 
-  polymorphic_value<BaseType> i;
-  i = std::move(d);
-
-  REQUIRE(i->value() == 7);
+  BOOST_TEST(pv.operator->() != pv2.operator->());
+  BOOST_TEST(pv2->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv2.operator->()));
 }
 
-TEST_CASE("Pointer constructor", "[polymorphic_value.constructors]") {
-  GIVEN("A pointer-constructed polymorphic_value") {
-    int v = 7;
-    polymorphic_value<BaseType> cptr(new DerivedType(v));
+BOOST_AUTO_TEST_CASE(copy_assignment) {
+  polymorphic_value<Square> pv(Square(2));
+  polymorphic_value<Square> pv2;
+  pv2 = pv;
 
-    THEN("Operator-> calls the pointee method") { REQUIRE(cptr->value() == v); }
-
-    THEN("operator bool returns true") { REQUIRE((bool)cptr == true); }
-  }
-  GIVEN("A pointer-constructed const polymorphic_value") {
-    int v = 7;
-    const polymorphic_value<BaseType> ccptr(new DerivedType(v));
-
-    THEN("Operator-> calls the pointee method") {
-      REQUIRE(ccptr->value() == v);
-    }
-
-    THEN("operator bool returns true") { REQUIRE((bool)ccptr == true); }
-  }
+  BOOST_TEST(pv.operator->() != pv2.operator->());
+  BOOST_TEST(pv2->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv2.operator->()));
 }
 
-struct BaseCloneSelf {
-  BaseCloneSelf() = default;
-  virtual ~BaseCloneSelf() = default;
-  BaseCloneSelf(const BaseCloneSelf&) = delete;
-  virtual std::unique_ptr<BaseCloneSelf> clone() const = 0;
-};
+BOOST_AUTO_TEST_CASE(move_constructor) {
+  polymorphic_value<Square> pv(Square(2));
+  const auto* p = pv.operator->();
 
-struct DerivedCloneSelf : BaseCloneSelf {
-  static size_t object_count;
-  std::unique_ptr<BaseCloneSelf> clone() const {
-    return std::make_unique<DerivedCloneSelf>();
-  }
-  DerivedCloneSelf() { ++object_count; }
-  ~DerivedCloneSelf() { --object_count; }
-};
+  polymorphic_value<Square> pv2(std::move(pv));
 
-size_t DerivedCloneSelf::object_count = 0;
-
-struct invoke_clone_member {
-  template <typename T>
-  T* operator()(const T& t) const {
-    return static_cast<T*>(t.clone().release());
-  }
-};
-
-TEST_CASE("polymorphic_value constructed with copier and deleter",
-          "[polymorphic_value.constructor]") {
-  size_t copy_count = 0;
-  size_t deletion_count = 0;
-  auto cp = polymorphic_value<DerivedType>(new DerivedType(),
-                                           [&](const DerivedType& d) {
-                                             ++copy_count;
-                                             return new DerivedType(d);
-                                           },
-                                           [&](const DerivedType* d) {
-                                             ++deletion_count;
-                                             delete d;
-                                           });
-  {
-    auto cp2 = cp;
-    REQUIRE(copy_count == 1);
-  }
-  REQUIRE(deletion_count == 1);
+  BOOST_TEST(!pv);
+  BOOST_TEST(pv2.operator->() == p);
+  BOOST_TEST(pv2->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv2.operator->()));
 }
 
-TEST_CASE("polymorphic_value destructor", "[polymorphic_value.destructor]") {
-  GIVEN("No derived objects") {
-    REQUIRE(DerivedType::object_count == 0);
+BOOST_AUTO_TEST_CASE(move_assignment) {
+  polymorphic_value<Square> pv(Square(2));
+  const auto* p = pv.operator->();
 
-    THEN("Object count is increased on construction and decreased on "
-         "destruction") {
-      // begin and end scope to force destruction
-      {
-        polymorphic_value<BaseType> tmp(new DerivedType());
-        REQUIRE(DerivedType::object_count == 1);
-      }
-      REQUIRE(DerivedType::object_count == 0);
-    }
-  }
+  polymorphic_value<Square> pv2;
+  pv2 = std::move(pv);
+
+  BOOST_TEST(!pv);
+  BOOST_TEST(pv2.operator->() == p);
+  BOOST_TEST(pv2->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv2.operator->()));
 }
 
-TEST_CASE("polymorphic_value copy constructor",
-          "[polymorphic_value.constructors]") {
-  GIVEN("A polymorphic_value copied from a default-constructed "
-        "polymorphic_value") {
-    polymorphic_value<BaseType> original_cptr;
-    polymorphic_value<BaseType> cptr(original_cptr);
+BOOST_AUTO_TEST_CASE(value_constructor) {
+  Square s(2);
+  polymorphic_value<Square> pv(s);
 
-    THEN("operator bool returns false") { REQUIRE((bool)cptr == false); }
-  }
-
-  GIVEN("A polymorphic_value copied from a pointer-constructed "
-        "polymorphic_value") {
-    REQUIRE(DerivedType::object_count == 0);
-
-    int v = 7;
-    polymorphic_value<BaseType> original_cptr(new DerivedType(v));
-    polymorphic_value<BaseType> cptr(original_cptr);
-
-    THEN("values are distinct") {
-      REQUIRE(&cptr.value() != &original_cptr.value());
-    }
-
-    THEN("Operator-> calls the pointee method") { REQUIRE(cptr->value() == v); }
-
-    THEN("operator bool returns true") { REQUIRE((bool)cptr == true); }
-
-    THEN("object count is two") { REQUIRE(DerivedType::object_count == 2); }
-
-    WHEN("Changes are made to the original cloning pointer after copying") {
-      int new_value = 99;
-      original_cptr->set_value(new_value);
-      REQUIRE(original_cptr->value() == new_value);
-      THEN("They are not reflected in the copy (copy is distinct)") {
-        REQUIRE(cptr->value() != new_value);
-        REQUIRE(cptr->value() == v);
-      }
-    }
-  }
+  BOOST_TEST(pv.operator->() != &s);
+  BOOST_TEST(pv->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv.operator->()));
 }
 
-TEST_CASE("polymorphic_value move constructor",
-          "[polymorphic_value.constructors]") {
-  GIVEN("A polymorphic_value move-constructed from a default-constructed "
-        "polymorphic_value") {
-    polymorphic_value<BaseType> original_cptr;
-    polymorphic_value<BaseType> cptr(std::move(original_cptr));
+BOOST_AUTO_TEST_CASE(value_assignment) {
+  Square s(2);
+  polymorphic_value<Square> pv;
+  pv = s;
 
-    THEN("The original polymorphic_value is empty") {
-      REQUIRE(!(bool)original_cptr);
-    }
-
-    THEN("The move-constructed polymorphic_value is empty") {
-      REQUIRE(!(bool)cptr);
-    }
-  }
-
-  GIVEN("A polymorphic_value move-constructed from a default-constructed "
-        "polymorphic_value") {
-    int v = 7;
-    polymorphic_value<BaseType> original_cptr(new DerivedType(v));
-    auto original_pointer = &original_cptr.value();
-    CHECK(DerivedType::object_count == 1);
-
-    polymorphic_value<BaseType> cptr(std::move(original_cptr));
-    CHECK(DerivedType::object_count == 1);
-
-    THEN("The original polymorphic_value is empty") {
-      REQUIRE(!(bool)original_cptr);
-    }
-
-    THEN("The move-constructed pointer is the original pointer") {
-      REQUIRE(&cptr.value() == original_pointer);
-      REQUIRE(cptr.operator->() == original_pointer);
-      REQUIRE((bool)cptr);
-    }
-
-    THEN("The move-constructed pointer value is the constructed value") {
-      REQUIRE(cptr->value() == v);
-    }
-  }
+  BOOST_TEST(pv.operator->() != &s);
+  BOOST_TEST(pv->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv.operator->()));
 }
 
-TEST_CASE("polymorphic_value assignment", "[polymorphic_value.assignment]") {
-  GIVEN("A default-constructed polymorphic_value assigned-to a "
-        "default-constructed polymorphic_value") {
-    polymorphic_value<BaseType> cptr1;
-    const polymorphic_value<BaseType> cptr2;
+BOOST_AUTO_TEST_CASE(value_move_constructor) {
+  Square s(2);
+  polymorphic_value<Square> pv(std::move(s));
 
-    REQUIRE(DerivedType::object_count == 0);
-
-    cptr1 = cptr2;
-
-    REQUIRE(DerivedType::object_count == 0);
-
-    THEN("The assigned-to object is empty") { REQUIRE(!cptr1); }
-  }
-
-  GIVEN("A default-constructed polymorphic_value assigned to a "
-        "pointer-constructed polymorphic_value") {
-    int v1 = 7;
-
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
-    const polymorphic_value<BaseType> cptr2;
-    const auto p = &cptr1.value();
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    cptr1 = cptr2;
-
-    REQUIRE(DerivedType::object_count == 0);
-
-    THEN("The assigned-to object is empty") { REQUIRE(!cptr1); }
-  }
-
-  GIVEN("A pointer-constructed polymorphic_value assigned to a "
-        "default-constructed polymorphic_value") {
-    int v1 = 7;
-
-    polymorphic_value<BaseType> cptr1;
-    const polymorphic_value<BaseType> cptr2(new DerivedType(v1));
-    const auto p = &cptr2.value();
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    cptr1 = cptr2;
-
-    REQUIRE(DerivedType::object_count == 2);
-
-    THEN("The assigned-from object is unchanged") {
-      REQUIRE(&cptr2.value() == p);
-    }
-
-    THEN("The assigned-to object is non-empty") { REQUIRE((bool)cptr1); }
-
-    THEN("The assigned-from object 'value' is the assigned-to object value") {
-      REQUIRE(cptr1->value() == cptr2->value());
-    }
-
-    THEN("The assigned-from object pointer and the assigned-to object pointer "
-         "are distinct") {
-      REQUIRE(&cptr1.value() != &cptr2.value());
-    }
-  }
-
-  GIVEN("A pointer-constructed polymorphic_value assigned to a "
-        "pointer-constructed polymorphic_value") {
-    int v1 = 7;
-    int v2 = 87;
-
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
-    const polymorphic_value<BaseType> cptr2(new DerivedType(v2));
-    const auto p = &cptr2.value();
-
-    REQUIRE(DerivedType::object_count == 2);
-
-    cptr1 = cptr2;
-
-    REQUIRE(DerivedType::object_count == 2);
-
-    THEN("The assigned-from object is unchanged") {
-      REQUIRE(&cptr2.value() == p);
-    }
-
-    THEN("The assigned-to object is non-empty") { REQUIRE((bool)cptr1); }
-
-    THEN("The assigned-from object 'value' is the assigned-to object value") {
-      REQUIRE(cptr1->value() == cptr2->value());
-    }
-
-    THEN("The assigned-from object pointer and the assigned-to object pointer "
-         "are distinct") {
-      REQUIRE(&cptr1.value() != &cptr2.value());
-    }
-  }
-
-  GIVEN("A pointer-constructed polymorphic_value assigned to itself") {
-    int v1 = 7;
-
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
-    const auto p = &cptr1.value();
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    cptr1 = cptr1;
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    THEN("The assigned-from object is unchanged") {
-      REQUIRE(&cptr1.value() == p);
-    }
-  }
+  BOOST_TEST(s.moved_from);
+  BOOST_TEST(pv.operator->() != &s);
+  BOOST_TEST(pv->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv.operator->()));
 }
 
-TEST_CASE("polymorphic_value move-assignment",
-          "[polymorphic_value.assignment]") {
-  GIVEN("A default-constructed polymorphic_value move-assigned-to a "
-        "default-constructed polymorphic_value") {
-    polymorphic_value<BaseType> cptr1;
-    polymorphic_value<BaseType> cptr2;
+BOOST_AUTO_TEST_CASE(value_move_assignment) {
+  Square s(2);
+  polymorphic_value<Square> pv;
+  pv = std::move(s);
 
-    REQUIRE(DerivedType::object_count == 0);
-
-    cptr1 = std::move(cptr2);
-
-    REQUIRE(DerivedType::object_count == 0);
-
-    THEN("The move-assigned-from object is empty") { REQUIRE(!cptr2); }
-
-    THEN("The move-assigned-to object is empty") { REQUIRE(!cptr1); }
-  }
-
-  GIVEN("A default-constructed polymorphic_value move-assigned to a "
-        "pointer-constructed polymorphic_value") {
-    int v1 = 7;
-
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
-    polymorphic_value<BaseType> cptr2;
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    cptr1 = std::move(cptr2);
-
-    REQUIRE(DerivedType::object_count == 0);
-
-    THEN("The move-assigned-from object is empty") { REQUIRE(!cptr2); }
-
-    THEN("The move-assigned-to object is empty") { REQUIRE(!cptr1); }
-  }
-
-  GIVEN("A pointer-constructed polymorphic_value move-assigned to a "
-        "default-constructed polymorphic_value") {
-    int v1 = 7;
-
-    polymorphic_value<BaseType> cptr1;
-    polymorphic_value<BaseType> cptr2(new DerivedType(v1));
-    const auto p = &cptr2.value();
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    cptr1 = std::move(cptr2);
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    THEN("The move-assigned-from object is empty") { REQUIRE(!cptr2); }
-
-    THEN("The move-assigned-to object pointer is the move-assigned-from "
-         "pointer") {
-      REQUIRE(&cptr1.value() == p);
-    }
-  }
-
-  GIVEN("A pointer-constructed polymorphic_value move-assigned to a "
-        "pointer-constructed polymorphic_value") {
-    int v1 = 7;
-    int v2 = 87;
-
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
-    polymorphic_value<BaseType> cptr2(new DerivedType(v2));
-    const auto p = &cptr2.value();
-
-    REQUIRE(DerivedType::object_count == 2);
-
-    cptr1 = std::move(cptr2);
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    THEN("The move-assigned-from object is empty") { REQUIRE(!cptr2); }
-
-    THEN("The move-assigned-to object pointer is the move-assigned-from "
-         "pointer") {
-      REQUIRE(&cptr1.value() == p);
-    }
-  }
+  BOOST_TEST(s.moved_from);
+  BOOST_TEST(pv.operator->() != &s);
+  BOOST_TEST(pv->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv.operator->()));
 }
 
-TEST_CASE("Derived types", "[polymorphic_value.derived_types]") {
-  GIVEN("A polymorphic_value<BaseType> constructed from "
-        "make_polymorphic_value<DerivedType>") {
-    int v = 7;
-    auto cptr = make_polymorphic_value<DerivedType>(v);
+BOOST_AUTO_TEST_CASE(derived_type_copy_constructor) {
+  polymorphic_value<Shape> pv(Square(2));
+  auto pv2 = pv;
 
-    WHEN("A polymorphic_value<BaseType> is copy-constructed") {
-      polymorphic_value<BaseType> bptr(cptr);
-
-      THEN("Operator-> calls the pointee method") {
-        REQUIRE(bptr->value() == v);
-      }
-
-      THEN("operator bool returns true") { REQUIRE((bool)bptr == true); }
-    }
-
-    WHEN("A polymorphic_value<BaseType> is assigned") {
-      polymorphic_value<BaseType> bptr;
-      bptr = cptr;
-
-      THEN("Operator-> calls the pointee method") {
-        REQUIRE(bptr->value() == v);
-      }
-
-      THEN("operator bool returns true") { REQUIRE((bool)bptr == true); }
-    }
-
-    WHEN("A polymorphic_value<BaseType> is move-constructed") {
-      polymorphic_value<BaseType> bptr(std::move(cptr));
-
-      THEN("Operator-> calls the pointee method") {
-        REQUIRE(bptr->value() == v);
-      }
-
-      THEN("operator bool returns true") { REQUIRE((bool)bptr == true); }
-    }
-
-    WHEN("A polymorphic_value<BaseType> is move-assigned") {
-      polymorphic_value<BaseType> bptr;
-      bptr = std::move(cptr);
-
-      THEN("Operator-> calls the pointee method") {
-        REQUIRE(bptr->value() == v);
-      }
-
-      THEN("operator bool returns true") { REQUIRE((bool)bptr == true); }
-    }
-  }
+  BOOST_TEST(pv.operator->() != pv2.operator->());
+  BOOST_TEST(pv2->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv2.operator->()));
 }
 
-TEST_CASE("make_polymorphic_value return type can be converted to base-type",
-          "[polymorphic_value.make_polymorphic_value]") {
-  GIVEN("A polymorphic_value<BaseType> constructed from "
-        "make_polymorphic_value<DerivedType>") {
-    int v = 7;
-    polymorphic_value<BaseType> cptr = make_polymorphic_value<DerivedType>(v);
+BOOST_AUTO_TEST_CASE(derived_type_copy_assignment) {
+  polymorphic_value<Shape> pv(Square(2));
+  polymorphic_value<Shape> pv2;
+  pv2 = pv;
 
-    THEN("Operator-> calls the pointee method") { REQUIRE(cptr->value() == v); }
-
-    THEN("operator bool returns true") { REQUIRE((bool)cptr == true); }
-  }
+  BOOST_TEST(pv.operator->() != pv2.operator->());
+  BOOST_TEST(pv2->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv2.operator->()));
 }
 
-struct Base {
-  int v_ = 42;
-  virtual ~Base() = default;
-};
-struct IntermediateBaseA : virtual Base {
-  int a_ = 3;
-};
-struct IntermediateBaseB : virtual Base {
-  int b_ = 101;
-};
-struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB {
-  int value_ = 0;
-  MultiplyDerived(int value) : value_(value){};
-};
+BOOST_AUTO_TEST_CASE(derived_type_move_constructor) {
+  polymorphic_value<Shape> pv(Square(2));
+  const auto* p = pv.operator->();
 
-TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes",
-          "[polymorphic_value.constructors]") {
-  GIVEN("A value-constructed multiply-derived-class polymorphic_value") {
-    int v = 7;
-    polymorphic_value<MultiplyDerived> cptr(new MultiplyDerived(v));
+  polymorphic_value<Shape> pv2(std::move(pv));
 
-    THEN("When copied to a polymorphic_value to an intermediate base type, "
-         "data is accessible as expected") {
-      polymorphic_value<IntermediateBaseA> cptr_IA = cptr;
-      REQUIRE(cptr_IA->a_ == 3);
-      REQUIRE(cptr_IA->v_ == 42);
-    }
-
-    THEN("When copied to a polymorphic_value to an intermediate base type, "
-         "data is accessible as expected") {
-      polymorphic_value<IntermediateBaseB> cptr_IB = cptr;
-      REQUIRE(cptr_IB->b_ == 101);
-      REQUIRE(cptr_IB->v_ == 42);
-    }
-  }
+  BOOST_TEST(!pv);
+  BOOST_TEST(pv2.operator->() == p);
+  BOOST_TEST(pv2->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv2.operator->()));
 }
 
-struct Tracked {
-  static int ctor_count_;
-  static int dtor_count_;
-  static int assignment_count_;
+BOOST_AUTO_TEST_CASE(derived_type_move_assignment) {
+  polymorphic_value<Shape> pv(Square(2));
+  const auto* p = pv.operator->();
 
-  static void reset_counts() {
-    ctor_count_ = 0;
-    dtor_count_ = 0;
-    assignment_count_ = 0;
-  }
+  polymorphic_value<Shape> pv2;
+  pv2 = std::move(pv);
 
-  Tracked() { ++ctor_count_; }
-  ~Tracked() { ++dtor_count_; }
-  Tracked(const Tracked&) { ++ctor_count_; }
-  Tracked(Tracked&&) { ++ctor_count_; }
-  Tracked& operator=(const Tracked&) {
-    ++assignment_count_;
-    return *this;
-  }
-  Tracked& operator=(Tracked&&) {
-    ++assignment_count_;
-    return *this;
-  }
-};
-
-int Tracked::ctor_count_ = 0;
-int Tracked::dtor_count_ = 0;
-int Tracked::assignment_count_ = 0;
-
-struct ThrowsOnCopy : Tracked {
-  int value_ = 0;
-
-  ThrowsOnCopy() = default;
-
-  explicit ThrowsOnCopy(const int v) : value_(v) {}
-
-  ThrowsOnCopy(const ThrowsOnCopy&) {
-    throw std::runtime_error("something went wrong during copy");
-  }
-
-  ThrowsOnCopy& operator=(const ThrowsOnCopy& rhs) = default;
-};
-
-TEST_CASE("Exception safety: throw in copy constructor",
-          "[polymorphic_value.exception_safety.copy]") {
-  GIVEN("A value-constructed polymorphic_value to a ThrowsOnCopy") {
-    const int v = 7;
-    polymorphic_value<ThrowsOnCopy> cptr(new ThrowsOnCopy(v));
-
-    THEN("When copying to another polymorphic_value, after an exception, the "
-         "source remains valid") {
-      Tracked::reset_counts();
-      polymorphic_value<ThrowsOnCopy> another;
-      REQUIRE_THROWS_AS(another = cptr, std::runtime_error);
-      REQUIRE(cptr->value_ == v);
-      REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
-    }
-
-    THEN("When copying to another polymorphic_value, after an exception, the "
-         "destination is not changed") {
-      const int v2 = 5;
-      polymorphic_value<ThrowsOnCopy> another(new ThrowsOnCopy(v2));
-      Tracked::reset_counts();
-      REQUIRE_THROWS_AS(another = cptr, std::runtime_error);
-      REQUIRE(another->value_ == v2);
-      REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
-    }
-  }
+  BOOST_TEST(!pv);
+  BOOST_TEST(pv2.operator->() == p);
+  BOOST_TEST(pv2->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv2.operator->()));
 }
 
-template <typename T>
-struct throwing_copier {
-  T* operator()(const T& t) const { throw std::bad_alloc{}; }
-};
+BOOST_AUTO_TEST_CASE(derived_type_value_constructor) {
+  Square s(2);
+  polymorphic_value<Shape> pv(s);
 
-struct TrackedValue : Tracked {
-  int value_ = 0;
-  explicit TrackedValue(const int v) : value_(v) {}
-};
-
-TEST_CASE("Exception safety: throw in copier",
-          "[polymorphic_value.exception_safety.copier]") {
-  GIVEN("A value-constructed polymorphic_value") {
-    const int v = 7;
-    polymorphic_value<TrackedValue> cptr(new TrackedValue(v),
-                                         throwing_copier<TrackedValue>{});
-
-    THEN("When an exception occurs in the copier, the source is unchanged") {
-      polymorphic_value<TrackedValue> another;
-      Tracked::reset_counts();
-      REQUIRE_THROWS_AS(another = cptr, std::bad_alloc);
-      REQUIRE(cptr->value_ == v);
-      REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
-    }
-
-    THEN("When an exception occurs in the copier, the destination is "
-         "unchanged") {
-      const int v2 = 5;
-      polymorphic_value<TrackedValue> another(new TrackedValue(v2));
-      Tracked::reset_counts();
-      REQUIRE_THROWS_AS(another = cptr, std::bad_alloc);
-      REQUIRE(another->value_ == v2);
-      REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
-    }
-  }
+  BOOST_TEST(pv.operator->() != &s);
+  BOOST_TEST(pv->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv.operator->()));
 }
 
-TEST_CASE("polymorphic_value<const T>",
-          "[polymorphic_value.compatible_types]") {
-  polymorphic_value<const DerivedType> p(DerivedType(7));
-  REQUIRE(p->value() == 7);
-  // Will not compile as p is polymorphic_value<const DerivedType> not
-  // polymorphic_value<DerivedType>
-  // p->set_value(42);
+BOOST_AUTO_TEST_CASE(derived_type_value_assignment) {
+  Square s(2);
+  polymorphic_value<Shape> pv;
+  pv = s;
+
+  BOOST_TEST(pv.operator->() != &s);
+  BOOST_TEST(pv->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv.operator->()));
 }
 
-class DeeplyDerivedType : public DerivedType {
-public:
-  DeeplyDerivedType() : DerivedType(0) {}
-};
+BOOST_AUTO_TEST_CASE(derived_type_value_move_constructor) {
+  Square s(2);
+  polymorphic_value<Shape> pv(std::move(s));
 
-TEST_CASE("polymorphic_value dynamic and static type mismatch",
-          "[polymorphic_value.construction]") {
-  DeeplyDerivedType dd;
-  DerivedType* p = &dd;
-
-  CHECK(typeid(*p) != typeid(DerivedType));
-
-  CHECK_THROWS_AS([p] { return polymorphic_value<BaseType>(p); }(),
-                  bad_polymorphic_value_construction);
+  BOOST_TEST(s.moved_from);
+  BOOST_TEST(pv.operator->() != &s);
+  BOOST_TEST(pv->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv.operator->()));
 }
 
-struct fake_copy {
-  template <class T>
-  DerivedType* operator()(const T& b) const {
-    return nullptr;
-  }
-};
+BOOST_AUTO_TEST_CASE(derived_type_value_move_assignment) {
+  Square s(2);
+  polymorphic_value<Shape> pv;
+  pv = std::move(s);
 
-struct no_deletion {
-  void operator()(const void*) const {}
-};
-
-TEST_CASE("polymorphic_value dynamic and static type mismatch is not a problem "
-          "with custom copier or deleter",
-          "[polymorphic_value.construction]") {
-  DeeplyDerivedType dd;
-  DerivedType* p = &dd;
-
-  CHECK(typeid(*p) != typeid(DerivedType));
-
-  CHECK_NOTHROW([p] {
-    return polymorphic_value<BaseType>(p, fake_copy{}, no_deletion{});
-  }());
+  BOOST_TEST(s.moved_from);
+  BOOST_TEST(pv.operator->() != &s);
+  BOOST_TEST(pv->area() == 4);
+  BOOST_TEST(dynamic_cast<Square*>(pv.operator->()));
 }
 
-TEST_CASE("Dangling reference in forwarding constructor",
-          "[polymorphic_value.constructors]") {
+BOOST_AUTO_TEST_CASE(swap) {
+  polymorphic_value<Shape> square(Square(2));
+  polymorphic_value<Shape> circle(Circle(2));
+
+  BOOST_TEST(square->name() == "square"s);
+  BOOST_TEST(circle->name() == "circle"s);
+
+  using std::swap;
+  swap(square, circle);
+
+  BOOST_TEST(square->name() == "circle"s);
+  BOOST_TEST(circle->name() == "square"s);
+}
+
+BOOST_AUTO_TEST_CASE(member_swap) {
+  polymorphic_value<Shape> square(Square(2));
+  polymorphic_value<Shape> circle(Circle(2));
+
+  BOOST_TEST(square->name() == "square"s);
+  BOOST_TEST(circle->name() == "circle"s);
+
+  using std::swap;
+  square.swap(circle);
+
+  BOOST_TEST(square->name() == "circle"s);
+  BOOST_TEST(circle->name() == "square"s);
+}
+
+BOOST_AUTO_TEST_CASE(multiple_inheritance_with_virtual_base_classes) {
+  // This is "Gustafsson's dilemma" and revealed a serious problem in an early
+  // implementation.
+  // Thanks go to Bengt Gustaffson.
+  struct Base {
+    int v_ = 42;
+    virtual ~Base() = default;
+  };
+  struct IntermediateBaseA : virtual Base {
+    int a_ = 3;
+  };
+  struct IntermediateBaseB : virtual Base {
+    int b_ = 101;
+  };
+  struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB {
+    int value_ = 0;
+    MultiplyDerived(int value) : value_(value){};
+  };
+
+  // Given a value-constructed multiply-derived-class polymorphic_value.
+  int v = 7;
+  polymorphic_value<MultiplyDerived> cptr(new MultiplyDerived(v));
+
+  // Then when copied to a polymorphic_value to an intermediate base type, data
+  // is accessible as expected.
+  polymorphic_value<IntermediateBaseA> cptr_IA = cptr;
+  BOOST_TEST(cptr_IA->a_ == 3);
+  BOOST_TEST(cptr_IA->v_ == 42);
+
+  // Then when copied to a polymorphic_value to an alternate intermediate base
+  // type data is accessible as expected.
+  polymorphic_value<IntermediateBaseB> cptr_IB = cptr;
+  BOOST_TEST(cptr_IB->b_ == 101);
+  BOOST_TEST(cptr_IB->v_ == 42);
+}
+
+BOOST_AUTO_TEST_CASE(reference_decay_in_forwarding_constructors) {
+  // This test highlights a bug in earlier implementations where a
+  // polymorphic_value<int&> could be erroneously created.
+  // Thanks go to Matt Calabrese.
   int x = 7;
   int& rx = x;
   polymorphic_value<int> p(rx);
 
   x = 6;
-  CHECK(*p == 7);
+  BOOST_TEST(*p == 7);
+}
+
+BOOST_AUTO_TEST_CASE(dynamic_and_static_type_mismatch_throws_exception) {
+
+  class UnitSquare : public Square {
+  public:
+    UnitSquare() : Square(1) {}
+    double area() const { return 1.0; }
+    const char* name() const { return "unit-square"; }
+  };
+  UnitSquare u;
+  Square* s = &u;
+
+  BOOST_CHECK_THROW([s] { return polymorphic_value<Shape>(s); }(),
+                    boost::bad_polymorphic_value_construction);
+}
+
+BOOST_AUTO_TEST_CASE(custom_copy_and_delete) {
+  size_t copy_count = 0;
+  size_t deletion_count = 0;
+  polymorphic_value<Square> pv(new Square(2),
+                               [&](const Square& d) {
+                                 ++copy_count;
+                                 return new Square(d);
+                               },
+                               [&](const Square* d) {
+                                 ++deletion_count;
+                                 delete d;
+                               });
+  // Restrict scope.
+  {
+    auto pv2 = pv;
+    BOOST_TEST(copy_count == 1);
+  }
+  BOOST_TEST(deletion_count == 1);
+}
+
+BOOST_AUTO_TEST_CASE(reference_stability) {
+  struct tiny_t {};
+  auto pv = polymorphic_value<tiny_t>(tiny_t{});
+  tiny_t* p = pv.operator->();
+
+  auto moved_pv = std::move(pv);
+  auto moved_p = moved_pv.operator->();
+
+  // This will fail if a small-object optimisation is in place.
+  BOOST_TEST(p == moved_p);
 }

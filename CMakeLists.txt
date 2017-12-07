@@ -14,28 +14,18 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" OR ${CMAKE_CXX_COMPILER_ID} MATCHES 
   add_compile_options("-Werror;-Wall")
 endif()
 
-# Catch tests
+# Boost tests
 add_executable(test_polymorphic_value test/test_polymorphic_value.cpp)
 
-target_include_directories(test_polymorphic_value PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(test_polymorphic_value PRIVATE ${CMAKE_SOURCE_DIR}/externals/catch/include)
-
-# Boost tests
-add_executable(boost_test_polymorphic_value test/boost_test_polymorphic_value.cpp)
-
 find_package(Boost REQUIRED)
-target_include_directories(boost_test_polymorphic_value PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(boost_test_polymorphic_value PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(boost_test_polymorphic_value ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+target_include_directories(test_polymorphic_value PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(test_polymorphic_value PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(test_polymorphic_value ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 enable_testing()
+
 add_test(
   NAME test_polymorphic_value
   COMMAND test_polymorphic_value
-  WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-
-add_test(
-  NAME boost_test_polymorphic_value
-  COMMAND boost_test_polymorphic_value
   WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
