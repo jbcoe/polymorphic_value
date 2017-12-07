@@ -33,8 +33,7 @@ special member functions.
 A `polymorphic_value` member can be used with the same syntax one would use for
 a pointer member: `operator->` and `operator*` will respectively return a
 pointer and a reference. Like a pointer, `polymorphic_value` can be null so
-should probably be initialised within the parent object constructor. Unlike a
-pointer, `polymorphic_value` can be initialised with a derived-class object.
+should probably be initialised within the parent object constructor. 
 
 `polymorphic_value` has value semantics: when copied, it will perform a deep
 copy of the owned object, and it propagates `const` to the owned object.
@@ -105,65 +104,112 @@ a `polymorphic_value`'s managed object should be a suitable deterrent.
 
 [endsect]
 
-[section Type Requirements]
-
-For:
-
-    class MyClass {
-      boost::polymorphic_value<T> component_;
-    };
-
-* `T` must be a non-union class type. 
-* `T` can be an incomplete type.
-
-For:
-
-    U u;
-    boost::polymorphic_value<T> pv(u);
-
-and:
-
-    boost::polymorphic_value<T> pv(U{});
-
-* `U*` must be convertible to `T*`.
-* `U` must be /CopyConstructible/.
-* `U` must be nothrow destructible.
-
-For:
-
-    U* pu = make_some_u();
-    Copier c;
-    Deleter d;
-    boost::polymorphic_value<T>(pu, c, d);
-
-*  `c(*u)` must be well-formed and must return an object that can be converted to, and stored as a `T*`.
-*  `d(u)` must be well-formed and must not throw an exception.
-
-[endsect]
-
 [section When to use `polymorphic_value`]
 
-* Class with components
+`polymorphic_value` is designed to be used in polymorphic component-based
+designs where the set of possible component types is open to extension
+(open-set polymorphism).
 
-* No polymorphism
+`polymorphic_value` introduces a virtual function call into copy construction
+and memory indirection into member function invocation. C++ advocates only
+paying for what you use so we would advocate avoiding the unnecessary use of
+`polymorphic_value`.
 
-* Compile-time vs run-time polymorphism
+If a component design does not require polymorphic components then storing
+components by value may be a better choice than using `polymorphic_value`.
 
-* Open-set vs closed-set polymorphism
+If a component design does not require mutable components then storing
+components by `std::shared_ptr<const T>` may be a better choice than using
+`polymorphic_value` (Note the `const`).
 
+If a component design has component sub-types chosen from a know set of
+sub-types, then an `std::variant<A,B,C>` may be a better choice than using
+`polymorphic_value`.
+
+If a component design requires an open or extensible set of component sub-types,
+and mutability of components then `polymorphic_value` may be a good choice.
 [endsect]
 
 [section Custom copiers and deleters]
+
+`polymorphic_value` supports the use of custom copiers and deleters through a
+raw-pointer constructor where the `polymorphic_value` takes ownership of the
+pointer.
+
+    template <class U, 
+              class C=boost::default_copy<U>, 
+              class D=default_delete<U>>
+              // requires U* is convertible to T*
+    polymorphic_value(U* u, C c = C{}, D d = D{});
+
+This constructor is intended for situations where the copy constructor of `U`
+and `delete U` are not appropriate choices. 
+
+When objects are created from a C-API there may be API-provided methods to
+create, copy and delete objects. The pointer-constructor of polymorphic_value
+would enable use of such objects.
+
+    // C-API pointer
+    struct c_api_t;
+    using c_api_p = c_api_t*;
+
+    // C-API functions
+    c_api_p c_api_object_create(int arg);
+    c_api_p c_api_object_copy(c_api_p p);
+    void c_api_object_dispose(c_api_p p);
+
+    polymorphic_value<c_api_t> pv(
+      c_api_object_create(42),
+      [](const c_api_t& o) { return c_api_object_copy(&o);},
+      [](const c_api_p* p) { c_api_object_dispose(p); }
+    );
+
+[heading Migrating from a `Clone` method]
+
+The pointer constructor can be used to migrate from a class heirarchy with a
+`Clone` method. 
+
+Suppose there is a base class that inherits from the mixin `Cloneable`:
+
+    template <class T>
+    struct Cloneable {
+      virtual ~Cloneable() = default;
+      virtual std::unique_ptr<T> Clone() const = 0;
+    };
+
+    class Shape : public Cloneable<Shape>
+    {
+     public:
+      virtual ~Shape() = default;
+      // ... 
+    };
+
+We can use the pointer constructor to ensure that `polymorphic_value` calls the
+clone method. 
+    
+    std::unique_ptr<Shape> s = shape_factory("Ellipse");
+    polymorphic_value<Shape> pv(
+      s.release(),
+      [](const Shape& o) { return o.Clone().release(); },
+    );
+
+Once `Clone` is only used within `polymorphic_value` we can modify
+`Shape` to make it copyable.
+
+    class Shape : public Cloneable<Shape>
+    {
+     public:
+      virtual ~Shape() = default;
+      Shape(const Shape&) = default; 
+      Shape(Shape&&) = default; 
+      Shape& operator=(const Shape&) = default; 
+      Shape& operator=(Shape&&) = default; 
+      // ... 
+    };
+    
+    std::unique_ptr<Shape> s = shape_factory("Ellipse");
+    polymorphic_value<Shape> pv(s.release());
+
 [endsect]
 
-[section Migrating from a `Clone()` method]
-[endsect]
-
-[section Gotchas]
-
-* Pointer constructor is dangerous
-
-* Reference stability guarantees
-
-[endsect]
 [endsect]
