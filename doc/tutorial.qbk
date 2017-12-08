@@ -177,8 +177,7 @@ Suppose there is a base class that inherits from the mixin `Cloneable`:
       virtual std::unique_ptr<T> Clone() const = 0;
     };
 
-    class Shape : public Cloneable<Shape>
-    {
+    class Shape : public Cloneable<Shape> {
      public:
       virtual ~Shape() = default;
       // ... 
@@ -196,8 +195,7 @@ clone method.
 Once `Clone` is only used within `polymorphic_value` we can modify
 `Shape` to make it copyable.
 
-    class Shape : public Cloneable<Shape>
-    {
+    class Shape {
      public:
       virtual ~Shape() = default;
       Shape(const Shape&) = default; 
