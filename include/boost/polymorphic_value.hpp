@@ -1,21 +1,22 @@
 // Copyright (c) 2016-2017 Jonathan B. Coe
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of
-// this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including without limitation the rights to
-// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-// the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-// 
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #ifndef BOOST_POLYMORPHIC_VALUE_22NOV2017_HPP
 #define BOOST_POLYMORPHIC_VALUE_22NOV2017_HPP
@@ -27,6 +28,9 @@
 #include <typeinfo>
 
 namespace boost {
+
+  template <class T>
+  class polymorphic_value;
 
   ////////////////////////////////////////////////////////////////////////////
   // Implementation detail classes
@@ -107,6 +111,11 @@ namespace boost {
       T* ptr() override { return delegate_->ptr(); }
     };
 
+    template <class T>
+    struct is_polymorphic_value : std::false_type {};
+
+    template <class T>
+    struct is_polymorphic_value<polymorphic_value<T>> : std::true_type {};
 
   } // namespace detail
 
@@ -119,16 +128,6 @@ namespace boost {
              "construction";
     }
   };
-
-  template <class T>
-  class polymorphic_value;
-
-  template <class T>
-  struct is_polymorphic_value : std::false_type {};
-
-  template <class T>
-  struct is_polymorphic_value<polymorphic_value<T>> : std::true_type {};
-
 
   ////////////////////////////////////////////////////////////////////////////////
   // `polymorphic_value` class definition
@@ -147,7 +146,6 @@ namespace boost {
     std::unique_ptr<detail::control_block<T>> cb_;
 
   public:
-    
     //
     // Destructor
     //
@@ -230,9 +228,10 @@ namespace boost {
     // Forwarding constructor
     //
 
-    template <class U, class V = std::enable_if_t<
-                           std::is_convertible<std::decay_t<U>*, T*>::value &&
-                           !is_polymorphic_value<std::decay_t<U>>::value>>
+    template <class U,
+              class V = std::enable_if_t<
+                  std::is_convertible<std::decay_t<U>*, T*>::value &&
+                  !detail::is_polymorphic_value<std::decay_t<U>>::value>>
     polymorphic_value(U&& u)
         : cb_(std::make_unique<
               detail::direct_control_block<T, std::decay_t<U>>>(
@@ -303,9 +302,10 @@ namespace boost {
     // Forwarding assignment
     //
 
-    template <class U, class V = std::enable_if_t<
-                           std::is_convertible<std::decay_t<U>*, T*>::value &&
-                           !is_polymorphic_value<std::decay_t<U>>::value>>
+    template <class U,
+              class V = std::enable_if_t<
+                  std::is_convertible<std::decay_t<U>*, T*>::value &&
+                  !detail::is_polymorphic_value<std::decay_t<U>>::value>>
     polymorphic_value& operator=(U&& u) {
       polymorphic_value tmp(std::forward<U>(u));
       *this = std::move(tmp);
@@ -362,7 +362,7 @@ namespace boost {
   //
   // polymorphic_value creation
   //
-  
+
   template <class T, class... Ts>
   polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
     polymorphic_value<T> p;
