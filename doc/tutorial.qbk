@@ -122,7 +122,7 @@ If a component design does not require mutable components then storing
 components by `std::shared_ptr<const T>` may be a better choice than using
 `polymorphic_value` (Note the `const`).
 
-If a component design has component sub-types chosen from a know set of
+If a component design has component sub-types chosen from a known set of
 sub-types, then an `std::variant<A,B,C>` may be a better choice than using
 `polymorphic_value`.
 
