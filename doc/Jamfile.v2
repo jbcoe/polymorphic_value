@@ -21,8 +21,6 @@ doxygen polymorphic_value_reference
     $(files)
   :
         <doxygen:param>EXTRACT_ALL=YES
-        # note that there is no detail::unspecified -- this is a hack to get all
-        # the SFINAE code out of the API docs.
         <doxygen:param>"PREDEFINED=\"BOOST_POLYMORPHIC_VALUE_DOXYGEN=1\""
         <doxygen:param>HIDE_UNDOC_MEMBERS=NO
         <doxygen:param>EXTRACT_PRIVATE=NO
@@ -36,7 +34,7 @@ doxygen polymorphic_value_reference
 
 }
 
-run_doxygen [ glob ../include/boost/*.hpp ] : "Reference" ;
+run_doxygen [ glob ../include/boost/*.hpp ] : "polymorphic_value_reference" ;
 
 xml polymorphic_value
     :

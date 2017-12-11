@@ -32,21 +32,21 @@ namespace boost {
   template <class T>
   class polymorphic_value;
 
+  template <class T>
+  struct default_copy {
+    T* operator()(const T& t) const { return new T(t); }
+  };
+
+  template <class T>
+  struct default_delete {
+    void operator()(const T* t) const { delete t; }
+  };
+
   ////////////////////////////////////////////////////////////////////////////
   // Implementation detail classes
   ////////////////////////////////////////////////////////////////////////////
 
   namespace detail {
-
-    template <class T>
-    struct default_copy {
-      T* operator()(const T& t) const { return new T(t); }
-    };
-
-    template <class T>
-    struct default_delete {
-      void operator()(const T* t) const { delete t; }
-    };
 
     template <class T>
     struct control_block {
@@ -159,17 +159,20 @@ namespace boost {
 
     polymorphic_value() {}
 
-    template <class U, class C = detail::default_copy<U>,
-              class D = detail::default_delete<U>,
-              class V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
+    template <class U, class C = default_copy<U>, class D = default_delete<U>
+#ifndef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+              ,
+              class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
+#else
+              >
+#endif
     explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{}) {
       if (!u) {
         return;
       }
 
-      if (std::is_same<D, detail::default_delete<U>>::value &&
-          std::is_same<C, detail::default_copy<U>>::value &&
-          typeid(*u) != typeid(U))
+      if (std::is_same<D, default_delete<U>>::value &&
+          std::is_same<C, default_copy<U>>::value && typeid(*u) != typeid(U))
         throw bad_polymorphic_value_construction();
 
       std::unique_ptr<U, D> p(u, std::move(deleter));
@@ -193,9 +196,14 @@ namespace boost {
       cb_ = std::move(tmp_cb);
     }
 
-    template <class U,
-              class V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                         std::is_convertible<U*, T*>::value>>
+    template <class U
+#ifndef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+              ,
+              class = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_convertible<U*, T*>::value>>
+#else
+              >
+#endif
     polymorphic_value(const polymorphic_value<U>& p) {
       polymorphic_value<U> tmp(p);
       cb_ = std::make_unique<
@@ -214,9 +222,14 @@ namespace boost {
       p.ptr_ = nullptr;
     }
 
-    template <class U,
-              class V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                         std::is_convertible<U*, T*>::value>>
+    template <class U
+#ifndef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+              ,
+              class = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_convertible<U*, T*>::value>>
+#else
+              >
+#endif
     polymorphic_value(polymorphic_value<U>&& p) {
       ptr_ = p.ptr_;
       cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
@@ -228,10 +241,15 @@ namespace boost {
     // Forwarding constructor
     //
 
-    template <class U,
-              class V = std::enable_if_t<
+    template <class U
+#ifndef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+              ,
+              class = std::enable_if_t<
                   std::is_convertible<std::decay_t<U>*, T*>::value &&
                   !detail::is_polymorphic_value<std::decay_t<U>>::value>>
+#else
+              >
+#endif
     polymorphic_value(U&& u)
         : cb_(std::make_unique<
               detail::direct_control_block<T, std::decay_t<U>>>(
@@ -260,9 +278,14 @@ namespace boost {
       return *this;
     }
 
-    template <class U,
-              class V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                         std::is_convertible<U*, T*>::value>>
+    template <class U
+#ifndef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+              ,
+              class = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_convertible<U*, T*>::value>>
+#else
+              >
+#endif
     polymorphic_value& operator=(const polymorphic_value<U>& p) {
       polymorphic_value<U> tmp(p);
       cb_ = std::make_unique<
@@ -287,9 +310,14 @@ namespace boost {
       return *this;
     }
 
-    template <class U,
-              class V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                         std::is_convertible<U*, T*>::value>>
+    template <class U
+#ifndef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+              ,
+              class = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_convertible<U*, T*>::value>>
+#else
+              >
+#endif
     polymorphic_value& operator=(polymorphic_value<U>&& p) {
       cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
           std::move(p.cb_));
@@ -302,10 +330,15 @@ namespace boost {
     // Forwarding assignment
     //
 
-    template <class U,
-              class V = std::enable_if_t<
+    template <class U
+#ifndef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+              ,
+              class = std::enable_if_t<
                   std::is_convertible<std::decay_t<U>*, T*>::value &&
                   !detail::is_polymorphic_value<std::decay_t<U>>::value>>
+#else
+              >
+#endif
     polymorphic_value& operator=(U&& u) {
       polymorphic_value tmp(std::forward<U>(u));
       *this = std::move(tmp);
