@@ -29,6 +29,7 @@ For:
     Deleter d;
     boost::polymorphic_value<T>(pu, c, d);
 
+* `U*` must be convertible to `T*`.
 *  `c(*u)` must be well-formed and must return an object that can be converted to, and stored as a `T*`.
 *  `d(u)` must be well-formed and must not throw an exception.
 
