@@ -166,6 +166,9 @@ namespace boost {
 #else
               >
 #endif
+    /** requires `U*` is convertible to `T*`.
+     * If `C` is `default_copy<U>` and `D` is `default_delete<U>`, requires
+     * `typeid(*u) == typeid(U)`. */
     explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{}) {
       if (!u) {
         return;
@@ -204,6 +207,7 @@ namespace boost {
 #else
               >
 #endif
+    /** requires `T` and `U` are different types, `U*` is convertible to `T*`. */
     polymorphic_value(const polymorphic_value<U>& p) {
       polymorphic_value<U> tmp(p);
       cb_ = std::make_unique<
@@ -230,6 +234,7 @@ namespace boost {
 #else
               >
 #endif
+    /** requires `T` and `U` are different types, `U*` is convertible to `T*`. */
     polymorphic_value(polymorphic_value<U>&& p) {
       ptr_ = p.ptr_;
       cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
@@ -250,6 +255,8 @@ namespace boost {
 #else
               >
 #endif
+    /** requires `std::decay_t<U>` is not a `polymorphic_value`,
+     * `std::decay_t<U>*` is convertible to `T*`. */
     polymorphic_value(U&& u)
         : cb_(std::make_unique<
               detail::direct_control_block<T, std::decay_t<U>>>(
@@ -286,6 +293,7 @@ namespace boost {
 #else
               >
 #endif
+    /** requires `T` and `U` are different types, `U*` is convertible to `T*`. */
     polymorphic_value& operator=(const polymorphic_value<U>& p) {
       polymorphic_value<U> tmp(p);
       cb_ = std::make_unique<
@@ -318,6 +326,7 @@ namespace boost {
 #else
               >
 #endif
+    /** requires `T` and `U` are different types, `U*` is convertible to `T*`. */
     polymorphic_value& operator=(polymorphic_value<U>&& p) {
       cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
           std::move(p.cb_));
@@ -339,6 +348,8 @@ namespace boost {
 #else
               >
 #endif
+    /** requires `std::decay_t<U>` is not a `polymorphic_value`,
+     * `std::decay_t<U>*` is convertible to `T*`. */
     polymorphic_value& operator=(U&& u) {
       polymorphic_value tmp(std::forward<U>(u));
       *this = std::move(tmp);
@@ -359,33 +370,40 @@ namespace boost {
     // Observers
     //
 
+    /** returns true if there is a managed object, otherwise returns false. */
     explicit operator bool() const { return (bool)cb_; }
 
+    /** requires a managed object. */
     const T* operator->() const {
       assert(ptr_);
       return ptr_;
     }
 
+    /** requires a managed object. */
     const T& value() const {
       assert(*this);
       return *ptr_;
     }
 
+    /** requires a managed object. */
     const T& operator*() const {
       assert(*this);
       return *ptr_;
     }
 
+    /** requires a managed object. */
     T* operator->() {
       assert(*this);
       return ptr_;
     }
 
+    /** requires a managed object. */
     T& value() {
       assert(*this);
       return *ptr_;
     }
 
+    /** requires a managed object. */
     T& operator*() {
       assert(*this);
       return *ptr_;
