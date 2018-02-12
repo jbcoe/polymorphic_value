@@ -2,11 +2,11 @@
 
 ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
-D0201R3
+P0201R3
 
-Working Group: Library Evolution
+Working Group: Library
 
-Date: 2017-10-16
+Date: 2018-02-12
 
 _Jonathan Coe \<jonathanbcoe@gmail.com\>_
 
@@ -14,7 +14,7 @@ _Sean Parent \<sparent@adobe.com\>_
 
 ## Change history
 
-Changes in D0201R3
+Changes in P0201R3
 
 * Add rationale for absence of allocator support.
 
