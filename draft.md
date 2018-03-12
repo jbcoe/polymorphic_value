@@ -2,7 +2,7 @@
 
 ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
-D0201R4
+D0201R4v0
 
 Working Group: Library
 
@@ -13,6 +13,10 @@ _Jonathan Coe \<jonathanbcoe@gmail.com\>_
 _Sean Parent \<sparent@adobe.com\>_
 
 ## Change history
+
+Changes in P0201R4
+
+* Add wording to clarify meaning of custom copier and deleter.
 
 Changes in P0201R3
 
@@ -428,6 +432,11 @@ Copying from an empty `polymorphic_value` produces another empty
 Copying and disposal of the owned object can be customised by supplying a
 copier and deleter.
 
+If a `polymorphic_value` is constructed from a pointer then it is said to have
+a custom copier and deleter. Any `polymorphic_value` instance constructed from
+another `polymorphic_value` instance constructed with a custom copier and
+deleter will also has a custom copier and deleter.
+
 The template parameter `T` of `polymorphic_value` must be a non-union class type.
 
 The template parameter `T` of `polymorphic_value` may be an incomplete type.
@@ -621,7 +630,7 @@ template <class U> polymorphic_value& operator=(U&& u);
 ```
 
 * _Remarks_: Let `V` be `std::remove_cv_t<std::remove_reference_t<U>>`. This
-  function shall not participate in overload resolution unless `V>` is not a
+  function shall not participate in overload resolution unless `V` is not a
   specialization of `polymorphic_value` and `V*` is convertible to `T*`.
 
 * _Effects_: the owned object of `*this` is initialised with
