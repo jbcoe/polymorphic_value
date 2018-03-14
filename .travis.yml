@@ -19,7 +19,7 @@ matrix:
       compiler: gcc
       addons: &gcc6
         apt:
-          sources: ['ubuntu-toolchain-r-test']
+          sources: ['llvm-toolchain-precise-3.9', 'ubuntu-toolchain-r-test']
           packages: ['g++-6']
       env: COMPILER='g++-6'
 
