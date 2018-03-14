@@ -732,15 +732,19 @@ Voutilainen for useful discussion.
 
 ## References
 
-[N3339] "A Preliminary Proposal for a Deep-Copying Smart Pointer", W.E.Brown, 2012 
+[N3339] "A Preliminary Proposal for a Deep-Copying Smart Pointer", W.E.Brown, 2012
+
 ```<http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3339.pdf>```
 
-[S.Parent] "C++ Seasoning", Sean Parent, 2013 
+[S.Parent] "C++ Seasoning", Sean Parent, 2013
+
 ```<https://github.com/sean-parent/sean-parent.github.io/wiki/Papers-and-Presentations>```
 
-[Impl] Reference implementation: `polymorphic_value`, J.B.Coe 
+[Impl] Reference implementation: `polymorphic_value`, J.B.Coe
+
 ```<https://github.com/jbcoe/polymorphic_value>```
 
-[P0302r1] "Removing Allocator support in std::function", Jonathan Wakely 
+[P0302r1] "Removing Allocator support in std::function", Jonathan Wakely
+
 ```<http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0302r1.html>```
 
