@@ -231,7 +231,7 @@ auto poly_copy = poly;
 // THEN the copy points to a distinct object
 assert(&*poly != &*poly_copy);
 // AND the copy points to a derived type.
-assert(dynamic_cast<Derived*>(*&poly_copy);
+assert(dynamic_cast<Derived*>(*&poly_copy));
 ```
 
 Note that while deep-destruction of a derived class object from a base class
