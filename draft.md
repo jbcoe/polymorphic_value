@@ -385,7 +385,7 @@ T* operator()(const T& t) const;
 
 ```
 namespace std {
-class bad_polymorphic_value_construction : std::exception
+class bad_polymorphic_value_construction : public exception
 {
   public:
     bad_polymorphic_value_construction() noexcept;
@@ -402,21 +402,24 @@ invalid construction of a `polymorphic_value` from a pointer argument.
 bad_polymorphic_value_construction() noexcept;
 ```
 
-* Constructs a `bad_polymorphic_value_construction` object.
+* _Effects_: Constructs a `bad_polymorphic_value_construction` object.
 
 ```
 const char* what() const noexcept override;
 ```
 
-* _Returns_: An implementation-defined ntbs.
+* _Returns_: An implementation-defined NTBS.
 
 
 ## X.Z Class template `polymorphic_value` [polymorphic_value]
 
 ### X.Z.1 Class template `polymorphic_value` general [polymorphic_value.general]
 
-A _polymorphic_value_ is an object that owns another object and manages that
-other object through a pointer. More precisely, a `polymorphic value` is an
+[See how shared_ptr defines owns.]
+
+
+A `polymorphic_value` is an object that owns another object and manages that
+other object through a pointer. More precisely, a `polymorphic_value` is an
 object `v` that stores a pointer to a second object `p` and will dispose of `p`
 when `v` is itself destroyed (e.g., when leaving block scope (9.7)). In this
 context, `v` is said to own `p`.
@@ -429,15 +432,17 @@ copied `polymorphic_value` will have its own unique copy of the owned object.
 Copying from an empty `polymorphic_value` produces another empty
 `polymorphic_value`.
 
-Copying and disposal of the owned object can be customised by supplying a
+[Similar wording required for move, use 'transferred', note that source is left empty.]
+
+Copying and disposal of the owned object can be customized by supplying a
 copier and deleter.
 
 If a `polymorphic_value` is constructed from a pointer then it is said to have
 a custom copier and deleter. Any `polymorphic_value` instance constructed from
 another `polymorphic_value` instance constructed with a custom copier and
-deleter will also has a custom copier and deleter.
+deleter will also have a custom copier and deleter.
 
-The template parameter `T` of `polymorphic_value` must be a non-union class type.
+The template parameter `T` of `polymorphic_value` shall be a non-union class type. Otherwise the program is ill-formed.
 
 The template parameter `T` of `polymorphic_value` may be an incomplete type.
 
@@ -454,6 +459,10 @@ template <class T> class polymorphic_value {
 
   // Constructors
   constexpr polymorphic_value() noexcept;
+  
+  constexpr polymorphic_value(nullptr_t) noexcept;
+
+  template <class U> explicit polymorphic_value(U&& u);
 
   template <class U, class C=default_copy<U>, class D=default_delete<U>>
     explicit polymorphic_value(U* p, C c=C{}, D d=D{});
@@ -462,8 +471,6 @@ template <class T> class polymorphic_value {
   template <class U> polymorphic_value(const polymorphic_value<U>& p);
   polymorphic_value(polymorphic_value&& p) noexcept;
   template <class U> polymorphic_value(polymorphic_value<U>&& p);
-
-  template <class U> polymorphic_value(U&& u);
 
   // Destructor
   ~polymorphic_value();
@@ -481,7 +488,7 @@ template <class T> class polymorphic_value {
 
 
   // Modifiers
-  void swap(polymorphic_value<T>& p) noexcept;
+  void swap(polymorphic_value& p) noexcept;
 
   // Observers
   T& operator*();
@@ -492,8 +499,8 @@ template <class T> class polymorphic_value {
 };
 
 // polymorphic_value creation
-template <class T, class ...Ts> polymorphic_value<T>
-  make_polymorphic_value(Ts&& ...ts);
+template <class T, class... Ts> polymorphic_value<T>
+  make_polymorphic_value(Ts&&... ts);
 
 // polymorphic_value specialized algorithms
 template<class T>
@@ -507,30 +514,43 @@ template<class T>
 
 ```
 constexpr polymorphic_value() noexcept;
+constexpr polymorphic_value(nullptr_t) noexcept;
 ```
 
 * _Effects_:  Constructs an empty `polymorphic_value`.
 
-* _Postconditions_:  `bool(*this) == false`
+```
+template <class U> polymorphic_value(U&& u);
+```
 
+* _Remarks_: Let `V` be `remove_cvref_t<U>`. This
+  constructor shall not participate in overload resolution unless `V*` is
+  convertible to `T*`.
+
+* _Effects_: Constructs a `polymorphic_value` whose owned object is initialised
+  with `V(std::forward<U>(u))`.
+
+* _Throws_: Any exception thrown by the selected constructor of `V` or
+  `bad_alloc` if required storage cannot be obtained.
 
 ```
 template <class U, class C=default_copy<U>, class D=default_delete<U>>
   explicit polymorphic_value(U* p, C c=C{}, D d=D{});
 ```
 
-* _Effects_: Creates a `polymorphic_value` object that _owns_ the pointer `p`.
-  If `p` is non-null then the copier and deleter of the `polymorphic_value`
-  constructed is moved from `c` and `d`.
+* _Effects_: If `p` is null, creates an empty object, otherwise creates a `polymorphic_value` object that owns the pointer `p`.
 
-* _Requires_: `C` and `D` satisfy the requirements of _CopyConstructible_.
+  If `p` is non-null then the copier and deleter of the `polymorphic_value`
+  constructed are initialized from `std::move(c)` and `std::move(d)`.
+
+* _Requires_: `C` and `D` satisfy the requirements of CopyConstructible.
   If `p` is non-null then the expression `c(*p)` returns an object of type
   `U*`. The expression `d(p)` is well formed, has well defined behavior, and
   does not throw exceptions.  Either `U` and `T` must be the same type, or the
   dynamic and static type of `U` must be the same.
 
-* _Throws_: `bad_polymorphic_value_construction` if `std::is_same<C,
-  default_copy<U>>::value`, `std::is_same<D, default_delete<U>>::value` and
+* _Throws_: `bad_polymorphic_value_construction` if `is_same_v<C,
+  default_copy<U>>`, `is_same_v<D, default_delete<U>>` and
   `typeid(*u)!=typeid(U)`; `bad_alloc` if required storage cannot be obtained.
 
 * _Postconditions_:  `bool(*this) == bool(p)`.
@@ -538,8 +558,7 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 * _Remarks_: This constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
   A custom copier and deleter are said to be 'present' in a `polymorphic_value`
-  initialised with this constructor.
-
+  initialized with this constructor.
 
 ```
 polymorphic_value(const polymorphic_value& p);
@@ -547,10 +566,10 @@ template <class U> polymorphic_value(const polymorphic_value<U>& p);
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
-  resolution unless `U*` is convertible to `T*`.
+  resolution unless `remove_const_t<U>*` is convertible to `remove_const_t<T>*`.
 
 * _Effects_: Creates a `polymorphic_value` object that owns a copy of the object
-  managed by `p`. The copy is created by the copier in `p`.
+  managed by `p`. If `p` has a custom copier then the copy is created by the copier in `p`. Otherwise the copy is created by copy construction of the owned object.
   If `p` has a custom copier and deleter then the custom copier and deleter of
   the `polymorphic_value` constructed are copied from those in `p`.
 
@@ -562,33 +581,19 @@ template <class U> polymorphic_value(const polymorphic_value<U>& p);
 
 ```
 polymorphic_value(polymorphic_value&& p) noexcept;
-template <class U> polymorphic_value(polymorphic_value<U>&& p);
+template <class U> polymorphic_value(polymorphic_value<U>&& p) noexcept;
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
 
-* _Effects_: Move-constructs a `polymorphic_value` instance from `p`.  If `p`
-  has a custom copier and deleter then the copier and deleter of the
-  `polymorphic_value` constructed are the same as those in `p`.
+* _Effects_: Potentially moves constructs the owned object (if the dynamic type of the owned object is no-throw move-constructible). If `p` has a custom copier and deleter then the copier and deleter of the `polymorphic_value` constructed are the same as those in `p`.
 
 * _Throws_: `bad_alloc` if required storage cannot be obtained.
 
 * _Postconditions_:  `*this` contains the old value of `p`. `p` is empty.
 
-```
-template <class U> polymorphic_value(U&& u);
-```
-
-* _Remarks_: Let `V` be `std::remove_cv_t<std::remove_reference_t<U>>`. This
-  constructor shall not participate in overload resolution unless `V*` is
-  convertible to `T*`.
-
-* _Effects_: Constructs a `polymorphic_value` whose owned object is initialised
-  with `V(std::forward<U>(u))`.
-
-* _Throws_: Any exception thrown by the selected constructor of `V` or
-  `bad_alloc` if required storage cannot be obtained.
+[Note this can allow an implementation to avoid the need for dynamic memory allocation.]
 
 ### X.Z.4 Class template `polymorphic_value` destructor [polymorphic_value.dtor]
 
@@ -629,7 +634,7 @@ If `p` has a
 template <class U> polymorphic_value& operator=(U&& u);
 ```
 
-* _Remarks_: Let `V` be `std::remove_cv_t<std::remove_reference_t<U>>`. This
+* _Remarks_: Let `V` be `remove_cvref_t<U>`. This
   function shall not participate in overload resolution unless `V` is not a
   specialization of `polymorphic_value` and `V*` is convertible to `T*`.
 
@@ -655,7 +660,7 @@ template <class U> polymorphic_value& operator=(polymorphic_value<U>&& p);
 
 * _Effects_: Ownership of the resource managed by `p` is transferred to `this`.
   If `p` has a custom copier and deleter then the copier and deleter of `*this`
-  is the same as those in `p`.
+  are the same as those in `p`.
 
 * _Throws_: `bad_alloc` if required storage cannot be obtained.
 
@@ -667,7 +672,7 @@ template <class U> polymorphic_value& operator=(polymorphic_value<U>&& p);
 ### X.Z.6 Class template `polymorphic_value` modifiers [polymorphic_value.modifiers]
 
 ```
-void swap(polymorphic_value<T>& p) noexcept;
+void swap(polymorphic_value& p) noexcept;
 ```
 
 * _Effects_: Exchanges the contents of `p` and `*this`.
@@ -725,7 +730,7 @@ void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
 
 ## Acknowledgements
 The authors would like to thank Maciej Bogus, Matthew Calbrese, Germán Diago,
-Louis Dionne, Bengt Gustafsson, Tomasz Kamiński, David Krauss, Thomas Koeppe,
+Louis Dionne, Bengt Gustafsson, Stephan T Lavavej, Tomasz Kamiński, David Krauss, Thomas Koeppe,
 Nevin Liber, Nathan Meyers, Roger Orr, Patrice Roy, Tony van Eerd and Ville
 Voutilainen for useful discussion.
 
