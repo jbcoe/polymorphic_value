@@ -179,6 +179,10 @@ namespace jbcoe
   template <class T>
   class polymorphic_value
   {
+    static_assert(!std::is_union<T>::value, "");
+    static_assert(!std::is_function<T>::value, "");
+    static_assert(!std::is_array<T>::value, "");
+    static_assert(!std::is_pointer<T>::value, "");
 
     template <class U>
     friend class polymorphic_value;
