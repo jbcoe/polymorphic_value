@@ -61,6 +61,8 @@ namespace jbcoe
     template <class T>
     struct control_block
     {
+      static_assert(!std::is_const<T>::value,"");
+
       virtual ~control_block() = default;
 
       virtual std::unique_ptr<control_block> clone() const = 0;
@@ -71,7 +73,9 @@ namespace jbcoe
     template <class T, class U = T>
     class direct_control_block : public control_block<T>
     {
+      static_assert(!std::is_const<U>::value,"");
       static_assert(!std::is_reference<U>::value, "");
+      
       U u_;
 
     public:
@@ -95,6 +99,8 @@ namespace jbcoe
               class D = default_delete<U>>
     class pointer_control_block : public control_block<T>, public C
     {
+      static_assert(!std::is_const<U>::value,"");
+      
       std::unique_ptr<U, D> p_;
 
     public:
@@ -176,9 +182,10 @@ namespace jbcoe
   // `polymorphic_value` class definition
   ////////////////////////////////////////////////////////////////////////////////
 
-  template <class T>
+  template <class cqT> // Take a const-qualified T. Control block owns a non-const T. 
   class polymorphic_value
   {
+    using T = std::remove_const_t<cqT>;
 
     template <class U>
     friend class polymorphic_value;
@@ -244,14 +251,20 @@ namespace jbcoe
     }
 
     template <class U,
-              class V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                         std::is_convertible<U*, T*>::value>>
+              class V = std::enable_if_t<
+                  !std::is_same<T, U>::value &&
+                  std::is_convertible<std::remove_const_t<U>*, T*>::value>>
     polymorphic_value(const polymorphic_value<U>& p)
     {
+      if (!p)
+      {
+        return;
+      }
       polymorphic_value<U> tmp(p);
-      ptr_ = tmp.ptr_;
-      cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
-          std::move(tmp.cb_));
+      cb_ = std::make_unique<
+          detail::delegating_control_block<T, std::remove_const_t<U>>>(
+          std::move(tmp.cb_));     
+      ptr_ = cb_ ? cb_->ptr() : nullptr;
     }
 
 
@@ -318,12 +331,20 @@ namespace jbcoe
     }
 
     template <class U,
-              class V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                         std::is_convertible<U*, T*>::value>>
+              class V = std::enable_if_t<
+                  !std::is_same<T, U>::value &&
+                  std::is_convertible<std::remove_const_t<U>*, T*>::value>>
     polymorphic_value& operator=(const polymorphic_value<U>& p)
     {
+      if (!p)
+      {
+        return *this;
+      }
       polymorphic_value<U> tmp(p);
-      *this = std::move(tmp);
+      cb_ = std::make_unique<
+          detail::delegating_control_block<T, std::remove_const_t<U>>>(
+          std::move(tmp.cb_));
+      ptr_ = cb_ ? cb_->ptr() : nullptr;
       return *this;
     }
 
