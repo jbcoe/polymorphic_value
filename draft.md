@@ -2,11 +2,11 @@
 
 ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
-D0201R4v0
+D0201R4
 
 Working Group: Library
 
-Date: 2018-02-12
+Date: 2018-04-27
 
 _Jonathan Coe \<jonathanbcoe@gmail.com\>_
 
@@ -16,7 +16,11 @@ _Sean Parent \<sparent@adobe.com\>_
 
 Changes in P0201R4
 
+* Clarify authors agreement with LEWG design changes.
+
 * Add wording to clarify meaning of custom copier and deleter.
+
+* Adjust wording to allow copy-construction of a `polymorphic_value<T>` from a `polymorphic_value<const T>`.
 
 Changes in P0201R3
 
@@ -185,8 +189,8 @@ move and assignment operators. As long as the components are not mutated, this
 design is good. If non-const methods of components are used then this won't
 compile.
 
-Using `polymorphic_value` a copyable composite object with polymorphic components can be
-written as:
+Using `polymorphic_value` a copyable composite object with polymorphic
+components can be written as:
 
     // Copyable composite with mutable polymorphic components
     class CompositeObject_5 {
@@ -294,20 +298,21 @@ outweigh the costs of a possible empty state.
 
 ## Lack of hashing and comparisons
 For a given user-defined type, `T`, there are multiple strategies to make
-`polymorphic_value<T>` hashable and comparable.  Without requiring additional named
-member functions on the type, `T`, or mandating that `T` has virtual functions
-and RTTI, the authors do not see how `polymorphic_value` can generically support hashing
-or comparisons. Incurring a cost for functionality that is not required goes
-against the 'pay for what you use' philosophy of `C++`.
+`polymorphic_value<T>` hashable and comparable.  Without requiring additional
+named member functions on the type, `T`, or mandating that `T` has virtual
+functions and RTTI, the authors do not see how `polymorphic_value` can
+generically support hashing or comparisons. Incurring a cost for functionality
+that is not required goes against the 'pay for what you use' philosophy of
+`C++`.
 
 For a given user-defined type `T` the user is free to specialize
 `std::hash` and implement comparison operators for `polymorphic_value<T>`.
 
 ## Custom copiers and deleters
-The resource management performed by `polymorphic_value` - copying and destruction of
-the managed object - can be customized by supplying a _copier_ and _deleter_.
-If no copier or deleter is supplied then a default copier or deleter will be
-used.
+The resource management performed by `polymorphic_value` - copying and
+destruction of the managed object - can be customized by supplying a _copier_
+and _deleter_.  If no copier or deleter is supplied then a default copier or
+deleter will be used.
 
 The default deleter is already defined by the standard library and used by
 `unique_ptr`.
@@ -331,25 +336,23 @@ allocators.
 
 
 ## Design changes from `cloned_ptr`
-The design of `polymorphic_value` is based upon `cloned_ptr` after advice from LEWG. The
-authors would like to make LEWG explicitly aware of the cost of these design
-changes.
+The design of `polymorphic_value` is based upon `cloned_ptr` and modified
+following advice from LEWG. The authors (Who unreservedly agree with the design
+direction suggested by LEWG) would like to make explicit the cost of these
+design changes.
 
 `polymorphic_value<T>` has value-like semantics: copies are deep and `const` is
 propagated to the owned object. The first revision of this paper presented
 `cloned_ptr<T>` which had mixed pointer/value semantics: copies are deep but
-`const` is not propagated to the owned object. `polymorphic_value` can be built from
-`cloned_ptr` and `propagate_const` but there is no way to remove `const`
+`const` is not propagated to the owned object. `polymorphic_value` can be built
+from `cloned_ptr` and `propagate_const` but there is no way to remove `const`
 propagation from `polymorphic_value`.
 
-As `polymorphic_value` is a value, `dynamic_pointer_cast`, `static_pointer_cast` and
-`const_pointer_cast` are not provided.  If a `polymorphic_value` is constructed with a
-custom copier or deleter, then there is no way for a user to implement the cast
-operations provided for `cloned_ptr`.
-
-[Should we be standardizing vocabulary types (`optional`, `variant` and
-`polymorphic_value`) or components through which vocabulary types can be trivially
-composed (`propagate_const`, `cloned_ptr`)?]
+As `polymorphic_value` is a value, `dynamic_pointer_cast`,
+`static_pointer_cast` and `const_pointer_cast` are not provided.  If a
+`polymorphic_value` is constructed with a custom copier or deleter, then there
+is no way for a user to implement the cast operations provided for
+`cloned_ptr`.
 
 
 ## Impact on the standard
@@ -432,8 +435,6 @@ copied `polymorphic_value` will have its own unique copy of the owned object.
 Copying from an empty `polymorphic_value` produces another empty
 `polymorphic_value`.
 
-[Similar wording required for move, use 'transferred', note that source is left empty.]
-
 Copying and disposal of the owned object can be customized by supplying a
 copier and deleter.
 
@@ -442,7 +443,8 @@ a custom copier and deleter. Any `polymorphic_value` instance constructed from
 another `polymorphic_value` instance constructed with a custom copier and
 deleter will also have a custom copier and deleter.
 
-The template parameter `T` of `polymorphic_value` shall be a non-union class type. Otherwise the program is ill-formed.
+The template parameter `T` of `polymorphic_value` shall be a non-union class
+type. Otherwise the program is ill-formed.
 
 The template parameter `T` of `polymorphic_value` may be an incomplete type.
 
@@ -538,7 +540,12 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
   explicit polymorphic_value(U* p, C c=C{}, D d=D{});
 ```
 
-* _Effects_: If `p` is null, creates an empty object, otherwise creates a `polymorphic_value` object that owns the pointer `p`.
+* _Remarks_: This constructor shall not participate in overload resolution
+  unless `U*` is convertible to `T*`.  A custom copier and deleter are said to
+  be 'present' in a `polymorphic_value` initialized with this constructor.
+
+* _Effects_: If `p` is null, creates an empty object, otherwise creates a
+  `polymorphic_value` object that owns the pointer `p`.
 
   If `p` is non-null then the copier and deleter of the `polymorphic_value`
   constructed are initialized from `std::move(c)` and `std::move(d)`.
@@ -555,11 +562,6 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 
 * _Postconditions_:  `bool(*this) == bool(p)`.
 
-* _Remarks_: This constructor shall not participate in overload
-  resolution unless `U*` is convertible to `T*`.
-  A custom copier and deleter are said to be 'present' in a `polymorphic_value`
-  initialized with this constructor.
-
 ```
 polymorphic_value(const polymorphic_value& p);
 template <class U> polymorphic_value(const polymorphic_value<U>& p);
@@ -568,10 +570,12 @@ template <class U> polymorphic_value(const polymorphic_value<U>& p);
 * _Remarks_: The second constructor shall not participate in overload
   resolution unless `remove_const_t<U>*` is convertible to `remove_const_t<T>*`.
 
-* _Effects_: Creates a `polymorphic_value` object that owns a copy of the object
-  managed by `p`. If `p` has a custom copier then the copy is created by the copier in `p`. Otherwise the copy is created by copy construction of the owned object.
-  If `p` has a custom copier and deleter then the custom copier and deleter of
-  the `polymorphic_value` constructed are copied from those in `p`.
+* _Effects_: Creates a `polymorphic_value` object that owns a copy of the
+  object managed by `p`. If `p` has a custom copier then the copy is created by
+  the copier in `p`. Otherwise the copy is created by copy construction of the
+  owned object.  If `p` has a custom copier and deleter then the custom copier
+  and deleter of the `polymorphic_value` constructed are copied from those in
+  `p`.
 
 * _Throws_: Any exception thrown by the copier or `bad_alloc` if required
   storage cannot be obtained.
@@ -587,13 +591,19 @@ template <class U> polymorphic_value(polymorphic_value<U>&& p) noexcept;
 * _Remarks_: The second constructor shall not participate in overload
   resolution unless `U*` is convertible to `T*`.
 
-* _Effects_: Potentially moves constructs the owned object (if the dynamic type of the owned object is no-throw move-constructible). If `p` has a custom copier and deleter then the copier and deleter of the `polymorphic_value` constructed are the same as those in `p`.
+* _Effects_: Ownership of the resource managed by `p` is transferred to the
+  constructed `polymorphic_value`.  Potentially move constructs the owned
+  object (if the dynamic type of the owned object is no-throw
+  move-constructible).  If `p` has a custom copier and deleter then the copier
+  and deleter of the `polymorphic_value` constructed are the same as those in
+  `p`.
 
 * _Throws_: `bad_alloc` if required storage cannot be obtained.
 
 * _Postconditions_:  `*this` contains the old value of `p`. `p` is empty.
 
-[Note this can allow an implementation to avoid the need for dynamic memory allocation.]
+[Note: This constructor can allow an implementation to avoid the need for
+dynamic memory allocation.]
 
 ### X.Z.4 Class template `polymorphic_value` destructor [polymorphic_value.dtor]
 
@@ -601,9 +611,9 @@ template <class U> polymorphic_value(polymorphic_value<U>&& p) noexcept;
 ~polymorphic_value();
 ```
 
-* _Effects_: If get() == nullptr there are no effects. If a custom deleter `d` is present then `d(p)` is
-  called and the copier and deleter are destroyed. Otherwise the destructor of
-  the managed object is called.
+* _Effects_: If get() == nullptr there are no effects. If a custom deleter `d`
+  is present then `d(p)` is called and the copier and deleter are destroyed.
+  Otherwise the destructor of the managed object is called.
 
 ### X.Z.5 Class template `polymorphic_value` assignment [polymorphic_value.assignment]
 
@@ -615,8 +625,7 @@ template <class U> polymorphic_value& operator=(const polymorphic_value<U>& p);
 * _Remarks_: The second function shall not participate in overload resolution
   unless `U*` is convertible to `T*`.
 
-* _Effects_: `*this` owns a copy of the resource managed by `p`.
-If `p` has a
+* _Effects_: `*this` owns a copy of the resource managed by `p`.  If `p` has a
   custom copier and deleter then the copy is created by the copier in `p`, and
   the copier and deleter of `*this` are copied from those in `p`. Otherwise the
   resource managed by `*this` is initialised by the copy constructor of the
@@ -649,7 +658,6 @@ template <class U> polymorphic_value& operator=(U&& u);
 * _Postconditions_:  `bool(*this) == bool(p)`.
 
 
-
 ```
 polymorphic_value& operator=(polymorphic_value&& p) noexcept;
 template <class U> polymorphic_value& operator=(polymorphic_value<U>&& p);
@@ -659,15 +667,18 @@ template <class U> polymorphic_value& operator=(polymorphic_value<U>&& p);
   resolution unless `U*` is convertible to `T*`.
 
 * _Effects_: Ownership of the resource managed by `p` is transferred to `this`.
-  If `p` has a custom copier and deleter then the copier and deleter of `*this`
-  are the same as those in `p`.
+  Potentially move constructs the owned object (if the dynamic type of the
+  owned object is no-throw move-constructible).  If `p` has a custom copier and
+  deleter then the copier and deleter of `*this` are the same as those in `p`.
 
 * _Throws_: `bad_alloc` if required storage cannot be obtained.
 
 * _Returns_: `*this`.
 
-* _Postconditions_:  `*this` contains the old value of `p`. `p` is empty.
+* _Postconditions_: `*this` contains the old value of `p`. `p` is empty.
 
+[Note: move construction of an owned object may be used by an implementation to
+avoid the need for use of dynamic memory.]
 
 ### X.Z.6 Class template `polymorphic_value` modifiers [polymorphic_value.modifiers]
 
@@ -713,7 +724,8 @@ template <class T, class ...Ts> polymorphic_value<T>
   make_polymorphic_value(Ts&& ...ts);
 ```
 
-* _Returns_: A `polymorphic_value<T>` owning an object initialised with `T(std::forward<Ts>(ts)...)`.
+* _Returns_: A `polymorphic_value<T>` owning an object initialised with
+  `T(std::forward<Ts>(ts)...)`.
 
 [Note: Implementations are encouraged to avoid multiple allocations.]
 
@@ -730,9 +742,9 @@ void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
 
 ## Acknowledgements
 The authors would like to thank Maciej Bogus, Matthew Calbrese, Germán Diago,
-Louis Dionne, Bengt Gustafsson, Stephan T Lavavej, Tomasz Kamiński, David Krauss, Thomas Koeppe,
-Nevin Liber, Nathan Meyers, Roger Orr, Patrice Roy, Tony van Eerd and Ville
-Voutilainen for useful discussion.
+Louis Dionne, Bengt Gustafsson, Stephan T Lavavej, Tomasz Kamiński, David
+Krauss, Thomas Koeppe, Nevin Liber, Nathan Meyers, Roger Orr, Geoff Romer,
+Patrice Roy, Tony van Eerd and Ville Voutilainen for useful discussion.
 
 
 ## References
