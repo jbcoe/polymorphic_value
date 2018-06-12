@@ -11,7 +11,7 @@ else()
 endif()
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-  add_compile_options("-Werror;-Wall")
+  add_compile_options("-g;-O0;-Werror;-Wall")
 endif()
 
 # Boost tests

@@ -381,3 +381,30 @@ BOOST_AUTO_TEST_CASE(reference_stability) {
   // This will fail if a small-object optimisation is in place.
   BOOST_TEST(p == moved_p);
 }
+
+BOOST_AUTO_TEST_CASE(copy_polymorphic_value_T_from_polymorphic_value_const_T)
+{
+  polymorphic_value<const int> cp(1);
+  polymorphic_value<int> p(cp);
+
+  BOOST_TEST(*p==1);
+}
+
+BOOST_AUTO_TEST_CASE(assign_polymorphic_value_T_to_polymorphic_value_const_T)
+{
+  polymorphic_value<const int> cp(1);
+  polymorphic_value<int> p;
+  p = cp;
+  
+  BOOST_TEST(*p==1);
+}
+
+BOOST_AUTO_TEST_CASE(no_dangling_reference_in_forwarding_constuctor)
+{
+  int x = 7;
+  int& rx = x;
+  polymorphic_value<int> p(rx);
+  
+  x = 6;
+  BOOST_TEST(*p == 7);
+}
