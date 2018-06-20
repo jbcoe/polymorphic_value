@@ -180,12 +180,11 @@ namespace boost {
 
     polymorphic_value() {}
 
-    template <class U, class C = default_copy<U>, class D = default_delete<U>
-#ifndef BOOST_POLYMORPHIC_VALUE_DOXYGEN
-              ,
-              class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
+#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+    template <class U, class C = default_copy<U>, class D = default_delete<U>>
 #else
-              >
+    template <class U, class C = default_copy<U>, class D = default_delete<U>,
+              class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
 #endif
     /** requires `U*` is convertible to `T*`.
      * If `C` is `default_copy<U>` and `D` is `default_delete<U>`, requires
@@ -220,10 +219,14 @@ namespace boost {
       cb_ = std::move(tmp_cb);
     }
 
+#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+    template <class U>
+#else
     template <class U,
-              class V = std::enable_if_t<
+              class = std::enable_if_t<
                   !std::is_same<T, U>::value &&
                   std::is_convertible<std::remove_const_t<U>*, T*>::value>>
+#endif
     /** requires `T` and `U` are different types, `std::remove_const_t<U>*` is
        convertible to `T*`. */
     polymorphic_value(const polymorphic_value<U>& p) {
@@ -244,9 +247,13 @@ namespace boost {
       p.ptr_ = nullptr;
     }
 
+#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+    template <class U>
+#else
     template <class U,
-              class V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                         std::is_convertible<U*, T*>::value>>
+              class = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_convertible<U*, T*>::value>>
+#endif
     /** requires `T` and `U` are different types, `U*` is convertible to `T*`.
      */
     polymorphic_value(polymorphic_value<U>&& p) {
@@ -260,9 +267,14 @@ namespace boost {
     // Forwarding constructor
     //
 
-    template <class U, class V = std::enable_if_t<
-                           std::is_convertible<std::decay_t<U>*, T*>::value &&
-                           !detail::is_polymorphic_value<std::decay_t<U>>::value>>
+#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+    template <class U>
+#else
+    template <class U,
+              class = std::enable_if_t<
+                  std::is_convertible<std::decay_t<U>*, T*>::value &&
+                  !detail::is_polymorphic_value<std::decay_t<U>>::value>>
+#endif
     /** requires `std::decay_t<U>` is not a `polymorphic_value`,
      * `std::decay_t<U>*` is convertible to `T*`. */
     polymorphic_value(U&& u)
@@ -293,14 +305,17 @@ namespace boost {
       return *this;
     }
 
+#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+    template <class U>
+#else
     template <class U,
-              class V = std::enable_if_t<
+              class = std::enable_if_t<
                   !std::is_same<T, U>::value &&
                   std::is_convertible<std::remove_const_t<U>*, T*>::value>>
+#endif
     /** requires `T` and `U` are different types, `U*` is convertible to `T*`.
      */
-    polymorphic_value&
-    operator=(const polymorphic_value<U>& p) {
+    polymorphic_value& operator=(const polymorphic_value<U>& p) {
       if (!p)
       {
         return *this;
@@ -328,13 +343,16 @@ namespace boost {
       return *this;
     }
 
+#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+    template <class U>
+#else
     template <class U,
-              class V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                         std::is_convertible<U*, T*>::value>>
+              class = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_convertible<U*, T*>::value>>
+#endif
     /** requires `T` and `U` are different types, `U*` is convertible to `T*`.
      */
-    polymorphic_value&
-    operator=(polymorphic_value<U>&& p) {
+    polymorphic_value& operator=(polymorphic_value<U>&& p) {
       cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
           std::move(p.cb_));
       ptr_ = p.ptr_;
@@ -346,10 +364,14 @@ namespace boost {
     // Forwarding assignment
     //
 
+#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+    template <class U>
+#else
     template <class U,
-              class V = std::enable_if_t<
+              class = std::enable_if_t<
                   std::is_convertible<std::decay_t<U>*, T*>::value &&
                   !detail::is_polymorphic_value<std::decay_t<U>>::value>>
+#endif
     /** requires `std::decay_t<U>` is not a `polymorphic_value`,
      * `std::decay_t<U>*` is convertible to `T*`. */
     polymorphic_value& operator=(U&& u) {
