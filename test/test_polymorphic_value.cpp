@@ -370,6 +370,9 @@ BOOST_AUTO_TEST_CASE(custom_copy_and_delete) {
   BOOST_TEST(deletion_count == 1);
 }
 
+// NOTE: This test passes because of implementation detail, not because of the
+// contract of polymorphic_value. polymorphic_value does not guarantee reference
+// stability after a move.
 BOOST_AUTO_TEST_CASE(reference_stability) {
   struct tiny_t {};
   auto pv = polymorphic_value<tiny_t>(tiny_t{});
