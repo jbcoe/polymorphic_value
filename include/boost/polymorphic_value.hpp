@@ -38,12 +38,9 @@ namespace boost {
 
   template <class T>
   struct default_copy {
+    /** _Returns_:  `new T(t)`.
+     */
     T* operator()(const T& t) const { return new T(t); }
-  };
-
-  template <class T>
-  struct default_delete {
-    void operator()(const T* t) const { delete t; }
   };
 
   ////////////////////////////////////////////////////////////////////////////
@@ -85,7 +82,7 @@ namespace boost {
     };
 
     template <class T, class U, class C = default_copy<U>,
-              class D = default_delete<U>>
+              class D = std::default_delete<U>>
     class pointer_control_block : public control_block<T>, public C {
       static_assert(!std::is_const<T>::value,"");
       static_assert(!std::is_const<U>::value,"");
@@ -136,8 +133,12 @@ namespace boost {
 
   class bad_polymorphic_value_construction : std::exception {
   public:
+    /** _Effects_: Constructs a `bad_polymorphic_value_construction` object.
+     */
     bad_polymorphic_value_construction() noexcept = default;
 
+    /** _Returns_: An implementation-defined NTBS.
+     */
     const char* what() const noexcept override {
       return "Dynamic and static type mismatch in polymorphic_value "
              "construction";
@@ -148,6 +149,34 @@ namespace boost {
   // `polymorphic_value` class definition
   ////////////////////////////////////////////////////////////////////////////////
 
+  /** A `polymorphic_value` is an object that owns another object and manages
+    that other object through a pointer. More precisely, a `polymorphic_value`
+    is an object `v` that stores a pointer to a second object `p` and will
+    dispose of `p` when `v` is itself destroyed (e.g., when leaving block
+    scope). In this context, `v` is said to own `p`.
+
+    A `polymorphic_value` object is empty if it does not own a pointer.
+
+    Copying a non-empty `polymorphic_value` will copy the owned object so that
+    the copied `polymorphic_value` will have its own unique copy of the owned
+    object.
+
+    Copying from an empty `polymorphic_value` produces another empty
+    `polymorphic_value`.
+
+    Copying and disposal of the owned object can be customized by supplying a
+    copier and deleter.
+
+    If a `polymorphic_value` is constructed from a pointer then it is said to
+    have a custom copier and deleter. Any `polymorphic_value` instance
+    constructed from another `polymorphic_value` instance constructed with a
+    custom copier and deleter will also have a custom copier and deleter.
+
+    The template parameter `T` of `polymorphic_value` shall be a non-union class
+    type. Otherwise the program is ill-formed.
+
+    The template parameter `T` of `polymorphic_value` may be an incomplete type.
+   */
   template <class cT> // Take a const-qualified T. Control block owns a non-const T. 
   class polymorphic_value {
     using T = std::remove_const_t<cT>;
@@ -187,9 +216,11 @@ namespace boost {
     polymorphic_value() {}
 
 #ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
-    template <class U, class C = default_copy<U>, class D = default_delete<U>>
+    template <class U, class C = default_copy<U>,
+              class D = std::default_delete<U>>
 #else
-    template <class U, class C = default_copy<U>, class D = default_delete<U>,
+    template <class U, class C = default_copy<U>,
+              class D = std::default_delete<U>,
               class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
 #endif
     /** _Remarks_: This constructor shall not participate in overload resolution
@@ -210,7 +241,7 @@ namespace boost {
       the dynamic and static type of `U` must be the same.
 
       _Throws_: `bad_polymorphic_value_construction` if `is_same_v<C,
-      default_copy<U>>`, `is_same_v<D, default_delete<U>>` and
+      default_copy<U>>`, `is_same_v<D, std::default_delete<U>>` and
       `typeid(*u)!=typeid(U)`; `bad_alloc` if required storage cannot be
       obtained.
 
@@ -221,7 +252,7 @@ namespace boost {
         return;
       }
 
-      if (std::is_same<D, default_delete<U>>::value &&
+      if (std::is_same<D, std::default_delete<U>>::value &&
           std::is_same<C, default_copy<U>>::value && typeid(*u) != typeid(U))
         throw bad_polymorphic_value_construction();
 
