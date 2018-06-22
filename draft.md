@@ -611,7 +611,7 @@ dynamic memory allocation.]
 ~polymorphic_value();
 ```
 
-* _Effects_: If get() == nullptr there are no effects. If a custom deleter `d`
+* _Effects_: If `!bool(this)` then there are no effects. If a custom deleter `d`
   is present then `d(p)` is called and the copier and deleter are destroyed.
   Otherwise the destructor of the managed object is called.
 
@@ -643,9 +643,9 @@ template <class U> polymorphic_value& operator=(const polymorphic_value<U>& p);
 template <class U> polymorphic_value& operator=(U&& u);
 ```
 
-* _Remarks_: Let `V` be `remove_cvref_t<U>`. This
-  function shall not participate in overload resolution unless `V` is not a
-  specialization of `polymorphic_value` and `V*` is convertible to `T*`.
+* _Remarks_: Let `V` be `decay_t<U>`. This function shall not participate in
+  overload resolution unless `V` is not a specialization of `polymorphic_value`
+  and `V*` is convertible to `T*`.
 
 * _Effects_: the owned object of `*this` is initialised with
   `V(std::forward<U>(u))`.
