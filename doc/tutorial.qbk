@@ -3,7 +3,7 @@
 [section Motivation]
 
 Object-oriented programming allows objects to be composed of other objects.  A
-class heirarchy of `Shape`s might lead to a `Picture` class being a collection
+class hierarchy of `Shape`s might lead to a `Picture` class being a collection
 of `Shape`s and their respective positions.
 
 When components are stored as values, the compiler is able to generate special
@@ -12,7 +12,7 @@ constructor and move assignment operator.
 
 Storing components as values means that the type of the component must be known
 at compile time. For cases when components are base classes from an inheritance
-heirarchy - like `Shape`s in a `Picture` - we are unable to store components as
+hierarchy - like `Shape`s in a `Picture` - we are unable to store components as
 values and will have to implement special member functions ourselves.
 
 `polymorphic_value` is a class template that imparts value semantics to a
@@ -40,7 +40,7 @@ copy of the owned object, and it propagates `const` to the owned object.
 
 [heading Deep copies]
 
-`polymorphic_value` enables deep-copies through inheritance heirarchies: a
+`polymorphic_value` enables deep-copies through inheritance hierarchies: a
 `polymorphic_value<Shape>` initialized with a `Circle` object will produce a
 `polymorphic_value<Shape>` managing a copy of the `Circle` object produced
 using `Circle`'s copy constructor.
@@ -123,7 +123,7 @@ copyability and mutability.
 [[Polymorphism][Copyable][Mutable][Recommend]]
 [[none][][][`T`]]
 [[compile-time][][][`template <class T>`]]
-[[closed-set][][][`variant<Ts...>`]]
+[[closed-set][][][`std::variant<Ts...>`]]
 [[open-set][no][no][`std::unique_ptr<const T>`]]
 [[open-set][no][yes][`std::experimental::propagate_const<std::unique_ptr<T>>`]]
 [[open-set][yes][no][`std::shared_ptr<const T>`]]
@@ -168,7 +168,7 @@ would enable use of such objects.
 
 [heading Migrating from a `Clone` method]
 
-The pointer constructor can be used to migrate from a class heirarchy with a
+The pointer constructor can be used to migrate from a class hierarchy with a
 `Clone` method. 
 
 Suppose there is a base class that inherits from the mixin `Cloneable`:

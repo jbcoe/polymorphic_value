@@ -1,7 +1,15 @@
 [section Introduction]
 
-Class template `polymorphic_value` represents a polymorphic object with
-value-semantics.
+The class template `polymorphic_value` is proposed for addition to Boost and to
+the C++ Standard Library.
+
+The class template, `polymorphic_value`, confers value-like semantics on a
+free-store allocated object.  A `polymorphic_value<T>` may hold an object of a
+class publicly derived from T, and copying the polymorphic_value<T> will copy
+the object of the derived type.
+
+All of the contents of `<boost/polymorphic_value.hpp>` are defined inside
+`namespace boost`.
 
 [heading Problem]
 
