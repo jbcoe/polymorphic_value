@@ -241,8 +241,8 @@ namespace boost {
       the dynamic and static type of `U` must be the same.
 
       _Throws_: `bad_polymorphic_value_construction` if `is_same_v<C,
-      default_copy<U>>`, `is_same_v<D, std::default_delete<U>>` and
-      `typeid(*u)!=typeid(U)`; `bad_alloc` if required storage cannot be
+      boost::default_copy<U>>`, `is_same_v<D, std::default_delete<U>>` and
+      `typeid(*u)!=typeid(U)`; `std::bad_alloc` if required storage cannot be
       obtained.
 
       _Postconditions_:  `bool(*this) == bool(p)`.
@@ -275,7 +275,7 @@ namespace boost {
     copier and deleter of the `polymorphic_value` constructed are copied from
     those in `p`.
 
-    _Throws_: Any exception thrown by the copier or `bad_alloc` if required
+    _Throws_: Any exception thrown by the copier or `std::bad_alloc` if required
     storage cannot be obtained.
 
     _Postconditions_:  `bool(*this) == bool(p)`.
@@ -297,22 +297,23 @@ namespace boost {
                   !std::is_same<T, U>::value &&
                   std::is_convertible<std::remove_const_t<U>*, T*>::value>>
 #endif
-    /** _Remarks_: This constructor shall not participate in overload
-    resolution unless `std::remove_const_t<U>*` is convertible to
-    `std::remove_const_t<T>*`.
-
-    _Effects_: Creates a `polymorphic_value` object that owns a copy of the
-    object managed by `p`. If `p` has a custom copier then the copy is created
-    by the copier in `p`. Otherwise the copy is created by copy construction of
-    the owned object.  If `p` has a custom copier and deleter then the custom
-    copier and deleter of the `polymorphic_value` constructed are copied from
-    those in `p`.
-
-    _Throws_: Any exception thrown by the copier or `bad_alloc` if required
-    storage cannot be obtained.
-
-    _Postconditions_:  `bool(*this) == bool(p)`.
-    */
+    /** 
+     * _Remarks_: This constructor shall not participate in overload
+     * resolution unless `std::remove_const_t<U>*` is convertible to
+     * `std::remove_const_t<T>*`.
+     *
+     * _Effects_: Creates a `polymorphic_value` object that owns a copy of the
+     * object managed by `p`. If `p` has a custom copier then the copy is
+     * created by the copier in `p`. Otherwise the copy is created by copy
+     * construction of the owned object.  If `p` has a custom copier and deleter
+     * then the custom copier and deleter of the `polymorphic_value` constructed
+     * are copied from those in `p`.
+     *
+     * _Throws_: Any exception thrown by the copier or `bad_alloc` if required
+     * storage cannot be obtained.
+     *
+     * _Postconditions_:  `bool(*this) == bool(p)`.
+     */
     polymorphic_value(const polymorphic_value<U>& p) {
       polymorphic_value<U> tmp(p);
       ptr_ = tmp.ptr_;

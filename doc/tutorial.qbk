@@ -115,19 +115,21 @@ and memory indirection into member function invocation. C++ advocates only
 paying for what you use so we would advocate avoiding the unnecessary use of
 `polymorphic_value`.
 
-If a component design does not require polymorphic components then storing
-components by value may be a better choice than using `polymorphic_value`.
+When designing a component-based class there are multiple factors to consider.
+The table below gives guidance based on requirements for polymorphism,
+copyability and mutability.
 
-If a component design does not require mutable components then storing
-components by `std::shared_ptr<const T>` may be a better choice than using
-`polymorphic_value` (Note the `const`).
+[table What to use for a component `T`
+[[Polymorphism][Copyable][Mutable][Recommend]]
+[[none][][][`T`]]
+[[compile-time][][][`template <class T>`]]
+[[closed-set][][][`variant<Ts...>`]]
+[[open-set][no][no][`std::unique_ptr<const T>`]]
+[[open-set][no][yes][`std::experimental::propagate_const<std::unique_ptr<T>>`]]
+[[open-set][yes][no][`std::shared_ptr<const T>`]]
+[[open-set][yes][yes][`boost::polymorphic_value<T>`]]
+]
 
-If a component design has component sub-types chosen from a known set of
-sub-types, then an `std::variant<A,B,C>` may be a better choice than using
-`polymorphic_value`.
-
-If a component design requires an open or extensible set of component sub-types,
-and mutability of components then `polymorphic_value` may be a good choice.
 [endsect]
 
 [section Custom copiers and deleters]
