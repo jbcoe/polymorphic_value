@@ -35,8 +35,8 @@ a pointer member: `operator->` and `operator*` will respectively return a
 pointer and a reference. Like a pointer, `polymorphic_value` can be null so
 should probably be initialised within the parent object constructor. 
 
-`polymorphic_value` has value semantics: when copied, it will perform a deep
-copy of the owned object, and it propagates `const` to the owned object.
+`polymorphic_value` has value semantics: it propagates `const` to the owned
+object, and when copied, it will perform a deep copy of the owned object.
 
 [heading Deep copies]
 
