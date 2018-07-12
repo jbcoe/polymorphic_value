@@ -192,28 +192,11 @@ namespace boost {
     template <class T_, class... Ts>
     friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
 
+    template <class T, class U, class C, class D, class>
+    friend polymorphic_value<T> assume_polymorphic_value(U* u, C c, D d);
+
     T* ptr_ = nullptr;
     std::unique_ptr<detail::control_block<T>> cb_;
-
-  public:
-    //
-    // Destructor
-    //
-
-    /** _Effects_: If `!bool(this)` then there are no effects. If a custom
-      deleter `d` is present then `d(p)` is called and the copier and deleter
-      are destroyed. Otherwise the destructor of the managed object is called.
-      */
-    ~polymorphic_value() = default;
-
-
-    //
-    // Constructors
-    //
-
-    /** _Effects_: Constructs an empty `polymorphic_value`.
-     */
-    polymorphic_value() {}
 
 #ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
     template <class U, class C = default_copy<U>,
@@ -262,6 +245,27 @@ namespace boost {
           std::move(p), std::move(copier));
       ptr_ = u;
     }
+
+  public:
+    //
+    // Destructor
+    //
+
+    /** _Effects_: If `!bool(this)` then there are no effects. If a custom
+      deleter `d` is present then `d(p)` is called and the copier and deleter
+      are destroyed. Otherwise the destructor of the managed object is called.
+      */
+    ~polymorphic_value() = default;
+
+
+    //
+    // Constructors
+    //
+
+    /** _Effects_: Constructs an empty `polymorphic_value`.
+     */
+    polymorphic_value() {}
+
 
 
     //
@@ -636,6 +640,24 @@ namespace boost {
         std::forward<Ts>(ts)...);
     p.ptr_ = p.cb_->ptr();
     return std::move(p);
+  }
+
+  //
+  // polymorphic_value creation from pointer with custom copy and delete
+  //
+  /** _Returns_: TODO
+    */
+#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+  template <class T, class U, class C = default_copy<U>,
+            class D = std::default_delete<U>>
+#else
+  template <class T, class U, class C = default_copy<U>,
+            class D = std::default_delete<U>,
+            class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
+#endif
+  polymorphic_value<T> assume_polymorphic_value(U* u, C copier = C{},
+                                                D deleter = D{}) {
+    return polymorphic_value<T>(u, std::move(copier), std::move(deleter));
   }
 
   //

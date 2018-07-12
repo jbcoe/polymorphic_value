@@ -6,6 +6,8 @@
 #include <new>
 #include <stdexcept>
 
+using boost::assume_polymorphic_value;
+using boost::make_polymorphic_value;
 using boost::polymorphic_value;
 
 using namespace std::string_literals;
@@ -308,7 +310,7 @@ BOOST_AUTO_TEST_CASE(multiple_inheritance_with_virtual_base_classes) {
 
   // Given a value-constructed multiply-derived-class polymorphic_value.
   int v = 7;
-  polymorphic_value<MultiplyDerived> cptr(new MultiplyDerived(v));
+  auto cptr = assume_polymorphic_value<MultiplyDerived>(new MultiplyDerived(v));
 
   // Then when copied to a polymorphic_value to an intermediate base type, data
   // is accessible as expected.
@@ -346,22 +348,22 @@ BOOST_AUTO_TEST_CASE(dynamic_and_static_type_mismatch_throws_exception) {
   UnitSquare u;
   Square* s = &u;
 
-  BOOST_CHECK_THROW([s] { return polymorphic_value<Shape>(s); }(),
+  BOOST_CHECK_THROW([s] { return assume_polymorphic_value<Shape>(s); }(),
                     boost::bad_polymorphic_value_construction);
 }
 
 BOOST_AUTO_TEST_CASE(custom_copy_and_delete) {
   size_t copy_count = 0;
   size_t deletion_count = 0;
-  polymorphic_value<Square> pv(new Square(2),
-                               [&](const Square& d) {
-                                 ++copy_count;
-                                 return new Square(d);
-                               },
-                               [&](const Square* d) {
-                                 ++deletion_count;
-                                 delete d;
-                               });
+  auto pv = assume_polymorphic_value<Square>(new Square(2),
+                                             [&](const Square& d) {
+                                               ++copy_count;
+                                               return new Square(d);
+                                             },
+                                             [&](const Square* d) {
+                                               ++deletion_count;
+                                               delete d;
+                                             });
   // Restrict scope.
   {
     auto pv2 = pv;
