@@ -22,8 +22,8 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-#ifndef BOOST_POLYMORPHIC_VALUE_12JUN2018_HPP
-#define BOOST_POLYMORPHIC_VALUE_12JUN2018_HPP
+#ifndef BOOST_POLYMORPHIC_VALUE_12JUL2018_HPP
+#define BOOST_POLYMORPHIC_VALUE_12JUL2018_HPP
 
 #include <cassert>
 #include <exception>
@@ -195,9 +195,21 @@ namespace boost {
     template <class U, class V, class C, class D, class>
     friend polymorphic_value<U> assume_polymorphic_value(V* p, C c, D d);
 
+    template <class T_, class U, class>
+    friend polymorphic_value<T_>
+    polymorphic_value_cast(const polymorphic_value<U>& p);
+
+    template <class T_, class U, class>
+    friend polymorphic_value<T_>
+    polymorphic_value_cast(polymorphic_value<U>&& p);
+
     T* ptr_ = nullptr;
     std::unique_ptr<detail::control_block<element_type>> cb_;
 
+    //
+    // Pointer constructor.
+    //
+    
 #ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
     template <class U, class C = default_copy<U>,
               class D = std::default_delete<U>>
@@ -246,52 +258,9 @@ namespace boost {
       ptr_ = u;
     }
 
-  public:
     //
-    // Destructor
+    // Converting constructors.
     //
-
-    /** _Effects_: If `!bool(this)` then there are no effects. If a custom
-      deleter `d` is present then `d(p)` is called and the copier and deleter
-      are destroyed. Otherwise the destructor of the managed object is called.
-      */
-    ~polymorphic_value() = default;
-
-
-    //
-    // Constructors
-    //
-
-    /** _Effects_: Constructs an empty `polymorphic_value`.
-     */
-    polymorphic_value() {}
-
-
-
-    //
-    // Copy-constructors
-    //
-
-    /** _Effects_: Creates a `polymorphic_value` object that owns a copy of the
-    object managed by `p`. If `p` has a custom copier then the copy is created
-    by the copier in `p`. Otherwise the copy is created by copy construction of
-    the owned object.  If `p` has a custom copier and deleter then the custom
-    copier and deleter of the `polymorphic_value` constructed are copied from
-    those in `p`.
-
-    _Throws_: Any exception thrown by the copier or `std::bad_alloc` if required
-    storage cannot be obtained.
-
-    _Postconditions_:  `bool(*this) == bool(p)`.
-    */
-    polymorphic_value(const polymorphic_value& p) {
-      if (!p) {
-        return;
-      }
-      auto tmp_cb = p.cb_->clone();
-      ptr_ = tmp_cb->ptr();
-      cb_ = std::move(tmp_cb);
-    }
 
 #ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
     template <class U>
@@ -325,6 +294,82 @@ namespace boost {
       ptr_ = cb_->ptr();
     }
 
+#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+    template <class U>
+#else
+    template <class U,
+              class = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_convertible<U*, T*>::value>>
+#endif
+    /** _Remarks_: This constructor shall not participate in overload
+      resolution unless `U*` is convertible to `T*`.
+
+     _Effects_: Ownership of the resource managed by `p` is transferred to the
+      constructed `polymorphic_value`.  Potentially move constructs the owned
+      object (if the dynamic type of the owned object is no-throw
+      move-constructible).
+      If `p` has a custom copier and deleter then the
+     copier and deleter of the `polymorphic_value` constructed are the same as
+     those in `p`.
+
+     _Throws_: `std::bad_alloc` if required storage cannot be obtained.
+
+     _Postconditions_:  `*this` contains the old value of `p`. `p` is empty.
+    */
+    polymorphic_value(polymorphic_value<U>&& p) {
+      ptr_ = p.ptr_;
+      cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
+          std::move(p.cb_));
+      p.ptr_ = nullptr;
+    }
+
+
+  public:
+    //
+    // Destructor
+    //
+
+    /** _Effects_: If `!bool(this)` then there are no effects. If a custom
+      deleter `d` is present then `d(p)` is called and the copier and deleter
+      are destroyed. Otherwise the destructor of the managed object is called.
+      */
+    ~polymorphic_value() = default;
+
+
+    //
+    // Constructors
+    //
+
+    /** _Effects_: Constructs an empty `polymorphic_value`.
+     */
+    polymorphic_value() {}
+
+
+    //
+    // Copy-constructors
+    //
+
+    /** _Effects_: Creates a `polymorphic_value` object that owns a copy of the
+    object managed by `p`. If `p` has a custom copier then the copy is created
+    by the copier in `p`. Otherwise the copy is created by copy construction of
+    the owned object.  If `p` has a custom copier and deleter then the custom
+    copier and deleter of the `polymorphic_value` constructed are copied from
+    those in `p`.
+
+    _Throws_: Any exception thrown by the copier or `std::bad_alloc` if required
+    storage cannot be obtained.
+
+    _Postconditions_:  `bool(*this) == bool(p)`.
+    */
+    polymorphic_value(const polymorphic_value& p) {
+      if (!p) {
+        return;
+      }
+      auto tmp_cb = p.cb_->clone();
+      ptr_ = tmp_cb->ptr();
+      cb_ = std::move(tmp_cb);
+    }
+
     //
     // Move-constructors
     //
@@ -347,42 +392,13 @@ namespace boost {
       p.ptr_ = nullptr;
     }
 
-#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
-    template <class U>
-#else
-    template <class U,
-              class = std::enable_if_t<!std::is_same<T, U>::value &&
-                                       std::is_convertible<U*, T*>::value>>
-#endif
-    /** _Remarks_: This constructor shall not participate in overload
-      resolution unless `U*` is convertible to `T*`.
-
-     _Effects_: Ownership of the resource managed by `p` is transferred to the
-      constructed `polymorphic_value`.  Potentially move constructs the owned
-      object (if the dynamic type of the owned object is no-throw
-      move-constructible).  
-      If `p` has a custom copier and deleter then the
-     copier and deleter of the `polymorphic_value` constructed are the same as
-     those in `p`.
-
-     _Throws_: `std::bad_alloc` if required storage cannot be obtained.
-
-     _Postconditions_:  `*this` contains the old value of `p`. `p` is empty.
-    */
-    polymorphic_value(polymorphic_value<U>&& p) {
-      ptr_ = p.ptr_;
-      cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
-          std::move(p.cb_));
-      p.ptr_ = nullptr;
-    }
-
     //
     // Assignment
     //
 
-    /** _Effects_: `*this` owns a copy of the resource managed by `p`.  If `p` has
-     a custom copier and deleter then the copy is created by the copier in `p`,
-     and the copier and deleter of `*this` are copied from those in `p`.
+    /** _Effects_: `*this` owns a copy of the resource managed by `p`.  If `p`
+     has a custom copier and deleter then the copy is created by the copier in
+     `p`, and the copier and deleter of `*this` are copied from those in `p`.
      Otherwise the resource managed by `*this` is initialised by the copy
      constructor of the resource managed by `p`.
 
@@ -410,43 +426,6 @@ namespace boost {
       return *this;
     }
 
-#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
-    template <class U>
-#else
-    template <class U,
-              class = std::enable_if_t<
-                  !std::is_same<T, U>::value &&
-                  std::is_convertible<std::remove_const_t<U>*, T*>::value>>
-#endif
-    /** _Remarks_: This function shall not participate in overload
-     resolution unless `U*` is convertible to `T*`.
-
-     _Effects_: `*this` owns a copy of the resource managed by `p`.  If `p` has
-     a custom copier and deleter then the copy is created by the copier in `p`,
-     and the copier and deleter of `*this` are copied from those in `p`.
-     Otherwise the resource managed by `*this` is initialised by the copy
-     constructor of the resource managed by `p`.
-
-     _Throws_: Any exception thrown by the copier or `bad_alloc` if required
-      storage cannot be obtained.
-
-     _Returns_: `*this`.
-
-     _Postconditions_:  `bool(*this) == bool(p)`.
-    */
-    polymorphic_value& operator=(const polymorphic_value<U>& p) {
-      if (!p)
-      {
-        return *this;
-      }
-      polymorphic_value<U> tmp(p);
-      cb_ = std::make_unique<
-          detail::delegating_control_block<T, std::remove_const_t<U>>>(
-          std::move(tmp.cb_));
-      ptr_ = cb_ ? cb_->ptr() : nullptr;
-      return *this;
-    }
-
     //
     // Move-assignment
     //
@@ -471,70 +450,6 @@ namespace boost {
       cb_ = std::move(p.cb_);
       ptr_ = p.ptr_;
       p.ptr_ = nullptr;
-      return *this;
-    }
-
-#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
-    template <class U>
-#else
-    template <class U,
-              class = std::enable_if_t<!std::is_same<T, U>::value &&
-                                       std::is_convertible<U*, T*>::value>>
-#endif
-    /** _Remarks_: This constructor shall not participate in overload
-      resolution unless `U` and `T` are different types and `U*` is convertible
-     to `T*`.
-
-     _Effects_: Ownership of the resource managed by `p` is transferred to
-     `this`. Potentially move constructs the owned object (if the dynamic type
-     of the owned object is no-throw move-constructible).  If `p` has a custom
-     copier and deleter then the copier and deleter of `*this` are the same as
-     those in `p`.
-
-     _Throws_: `bad_alloc` if required storage cannot be obtained.
-
-     _Returns_: `*this`.
-
-     _Postconditions_: `*this` contains the old value of `p`. `p` is empty.
-    */
-    polymorphic_value&
-    operator=(polymorphic_value<U>&& p) {
-      cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
-          std::move(p.cb_));
-      ptr_ = p.ptr_;
-      p.ptr_ = nullptr;
-      return *this;
-    }
-
-    //
-    // Forwarding assignment
-    //
-
-#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
-    template <class U>
-#else
-    template <class U,
-              class = std::enable_if_t<
-                  std::is_convertible<std::decay_t<U>*, T*>::value &&
-                  !detail::is_polymorphic_value<std::decay_t<U>>::value>>
-#endif
-    /** _Remarks_: Let `V` be `std::decay_t<U>`. This
-      function shall not participate in overload resolution unless `V` is not a
-      specialization of `polymorphic_value` and `V*` is convertible to `T*`.
-
-     _Effects_: the owned object of `*this` is initialised with
-      `V(std::forward<U>(u))`.
-
-     _Throws_: Any exception thrown by the selected constructor of `V` or
-      `bad_alloc` if required storage cannot be obtained.
-
-     _Returns_: `*this`.
-
-     _Postconditions_:  `bool(*this) == bool(p)`.
-      */
-    polymorphic_value& operator=(U&& u) {
-      polymorphic_value tmp(std::forward<U>(u));
-      *this = std::move(tmp);
       return *this;
     }
 
@@ -603,13 +518,12 @@ namespace boost {
   /** _Returns_: A `polymorphic_value<T>` owning an object initialised with
     `U(std::forward<Ts>(ts)...)`.
     */
-  template <class T, class U=T, class... Ts>
+  template <class T, class U = T, class... Ts>
   polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
     polymorphic_value<T> p;
     using T_ = std::remove_const_t<T>;
     using U_ = std::remove_const_t<U>;
-    p.cb_ = std::make_unique<
-        detail::direct_control_block<T_, U_>>(
+    p.cb_ = std::make_unique<detail::direct_control_block<T_, U_>>(
         std::forward<Ts>(ts)...);
     p.ptr_ = p.cb_->ptr();
     return std::move(p);
@@ -619,7 +533,7 @@ namespace boost {
   // polymorphic_value creation from pointer with custom copy and delete
   //
   /** _Returns_: TODO
-    */
+   */
 #ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
   template <class T, class U, class C = default_copy<U>,
             class D = std::default_delete<U>>
@@ -633,6 +547,22 @@ namespace boost {
     return polymorphic_value<T>(u, std::move(copier), std::move(deleter));
   }
 
+  template <class T, class U,
+            class = std::enable_if_t<
+                !std::is_same<T, U>::value &&
+                std::is_convertible<std::remove_const_t<U>*, T*>::value>>
+  polymorphic_value<T> polymorphic_value_cast(const polymorphic_value<U>& p) {
+    return polymorphic_value<T>(p);
+  }
+  
+  template <class T, class U,
+            class = std::enable_if_t<
+                !std::is_same<T, U>::value &&
+                std::is_convertible<std::remove_const_t<U>*, T*>::value>>
+  polymorphic_value<T> polymorphic_value_cast(polymorphic_value<U>&& p) {
+    return polymorphic_value<T>(std::move(p));
+  }
+  
   //
   // non-member swap
   //
@@ -646,4 +576,4 @@ namespace boost {
 
 } // namespace boost
 
-#endif // BOOST_POLYMORPHIC_VALUE_12JUN2018_HPP
+#endif // BOOST_POLYMORPHIC_VALUE_12JUL2018_HPP
