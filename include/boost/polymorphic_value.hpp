@@ -177,9 +177,9 @@ namespace boost {
 
     The template parameter `T` of `polymorphic_value` may be an incomplete type.
    */
-  template <class cT> // Take a const-qualified T. Control block owns a non-const T. 
+  template <class T>
   class polymorphic_value {
-    using T = std::remove_const_t<cT>;
+    using element_type = std::remove_const_t<T>;
     
     static_assert(!std::is_union<T>::value, "");
     static_assert(!std::is_function<T>::value, "");
@@ -189,14 +189,14 @@ namespace boost {
     template <class U>
     friend class polymorphic_value;
 
-    template <class T_, class... Ts>
-    friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
+    template <class U, class V, class... Ts>
+    friend polymorphic_value<U> make_polymorphic_value(Ts&&... ts);
 
-    template <class T, class U, class C, class D, class>
-    friend polymorphic_value<T> assume_polymorphic_value(U* u, C c, D d);
+    template <class U, class V, class C, class D, class>
+    friend polymorphic_value<U> assume_polymorphic_value(V* p, C c, D d);
 
     T* ptr_ = nullptr;
-    std::unique_ptr<detail::control_block<T>> cb_;
+    std::unique_ptr<detail::control_block<element_type>> cb_;
 
 #ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
     template <class U, class C = default_copy<U>,
@@ -301,7 +301,7 @@ namespace boost {
                   !std::is_same<T, U>::value &&
                   std::is_convertible<std::remove_const_t<U>*, T*>::value>>
 #endif
-    /** 
+    /**
      * _Remarks_: This constructor shall not participate in overload
      * resolution unless `std::remove_const_t<U>*` is convertible to
      * `std::remove_const_t<T>*`.
@@ -319,11 +319,10 @@ namespace boost {
      * _Postconditions_:  `bool(*this) == bool(p)`.
      */
     polymorphic_value(const polymorphic_value<U>& p) {
-      polymorphic_value<U> tmp(p);
-      ptr_ = tmp.ptr_;
       cb_ = std::make_unique<
           detail::delegating_control_block<T, std::remove_const_t<U>>>(
-          std::move(tmp.cb_));
+          p.cb_->clone());
+      ptr_ = cb_->ptr();
     }
 
     //
@@ -375,35 +374,6 @@ namespace boost {
       cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
           std::move(p.cb_));
       p.ptr_ = nullptr;
-    }
-
-    //
-    // Forwarding constructor
-    //
-
-#ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
-    template <class U>
-#else
-    template <class U,
-              class = std::enable_if_t<
-                  std::is_convertible<std::decay_t<U>*, T*>::value &&
-                  !detail::is_polymorphic_value<std::decay_t<U>>::value>>
-#endif
-    /** _Remarks_: Let `V` be `std::remove_cvref_t<U>`. This
-      constructor shall not participate in overload resolution unless `V*` is
-      convertible to `T*`.
-
-      _Effects_: Constructs a `polymorphic_value` whose owned object is initialised
-      with `V(std::forward<U>(u))`.
-
-      _Throws_: Any exception thrown by the selected constructor of `V` or
-      `std::bad_alloc` if required storage cannot be obtained.
-    */
-    polymorphic_value(U&& u)
-        : cb_(std::make_unique<
-              detail::direct_control_block<T, std::decay_t<U>>>(
-              std::forward<U>(u))) {
-      ptr_ = cb_->ptr();
     }
 
     //
@@ -631,12 +601,15 @@ namespace boost {
   //
 
   /** _Returns_: A `polymorphic_value<T>` owning an object initialised with
-    `T(std::forward<Ts>(ts)...)`.
+    `U(std::forward<Ts>(ts)...)`.
     */
-  template <class T, class... Ts>
+  template <class T, class U=T, class... Ts>
   polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
     polymorphic_value<T> p;
-    p.cb_ = std::make_unique<detail::direct_control_block<T>>(
+    using T_ = std::remove_const_t<T>;
+    using U_ = std::remove_const_t<U>;
+    p.cb_ = std::make_unique<
+        detail::direct_control_block<T_, U_>>(
         std::forward<Ts>(ts)...);
     p.ptr_ = p.cb_->ptr();
     return std::move(p);
@@ -655,8 +628,8 @@ namespace boost {
             class D = std::default_delete<U>,
             class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
 #endif
-  polymorphic_value<T> assume_polymorphic_value(U* u, C copier = C{},
-                                                D deleter = D{}) {
+  polymorphic_value<T> assume_polymorphic_value(U* u, C copier = {},
+                                                D deleter = {}) {
     return polymorphic_value<T>(u, std::move(copier), std::move(deleter));
   }
 
