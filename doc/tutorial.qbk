@@ -20,20 +20,15 @@ polymorphic object. Use of it allows design of a composite object in terms of
 abstract or base class objects without the need to implement (and maintain)
 special member functions.
 
-    class Shape;
-    class Picture {
-      std::vector<boost::polymorphic_value<Shape>> components_;
-      // ...
-    };
-
 [endsect]
 
 [section Design Overview]
 
 A `polymorphic_value` member can be used with the same syntax one would use for
 a pointer member: `operator->` and `operator*` will respectively return a
-pointer and a reference. Like a pointer, `polymorphic_value` can be null so
-should probably be initialised within the parent object constructor. 
+pointer and a reference. Like a pointer, `polymorphic_value` can be null so,
+when used as a member variable, should probably be initialised within the
+parent object constructor. 
 
 `polymorphic_value` has value semantics: it propagates `const` to the owned
 object, and when copied, it will perform a deep copy of the owned object.
@@ -51,7 +46,7 @@ virtual destructors for copy construction; `polymorphic_value` uses
 type-erasure to store type information about the managed object and call the
 copy constructor when required. Note that virtual destructors are not needed
 for `polymorphic_value` as the type-erasure mechanism used to produce copies is
-  also used to call the correct derived class destructor.
+  also used to call the correct derived-class destructor.
 
 [heading Const-propagation]
 
@@ -60,9 +55,10 @@ As `polymorphic_value` is intended to be used to model a value-type, a
 T*`.  For non-`const` access, a non-`const` `polymorphic_value<T>` is needed.
 
 For design of component-based objects, const-propagation is required as no part
-of a contextually immutable object should be mutable. Where access to a mutable
-`polymorphic_value<T>` is truly required from a `const` access path, a `mutable
-polymorphic_value<T>` member can be used (this should be rare).
+of a contextually immutable object should be mutable. Where access to a
+non-`const` `polymorphic_value<T>` is truly required from a `const` access
+path, a `mutable polymorphic_value<T>` member can be used (this should be
+rare).
 
 [heading Default construction and an empty state]
 
@@ -136,10 +132,12 @@ copyability and mutability.
 
 [endsect]
 
+[section Factory functions]
+
 [section Custom copiers and deleters]
 
 `polymorphic_value` supports the use of custom copiers and deleters through a
-raw-pointer factory-function `assume_polymorphic_value` where the
+raw-pointer factory-function: `assume_polymorphic_value`, where the
 `polymorphic_value` returned takes ownership of the pointee.
 
     template <class T, class U, 
@@ -180,6 +178,10 @@ clone method.
       [](const Shape& o) { return o.Clone().release(); },
     );
 
+We can wrap the code above in a new factory method:
+
+    boost::polymorphic_value<Shape> shape_factory_v2(const char*);
+
 Once `Clone` is only used within `polymorphic_value` we can modify
 `Shape` to make it copyable.
 
@@ -192,14 +194,14 @@ Once `Clone` is only used within `polymorphic_value` we can modify
       Shape& operator=(Shape&&) = default; 
       // ... 
     };
-    
-    std::unique_ptr<Shape> s = shape_factory("Ellipse");
-    polymorphic_value<Shape> pv = boost::assume_polymorphic_value(s.release());
+
+The implementation of the updated factory method can then be updated in
+isolation to make use of the copyable `Shape`.
 
 [heading Interacting with objects from a C-API]
 
 When objects are created from a C-API there may be API-provided methods to
-create, copy and delete objects. The pointer-constructor of polymorphic_value
+create, copy and delete objects. The factory method `assume_polymorphic_value`
 would enable use of such objects.
 
     // C-API pointer
