@@ -64,19 +64,23 @@ of a contextually immutable object should be mutable. Where access to a mutable
 `polymorphic_value<T>` is truly required from a `const` access path, a `mutable
 polymorphic_value<T>` member can be used (this should be rare).
 
-[heading Default construction and a null state]
-
-`polymorphic_value` is intended to be used with Standard Library collections
-which requires that it is default constructible. As `polymorphic_value<T>` can
-be instantiated for an abstract class `T`, the default constructor cannot, in
-general, default construct the managed object. There may also be cases where
-default construction of the managed object would be undesirably expensive in
-terms of memory or speed.
+[heading Default construction and an empty state]
 
 The default constructor puts `polymorphic_value` in an empty state where no
 object is managed. Both `operator->` and `operator*` have preconditions where
 calling them on an empty `polymorphic_value` is prohibited. An `explicit`
 `operator bool` is provided to allow idiomatic checking for a null state.
+
+As `polymorphic_value<T>` can be instantiated for an abstract class `T`, the
+default constructor cannot, in general, default construct the managed object.
+There may also be cases where default construction of the managed object would
+be undesirably expensive in terms of memory or speed.
+
+Without an empty state there would be no state that a moved-from
+`polymorphic_value` could be expected to be found in (without incurring the
+cost of allocation or being required to instantiate abstract classes).
+Following the pattern of other standard library components we opt to make the
+moved-from state the same as the default-constructed state.
 
 [heading Reference stability]
 
@@ -89,15 +93,15 @@ operation. The result of `operator->` and `operator*` should be used directly,
 not cached for later use.
 
     // recommended use
-    polymorphic_value<Shape> pv(Circle(8));
-    foo(*pv);
+    auto pv = make_polymorphic_value<Shape, Circle>(8);
+    mutate(pv);
     double area = pv->Area();
 
     // mis-use (pointer stability not guaranteed)
-    polymorphic_value<Shape> pv(Circle(8));
+    auto pv = make_polymorphic_value<Shape, Circle>(8);
     Shape* s = pv.operator->();
-    foo(*pv);
-    double area = s->Area();
+    mutate(pv);
+    double area = s->Area(); // mutating operation may render this pointer invalid.
 
 The unnatural looking code that one is required to write to cache a pointer to
 a `polymorphic_value`'s managed object should be a suitable deterrent.
@@ -135,36 +139,18 @@ copyability and mutability.
 [section Custom copiers and deleters]
 
 `polymorphic_value` supports the use of custom copiers and deleters through a
-raw-pointer constructor where the `polymorphic_value` takes ownership of the
-pointer.
+raw-pointer factory-function `assume_polymorphic_value` where the
+`polymorphic_value` returned takes ownership of the pointee.
 
-    template <class U, 
-              class C=boost::default_copy<U>, 
-              class D=default_delete<U>>
+    template <class T, class U, 
+              class C = std::default_copy<U>, 
+              class D = default_delete<U>>
               // requires U* is convertible to T*
-    polymorphic_value(U* u, C c = C{}, D d = D{});
+    polymorphic_value<T> assume_polymorphic_value(U* u, C c = {}, D d = {});
 
-This constructor is intended for situations where the copy constructor of `U`
-and `delete U` are not appropriate choices. 
-
-When objects are created from a C-API there may be API-provided methods to
-create, copy and delete objects. The pointer-constructor of polymorphic_value
-would enable use of such objects.
-
-    // C-API pointer
-    struct c_api_t;
-    using c_api_p = c_api_t*;
-
-    // C-API functions
-    c_api_p c_api_object_create(int arg);
-    c_api_p c_api_object_copy(c_api_p p);
-    void c_api_object_dispose(c_api_p p);
-
-    polymorphic_value<c_api_t> pv(
-      c_api_object_create(42),
-      [](const c_api_t& o) { return c_api_object_copy(&o);},
-      [](const c_api_p* p) { c_api_object_dispose(p); }
-    );
+This factory-function is intended for situations where the copy constructor of
+`U` and `delete U` are not appropriate choices for copying and deleting the
+owned object. 
 
 [heading Migrating from a `Clone` method]
 
@@ -189,7 +175,7 @@ We can use the pointer constructor to ensure that `polymorphic_value` calls the
 clone method. 
     
     std::unique_ptr<Shape> s = shape_factory("Ellipse");
-    polymorphic_value<Shape> pv(
+    polymorphic_value<Shape> pv = boost::assume_polymorphic_value(
       s.release(),
       [](const Shape& o) { return o.Clone().release(); },
     );
@@ -208,7 +194,29 @@ Once `Clone` is only used within `polymorphic_value` we can modify
     };
     
     std::unique_ptr<Shape> s = shape_factory("Ellipse");
-    polymorphic_value<Shape> pv(s.release());
+    polymorphic_value<Shape> pv = boost::assume_polymorphic_value(s.release());
+
+[heading Interacting with objects from a C-API]
+
+When objects are created from a C-API there may be API-provided methods to
+create, copy and delete objects. The pointer-constructor of polymorphic_value
+would enable use of such objects.
+
+    // C-API pointer
+    struct c_api_t;
+    using c_api_p = c_api_t*;
+
+    // C-API functions
+    c_api_p c_api_object_create(int arg);
+    c_api_p c_api_object_copy(c_api_p p);
+    void c_api_object_dispose(c_api_p p);
+
+    polymorphic_value<c_api_t> pv(
+      c_api_object_create(42),
+      [](const c_api_t& o) { return c_api_object_copy(&o);},
+      [](const c_api_p* p) { c_api_object_dispose(p); }
+    );
+
 
 [endsect]
 

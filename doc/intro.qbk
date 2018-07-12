@@ -13,42 +13,15 @@ Library.
 
 [heading Problem]
 
-Suppose we want to design a class in terms of polymorphic components and have
-the compiler correctly generate the special member functions: destructor, copy
-constructor, copy assignment operator, move constructor and move assignment
-operator.
+TODO: Shapes and drawing
 
-[heading Solution]
+[heading Conventional Solution]
 
-This is how one would write a class made of polymorphic components using
-`polymorphic_value`:
+TODO: Write Clone methods.
 
-    #include <boost/polymorphic_value.hpp>
-    #include <vector>
+[heading Solution using `polymorphic_value`]
 
-    class Zoo {
-      std::vector<boost::polymorphic_value<Animal>> animals_;
-     public:
-      Zoo() = default;
-      Zoo(std::vector<boost::polymorphic_value<Animal>> animals) :
-          animals_(std::move(animals)) {}
-
-      std::size_t size() const {
-        return animals_.size();
-      }
-
-      const Animal& operator[](std::size_t i) const {
-        return *animals_[i];
-      }
-
-      Animal& operator[](std::size_t i) {
-        return *animals_[i];
-      }
-
-      void AddAnimal(boost::polymorphic_value<Animal> animal) {
-        animals_.push_back(std::move(animal));
-      }
-    }
+TODO: Use `polymorphic_value`
 
 [endsect]
 

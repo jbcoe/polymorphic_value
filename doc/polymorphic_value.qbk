@@ -6,8 +6,7 @@
 [library Boost.PolymorphicValue (Proposed)
     [quickbook 1.4]
     [authors [Coe, Jonathan]]
-    [authors [Parent, Sean]]
-    [copyright 2018 Jonathan Coe, Sean Parent]
+    [copyright 2018 Jonathan Coe]
     [category template]
     [id polymorphic_value]
     [dirname polymorphic_value]
