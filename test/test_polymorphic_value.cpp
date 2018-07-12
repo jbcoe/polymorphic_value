@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 Jonathan B. Coe
+// Copyright (c) 2016 Jonathan B. Coe
 //
 // Permission is hereby granted, free of charge, to any person or organization
 // obtaining a copy of the software and accompanying documentation covered by
