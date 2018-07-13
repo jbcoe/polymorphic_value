@@ -16,30 +16,30 @@ Library.
 Suppose we want to create a simple drawing program. Our drawing consists of a
 number of shapes of different colours. Basic shapes are circles, rectangles and
 triangles; shapes can be grouped together to produce more complicated shapes.
-       
+
 We want to be able to render, rescale and move any shape instance. Given that a
 shape may be made up of shapes we also need to get the components of a shape so
-they can be independently manipulated.  
+they can be independently manipulated.
 
 The classes defined below are intended as an illustrative example of
 composite class design, not as an illustration of how a drawing program could
 be written. If you're creating CAD software, please don't base it on this
 code!
 
-A `Shape` base defines methods needed for all shape objects:
+A base class `Shape` defines methods needed for all shape objects:
 
     class Shape {
      public:
       virtual ~Shape() {}
-       
+
       virtual void Rescale(double x, double y) = 0;
-       
+
       virtual std::pair<double, double> Position() const = 0;
-       
+
       virtual void Move(std::pair<double, double> position) = 0;
-       
+
       virtual size_t Components() const = 0;
-       
+
       virtual Shape* Component(size_t index) const = 0;
     };
 
@@ -47,36 +47,37 @@ Implementation classes for basic shapes would look something like this:
 
     class Rectangle : public Shape {
       double width_;
-      double height_;                   
+      double height_;
       std::pair<double, double> position_;
-     public:    
-      Rectangle(double width, double height, std::pair<double,double> position) 
+     public:
+      Rectangle(double width, double height, std::pair<double,double> position)
       : width_(width), height_(height), position_(position) {}
-       
+
       void Rescale(double x, double y) override {
         width_ *= x;
         height_ *= y;
       }
-       
-      std::pair<double, double> Position() const override { 
-        return position_; 
+
+      std::pair<double, double> Position() const override {
+        return position_;
       }
-       
-      virtual void Move(std::pair<double, double> position) override { 
-        position_ = position; 
+
+      virtual void Move(std::pair<double, double> position) override {
+        position_ = position;
       }
-       
-      size_t Components() const override { 
-        return 0; 
+
+      size_t Components() const override {
+        return 0;
       }
-       
-      Shape& Component(size_t index) const override { 
+
+      Shape& Component(size_t index) const override {
         throw std::runtime_error("Basic shapes do not have components.");
       }
     };
 
-We want to be able to define a composite shape class and be able to copy a
-shape so that we can easily reproduce parts of our drawing. 
+We want to be able to define a composite shape class (a shape composed of other
+shapes) and be able to copy a shape so that we can easily reproduce parts of
+our drawing.
 
 [heading Conventional Solution]
 
@@ -84,27 +85,27 @@ shape so that we can easily reproduce parts of our drawing.
       std::vector<std::unique_ptr<Shape>> components_;
       std::pair<double, double> position_;
      public:
-      Composite(std::vector<std::unique_ptr<Shape>> components, 
-                std::pair<double, double> position) 
+      Composite(std::vector<std::unique_ptr<Shape>> components,
+                std::pair<double, double> position)
       : components_(components), position_(position) {}
-       
+
       void Rescale(double x, double y) override;
-       
-      std::pair<double, double> Position() const override { 
-        return position_; 
+
+      std::pair<double, double> Position() const override {
+        return position_;
       }
-       
-      virtual void Move(std::pair<double, double> position) override { 
-        position_ = position; 
+
+      virtual void Move(std::pair<double, double> position) override {
+        position_ = position;
       }
-       
-      size_t Components() const override { 
-        return components_.size(); 
+
+      size_t Components() const override {
+        return components_.size();
       }
-       
-      Shape& Component(size_t index) const override { 
+
+      Shape& Component(size_t index) const override {
         assert(index<components_.size());
-        return *components_[index]; 
+        return *components_[index];
       }
     };
 
@@ -119,7 +120,8 @@ For the basic shapes this will be simple to implement:
     }
 
 For the composite shape we will need to write more code as the compiler cannot
-generate a copy constructor for a class with non-copyable members:
+generate a copy constructor for a class with non-copyable members
+(`std::unique_ptr`)`:
 
     std::unique_ptr<Shape> Composite::Clone() const override {
       std::vector cloned_components = std::vector<std::unique_ptr<Shape>>(components_.size());
@@ -139,27 +141,27 @@ substructures to copy.
       std::vector<boost::polymorphic_value<Shape>> components_;
       std::pair<double, double> position_;
      public:
-      RevisedComposite(std::vector<boost::polymorphic_value<Shape>> components, 
-                       std::pair<double, double> position) 
+      RevisedComposite(std::vector<boost::polymorphic_value<Shape>> components,
+                       std::pair<double, double> position)
       : components_(components), position_(position) {}
-       
+
       void Rescale(double x, double y) override;
-       
-      std::pair<double, double> Position() const override { 
-        return position_; 
+
+      std::pair<double, double> Position() const override {
+        return position_;
       }
-       
-      virtual void Move(std::pair<double, double> position) override { 
-        position_ = position; 
+
+      virtual void Move(std::pair<double, double> position) override {
+        position_ = position;
       }
-       
-      size_t Components() const override { 
-        return components_.size(); 
+
+      size_t Components() const override {
+        return components_.size();
       }
-       
-      Shape& Component(size_t index) const override { 
+
+      Shape& Component(size_t index) const override {
         assert(index<components_.size());
-        return *components_[index]; 
+        return *components_[index];
       }
     };
 
@@ -178,6 +180,29 @@ constructor for `RevisedComposite` will work - there is no need to implement a
 copy constructor or a `Clone` method.
 
 [heading A const-propagation bug]
+
+The API we designed has a bug that the `polymorphic_value` implementation will
+reveal.  `polymorphic_value` propagates const to the owned object which
+`unique_ptr` does not do for its pointee:
+
+    T& unique_ptr<T>::operator*() const;
+
+    const T& polymorphic_value<T>::operator*() const;
+    T& polymorphic_value<T>::operator*();
+
+The `Shape` class needs a redesign - it should not be possible to get non-const
+access to part of a const composite:
+
+    Shape& Shape::Component(size_t index) const = 0;
+
+should be changed to:
+
+    const Shape& Shape::Component(size_t index) const = 0;
+    Shape& Shape::Component(size_t index) = 0;
+
+As `polymorphic_value` propagates const to the owned object, our
+`RevisedComposite` will only compile after this logically necessary API change
+has been made.
 
 [endsect]
 
