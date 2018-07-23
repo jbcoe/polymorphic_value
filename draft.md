@@ -554,7 +554,7 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
   If `p` is non-null then the expression `c(*p)` returns an object of type
   `U*`. The expression `d(p)` is well formed, has well defined behavior, and
   does not throw exceptions.  Either `U` and `T` must be the same type, or the
-  dynamic and static type of `U` must be the same.
+  dynamic and static type of `*p` must be the same.
 
 * _Throws_: `bad_polymorphic_value_construction` if `is_same_v<C,
   default_copy<U>>`, `is_same_v<D, default_delete<U>>` and
