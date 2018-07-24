@@ -558,7 +558,7 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 
 * _Throws_: `bad_polymorphic_value_construction` if `is_same_v<C,
   default_copy<U>>`, `is_same_v<D, default_delete<U>>` and
-  `typeid(*u)!=typeid(U)`; `bad_alloc` if required storage cannot be obtained.
+  `typeid(*p)!=typeid(U)`; `bad_alloc` if required storage cannot be obtained.
 
 * _Postconditions_:  `bool(*this) == bool(p)`.
 
