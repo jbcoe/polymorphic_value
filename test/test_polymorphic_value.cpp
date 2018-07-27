@@ -266,21 +266,19 @@ BOOST_AUTO_TEST_CASE(custom_copy_and_delete) {
 BOOST_AUTO_TEST_CASE(reference_stability) {
   struct tiny_t {};
   auto pv = make_polymorphic_value<tiny_t>();
+  
+  // DO NOT WRITE THIS CODE.
+  // The pointer returned can be invalidated by later optimisations to the 
+  // implementation of polymorphic_value.
   tiny_t* p = pv.operator->();
 
   auto moved_pv = std::move(pv);
+
+  // DO NOT WRITE THIS CODE.
   auto moved_p = moved_pv.operator->();
 
   // This will fail if a small-object optimisation is in place.
   BOOST_TEST(p == moved_p);
-}
-
-BOOST_AUTO_TEST_CASE(copy_polymorphic_value_T_from_polymorphic_value_const_T)
-{
-  auto cp = make_polymorphic_value<const int>(1);
-  polymorphic_value<int> p = polymorphic_value_cast<int>(cp);
-
-  BOOST_TEST(*p==1);
 }
 
 BOOST_AUTO_TEST_CASE(no_dangling_reference_in_forwarding_constuctor)

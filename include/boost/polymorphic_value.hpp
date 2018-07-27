@@ -179,12 +179,12 @@ namespace boost {
    */
   template <class T>
   class polymorphic_value {
-    using element_type = std::remove_const_t<T>;
-
-    static_assert(!std::is_union<T>::value, "");
-    static_assert(!std::is_function<T>::value, "");
     static_assert(!std::is_array<T>::value, "");
+    static_assert(!std::is_const<T>::value, "");
+    static_assert(!std::is_function<T>::value, "");
     static_assert(!std::is_pointer<T>::value, "");
+    static_assert(!std::is_reference<T>::value, "");
+    static_assert(!std::is_union<T>::value, "");
 
     template <class U>
     friend class polymorphic_value;
@@ -203,65 +203,13 @@ namespace boost {
     friend polymorphic_value<T_>
     polymorphic_value_cast(polymorphic_value<U>&& p);
 
-    T* ptr_ = nullptr;
-    std::unique_ptr<detail::control_block<element_type>> cb_;
+public:
+    using element_type = T;
 
-    //
-    // Pointer constructor.
-    //
-
-#ifndef BOOST_POLYMORPHIC_VALUE_DOXYGEN
-    template <class U, class C = default_copy<U>,
-              class D = std::default_delete<U>,
-              class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
-    explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{}) {
-      if (!u) {
-        return;
-      }
-
-      if (std::is_same<D, std::default_delete<U>>::value &&
-          std::is_same<C, default_copy<U>>::value && typeid(*u) != typeid(U))
-        throw bad_polymorphic_value_construction();
-
-      std::unique_ptr<U, D> p(u, std::move(deleter));
-
-      cb_ = std::make_unique<detail::pointer_control_block<T, U, C, D>>(
-          std::move(p), std::move(copier));
-      ptr_ = u;
-    }
-
-    //
-    // Converting constructors.
-    //
-
-    template <class U,
-              class = std::enable_if_t<
-                  !std::is_same<T, U>::value &&
-                  std::is_convertible<std::remove_const_t<U>*, T*>::value>>
-    polymorphic_value(const polymorphic_value<U>& p) {
-      cb_ = std::make_unique<
-          detail::delegating_control_block<T, std::remove_const_t<U>>>(
-          p.cb_->clone());
-      ptr_ = cb_->ptr();
-    }
-
-    template <class U,
-              class = std::enable_if_t<!std::is_same<T, U>::value &&
-                                       std::is_convertible<U*, T*>::value>>
-    polymorphic_value(polymorphic_value<U>&& p) {
-      ptr_ = p.ptr_;
-      cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
-          std::move(p.cb_));
-      p.ptr_ = nullptr;
-    }
-
-#endif // BOOST_POLYMORPHIC_VALUE_DOXYGEN
-
-  public:
     //
     // Destructor
     //
-
+    
     /** _Effects_: If `!bool(this)` then there are no effects. If a custom
       deleter `d` is present then `d(p)` is called and the copier and deleter
       are destroyed. Otherwise the destructor of the managed object is called.
@@ -442,6 +390,62 @@ namespace boost {
       assert(ptr_);
       return *ptr_;
     }
+  
+private:
+    T* ptr_ = nullptr;
+    std::unique_ptr<detail::control_block<element_type>> cb_;
+
+    //
+    // Pointer constructor.
+    //
+
+#ifndef BOOST_POLYMORPHIC_VALUE_DOXYGEN
+    template <class U, class C = default_copy<U>,
+              class D = std::default_delete<U>,
+              class = std::enable_if_t<std::is_base_of<T, U>::value>>
+    explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{}) {
+      if (!u) {
+        return;
+      }
+
+      if (std::is_same<D, std::default_delete<U>>::value &&
+          std::is_same<C, default_copy<U>>::value && typeid(*u) != typeid(U))
+        throw bad_polymorphic_value_construction();
+
+      std::unique_ptr<U, D> p(u, std::move(deleter));
+
+      cb_ = std::make_unique<detail::pointer_control_block<T, U, C, D>>(
+          std::move(p), std::move(copier));
+      ptr_ = u;
+    }
+
+    //
+    // Converting constructors.
+    //
+
+    template <class U,
+              class = std::enable_if_t<
+                  !std::is_same<T, U>::value &&
+                  std::is_base_of<T, U>::value>>
+    polymorphic_value(const polymorphic_value<U>& p) {
+      cb_ = std::make_unique<
+          detail::delegating_control_block<T, U>>(
+          p.cb_->clone());
+      ptr_ = cb_->ptr();
+    }
+
+    template <class U,
+              class = std::enable_if_t<!std::is_same<T, U>::value &&
+                                       std::is_base_of<T, U>::value>>
+    polymorphic_value(polymorphic_value<U>&& p) {
+      ptr_ = p.ptr_;
+      cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
+          std::move(p.cb_));
+      p.ptr_ = nullptr;
+    }
+
+#endif // BOOST_POLYMORPHIC_VALUE_DOXYGEN
+
   };
 
   //
@@ -454,9 +458,7 @@ namespace boost {
   template <class T, class U = T, class... Ts>
   polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
     polymorphic_value<T> p;
-    using T_ = std::remove_const_t<T>;
-    using U_ = std::remove_const_t<U>;
-    p.cb_ = std::make_unique<detail::direct_control_block<T_, U_>>(
+    p.cb_ = std::make_unique<detail::direct_control_block<T, U>>(
         std::forward<Ts>(ts)...);
     p.ptr_ = p.cb_->ptr();
     return std::move(p);
@@ -468,7 +470,7 @@ namespace boost {
 #else
   template <class T, class U, class C = default_copy<U>,
             class D = std::default_delete<U>,
-            class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
+            class = std::enable_if_t<std::is_base_of<T, U>::value>>
 #endif
   /** 
    * _Remarks_: This function shall not participate in overload resolution
@@ -506,12 +508,11 @@ namespace boost {
   template <class T, class U,
             class = std::enable_if_t<
                 !std::is_same<T, U>::value &&
-                std::is_convertible<std::remove_const_t<U>*, T*>::value>>
+                std::is_base_of<T, U>::value>>
 #endif
   /**
    * _Remarks_: This function shall not participate in overload
-   * resolution unless `std::remove_const_t<U>*` is convertible to
-   * `T*`.
+   * resolution unless `U*` is convertible to `T*`.
    *
    * _Returns_: A `polymorphic_value` object that owns a copy of the
    * object managed by `p`. If `p` has a custom copier then the copy is
@@ -533,7 +534,7 @@ namespace boost {
 #else
   template <class T, class U,
             class = std::enable_if_t<!std::is_same<T, U>::value &&
-                                     std::is_convertible<U*, T*>::value>>
+                                     std::is_base_of<T, U>::value>>
 #endif
   /**
    * _Remarks_: This function shall not participate in overload
