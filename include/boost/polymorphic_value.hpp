@@ -51,9 +51,6 @@ namespace boost {
 
     template <class T>
     struct control_block {
-
-      static_assert(!std::is_const<T>::value, "");
-
       virtual ~control_block() = default;
 
       virtual std::unique_ptr<control_block> clone() const = 0;
@@ -63,10 +60,6 @@ namespace boost {
 
     template <class T, class U = T>
     class direct_control_block : public control_block<T> {
-      static_assert(!std::is_reference<U>::value, "");
-      static_assert(!std::is_const<T>::value, "");
-      static_assert(!std::is_const<U>::value, "");
-
       U u_;
 
     public:
@@ -84,9 +77,6 @@ namespace boost {
     template <class T, class U, class C = default_copy<U>,
               class D = std::default_delete<U>>
     class pointer_control_block : public control_block<T>, public C {
-      static_assert(!std::is_const<T>::value, "");
-      static_assert(!std::is_const<U>::value, "");
-
       std::unique_ptr<U, D> p_;
 
     public:
@@ -107,9 +97,6 @@ namespace boost {
 
     template <class T, class U>
     class delegating_control_block : public control_block<T> {
-      static_assert(!std::is_const<T>::value, "");
-      static_assert(!std::is_const<U>::value, "");
-
       std::unique_ptr<control_block<U>> delegate_;
 
     public:
@@ -474,9 +461,9 @@ private:
 #endif
   /** 
    * _Remarks_: This function shall not participate in overload resolution
-   * unless `U*` is convertible to `T*`.  A custom copier and deleter are said
-   * to be 'present' in a `polymorphic_value` initialized with this
-   * constructor.
+   * unless `std::is_base_of<T,U>::value` is true.  A custom copier and 
+   * deleter are said to be 'present' in a `polymorphic_value` initialized 
+   * with this constructor.
    *
    * _Returns_: If `p` is null, creates an empty `polymorphic_value`, otherwise
    * creates a `polymorphic_value` object that owns the object `*p`.
@@ -506,13 +493,11 @@ private:
   template <class T, class U>
 #else
   template <class T, class U,
-            class = std::enable_if_t<
-                !std::is_same<T, U>::value &&
-                std::is_base_of<T, U>::value>>
+            class = std::enable_if_t<std::is_base_of<T, U>::value>>
 #endif
   /**
    * _Remarks_: This function shall not participate in overload
-   * resolution unless `U*` is convertible to `T*`.
+   * resolution unless `std::is_base_of<T,U>::value` is true.
    *
    * _Returns_: A `polymorphic_value` object that owns a copy of the
    * object managed by `p`. If `p` has a custom copier then the copy is
@@ -538,7 +523,7 @@ private:
 #endif
   /**
    * _Remarks_: This function shall not participate in overload
-   *  resolution unless `U*` is convertible to `T*`.
+   *  resolution unless `std::is_base_of<T,U>::value` is true.
    *
    * _Returns_: A `polymorphic_value` that owns the resource previously managed
    * by `p`.  Potentially move constructs the owned object (if the dynamic type
