@@ -4,6 +4,7 @@ import os
 import platform
 import subprocess
 
+
 def check_for_executable(exe_name, args=['--version']):
     try:
         cmd = [exe_name]
@@ -20,29 +21,25 @@ def main():
     parser.add_argument(
         '--clean',
         help='remove build directory before build',
-        action='store_true',
-        dest='clean')
+        action='store_true')
     parser.add_argument(
-        '-t', '--tests', help='run tests', action='store_true', dest='run_tests')
+        '-t', '--tests', help='run tests', action='store_true')
     parser.add_argument(
-        '-v', help='verbose', action='store_true', dest='verbose')
+        '-v', '--verbose', help='verbose', action='store_true')
     parser.add_argument(
         '-o', '--output',
         help='output dir (relative to source dir)',
-        default='build',
-        dest='out_dir')
+        default='build')
     parser.add_argument(
         '-c', '--config',
         help='config (Debug or Release)',
-        default='Debug',
-        dest='config')
+        default='Debug')
 
     if platform.system() == "Windows":
         parser.add_argument(
             '--win32',
             help='Build 32-bit libraries',
-            action='store_true',
-            dest='win32')
+            action='store_true')
 
     args = parser.parse_args()
     args.platform = platform.system()
@@ -50,9 +47,9 @@ def main():
     src_dir = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
 
     if args.clean:
-        subprocess.check_call('rm -rf {}'.format(args.out_dir).split())
+        subprocess.check_call('rm -rf {}'.format(args.output).split())
 
-    cmake_invocation = ['cmake', '.', '-B{}'.format(args.out_dir)]
+    cmake_invocation = ['cmake', '.', '-B{}'.format(args.output)]
     if args.platform == 'Windows':
         if args.win32:
             cmake_invocation.extend(['-G', 'Visual Studio 14 2015'])
@@ -69,12 +66,12 @@ def main():
 
     subprocess.check_call(cmake_invocation, cwd=src_dir)
     subprocess.check_call(
-        'cmake --build ./{}'.format(args.out_dir).split(), cwd=src_dir)
+        'cmake --build ./{}'.format(args.output).split(), cwd=src_dir)
 
-    if args.run_tests:
+    if args.tests:
         rc = subprocess.call(
             'ctest . --output-on-failure -C {}'.format(args.config).split(),
-            cwd=os.path.join(src_dir, args.out_dir))
+            cwd=os.path.join(src_dir, args.output))
         if rc != 0:
             sys.exit(1)
 

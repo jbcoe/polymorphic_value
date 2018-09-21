@@ -4,15 +4,27 @@ ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
 D0201R4
 
-Working Group: Library
+Working Group: Library Evolution, Library
 
-Date: 2018-04-27
+Date: 2018-07-16
 
 _Jonathan Coe \<jonathanbcoe@gmail.com\>_
 
 _Sean Parent \<sparent@adobe.com\>_
 
 ## Change history
+
+Changes in P0201R4
+
+* Simplify example in 'Motivation'.
+
+* Change converting constructors, forwarding constructor and pointer constructor into free functions. 
+
+* Add second template argument to `make_polymorphic_value`.
+
+* Add 'Changes to Best Practice'
+
+* TODO: Respond point-by-point to "Remember the Vasa".
 
 Changes in P0201R4
 
@@ -321,7 +333,6 @@ We define the default copier in technical specifications below.
 
 
 ## Allocator Support
-
 The design of `polymorphic_value` is similar to that of `std::any` which does
 not have support for allocators.
 
@@ -334,6 +345,100 @@ Until such technical obstacles can be overcome, `polymorphic_value` will follow
 the design of `std::any` and `std::function` (post C++17)  and will not support
 allocators.
 
+## Factory functions
+Earlier versions of polymorphic value had two additional constructors:
+
+```cpp
+template <class U> 
+explicit polymorphic_value(U&& u);
+
+template <class U, class C=default_copy<U>, class D=default_delete<U>>
+explicit polymorphic_value(U* p, C c=C{}, D d=D{});
+```
+
+and an assignment operator:
+
+```cpp
+template <class U>
+polymorphic_value& operator=(U&& u);
+```
+
+Concern was expressed by users of an implementation of `polymorphic_value` that
+the behaviour of these methods was non-obvious and potentially dangerous (the
+second constructor takes ownership of a pointer).
+
+The functionality provided by these constructors was needed but must now be
+explicitly invoked through named functions:
+
+```cpp
+template <class T, class U=T, class... Ts>
+polymorphic_value<T> make_polymorphic_value(Ts&&... ts);
+
+template <class T, class U, class C, class D, class>
+polymorphic_value<T> assume_polymorphic_value(U* p, C c, D d);
+```
+
+The assignment operator is dropped altogether as it does not offer
+functionality that cannot be obtained with factory functions (albeit at higher
+syntactic cost).
+
+This change means that there is no way to create a non-empty
+`polymorphic_value` other than by copying an existing `polymorphic_value` or by
+calling a factory function.  This is consistent with best practice for
+`std::unique_ptr` and `std::shared_ptr` where `std::make_unique` and
+`std::make_shared` are preferred.
+
+The two constructors can always be reintroduced in a later C++ standard. The
+reverse is not true, changing existing constructors into free functions would
+break existing code. We opt for the more cautious design as it can be later
+revised.
+
+## Casting functions
+Earlier versions of `polymorphic_value` had additional converting constructors
+and converting assignment operators:
+
+```cpp
+template <class U> 
+polymorphic_value(const polymorphic_value<U>& p);
+
+template <class U> 
+polymorphic_value(polymorphic_value<U>&& p);
+
+template <class U> 
+polymorphic_value& operator=(const polymorphic_value<U>& p);
+
+template <class U> 
+polymorphic_value& operator=(polymorphic_value<U>&& p);
+```
+
+These functions are implemented (in [Impl]) by introducing a level of
+indirection in the control block of the `polymorphic_value` that is
+constructed.  This will introduce an additional level of pointer indirection
+into invocation of a copy or assignment operator that takes the
+`polymorphic_value` as an argument. This is not free. Concern was expressed by
+users of an implementation that this cost should be made explicit and not
+hidden by a constructor.
+
+While it may be possible to implement converting construction and assignment
+without the extra indirection, until it is provably possible we opt to replace
+the converting constructors with factory functions and remove the converting
+assignment operators altogether.
+
+```cpp
+template <class T, class U, class>
+  polymorphic_value<T> polymorphic_value_cast(const polymorphic_value<U>& p);
+
+template <class T, class U, class> 
+  polymorphic_value<T> polymorphic_value_cast(polymorphic_value<U>&& p);
+```
+
+Note that these 'cast' operations will always succeed. They can only return an
+empty `polymorphic_value` if their argument was also empty.
+
+The converting constructors can always be reintroduced in a later C++ standard.
+The reverse is not true, changing existing constructors into free functions
+would break existing code. We opt for the more cautious design as it can be
+later revised.
 
 ## Design changes from `cloned_ptr`
 The design of `polymorphic_value` is based upon `cloned_ptr` and modified
@@ -354,10 +459,12 @@ As `polymorphic_value` is a value, `dynamic_pointer_cast`,
 is no way for a user to implement the cast operations provided for
 `cloned_ptr`.
 
-
 ## Impact on the standard
 This proposal is a pure library extension. It requires additions to be made to
 the standard library header `<memory>`.
+
+# Changes to best practice
+The C++ Core Guidelines [CoreGuidelines] say:
 
 
 ## Technical specifications
@@ -464,29 +571,16 @@ template <class T> class polymorphic_value {
   
   constexpr polymorphic_value(nullptr_t) noexcept;
 
-  template <class U> explicit polymorphic_value(U&& u);
-
-  template <class U, class C=default_copy<U>, class D=default_delete<U>>
-    explicit polymorphic_value(U* p, C c=C{}, D d=D{});
-
   polymorphic_value(const polymorphic_value& p);
-  template <class U> polymorphic_value(const polymorphic_value<U>& p);
+
   polymorphic_value(polymorphic_value&& p) noexcept;
-  template <class U> polymorphic_value(polymorphic_value<U>&& p);
 
   // Destructor
   ~polymorphic_value();
 
   // Assignment
   polymorphic_value& operator=(const polymorphic_value& p);
-  template <class U>
-    polymorphic_value& operator=(const polymorphic_value<U>& p);
   polymorphic_value& operator=(polymorphic_value&& p) noexcept;
-  template <class U>
-    polymorphic_value& operator=(polymorphic_value<U>&& p);
-
-  template <class U>
-    polymorphic_value& operator=(U&& u);
 
 
   // Modifiers
@@ -611,7 +705,7 @@ dynamic memory allocation.]
 ~polymorphic_value();
 ```
 
-* _Effects_: If get() == nullptr there are no effects. If a custom deleter `d`
+* _Effects_: If `!bool(this)` then there are no effects. If a custom deleter `d`
   is present then `d(p)` is called and the copier and deleter are destroyed.
   Otherwise the destructor of the managed object is called.
 
@@ -643,9 +737,9 @@ template <class U> polymorphic_value& operator=(const polymorphic_value<U>& p);
 template <class U> polymorphic_value& operator=(U&& u);
 ```
 
-* _Remarks_: Let `V` be `remove_cvref_t<U>`. This
-  function shall not participate in overload resolution unless `V` is not a
-  specialization of `polymorphic_value` and `V*` is convertible to `T*`.
+* _Remarks_: Let `V` be `decay_t<U>`. This function shall not participate in
+  overload resolution unless `V` is not a specialization of `polymorphic_value`
+  and `V*` is convertible to `T*`.
 
 * _Effects_: the owned object of `*this` is initialised with
   `V(std::forward<U>(u))`.
@@ -765,3 +859,5 @@ Patrice Roy, Tony van Eerd and Ville Voutilainen for useful discussion.
 
 ```<http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0302r1.html>```
 
+[CoreGuidelines] "The C++ Core Guidelines"
+```<http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines>```

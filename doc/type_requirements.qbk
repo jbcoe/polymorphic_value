@@ -1,0 +1,41 @@
+[section Type Requirements]
+
+For:
+
+    class MyClass {
+      boost::polymorphic_value<T> component_;
+    };
+
+* `T` must be a non-union class type. 
+
+* `T` can be an incomplete type.
+
+For:
+    class T { /* class body */ };
+    class U { /* class body */ };
+
+    auto poly boost::make_polymorphic_value<T, U>(Ts&&... ts);
+
+* `std::remove_const_t<U>*` must be convertible to `T*` (public inheritance satisfies this requirement).
+
+* `U` must be constructible from `std::forward<Ts>(ts)...`.
+
+* `U` must be copy constructible.
+
+* `U` must be nothrow destructible.
+
+For:
+
+    U* pu = make_some_u();
+    Copier c;
+    Deleter d;
+    auto poly = boost::assume_polymorphic_value<T>(pu, c, d);
+
+* `U*` must be convertible to `T*`.
+
+*  `c(*u)` must be well-formed and must return an object that can be converted to, and stored as a `T*`.
+
+*  `d(u)` must be well-formed and must not throw an exception.
+
+[endsect]
+

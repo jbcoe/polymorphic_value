@@ -1,20 +1,21 @@
 # A polymorphic value-type for C++
 
-The class template `polymorphic_value` is proposed for addition to the C++ Standard Library.
+The class template `polymorphic_value` is proposed for addition to Boost and to
+the C++ Standard Library.
 
-The class template, `polymorphic_value`, confers value-like semantics on a free-store
-allocated object.  A `polymorphic_value<T>` may hold an object of a class publicly
-derived from T, and copying the polymorphic_value<T> will copy the object of the derived
-type.
+The class template, `polymorphic_value`, confers value-like semantics on a
+free-store allocated object.  A `polymorphic_value<T>` may hold an object of a
+class publicly derived from T, and copying the polymorphic_value<T> will copy
+the object of the derived type.
 
-Using `polymorphic_value` a copyable composite object with polymorphic components can be
-written as:
+Using `polymorphic_value` a copyable composite object with polymorphic
+components can be written as:
 
 ~~~ {.cpp}
 // Copyable composite with mutable polymorphic components
 class CompositeObject {
-  std::polymorphic_value<IComponent1> c1_;
-  std::polymorphic_value<IComponent2> c2_;
+  boost::polymorphic_value<IComponent1> c1_;
+  boost::polymorphic_value<IComponent2> c2_;
 
  public:
   CompositeObject(std::polymorphic_value<IComponent1> c1,
@@ -52,5 +53,6 @@ The build uses cmake driven by a simple Python script. To build and run tests, r
 - on AppVeyor: [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/jbcoe/polymorphic_value?svg=true&branch=master)](https://ci.appveyor.com/project/jbcoe/polymorphic-value)
 
 ## ISO Standardisation
-`polymorphic_value` has been proposed for standardisation for C++20 in P0201: <http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0201r1.pdf>.
-The draft in this repository is more up to date than the paper linked above, in particular the class has been renamed from `indirect` to `polymorphic_value`.
+`polymorphic_value` has been proposed for standardisation for C++20 in P0201:
+<http://wg21.link/p0201>.  The draft in this repository is more up to date than
+the paper linked above.

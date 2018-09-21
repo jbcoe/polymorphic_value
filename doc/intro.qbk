@@ -1,9 +1,203 @@
 [section Introduction]
 
-TODO
+The class template, `polymorphic_value`, confers value-like semantics on a
+free-store allocated object.  A `polymorphic_value<T>` may hold an object of a
+class publicly derived from T, and copying the polymorphic_value<T> will copy
+the object of the derived type.
 
-[heading Motivation]
+All of the contents of `<boost/polymorphic_value.hpp>` are defined inside
+`namespace boost`.
 
-TODO
+`polymorphic_value` is proposed for addition to Boost and to the C++ Standard
+Library.
+
+[heading Problem]
+
+Suppose we want to create a simple drawing program. Our drawing consists of a
+number of shapes of different colours. Basic shapes are circles, rectangles and
+triangles; shapes can be grouped together to produce more complicated shapes.
+
+We want to be able to render, rescale and move any shape instance. Given that a
+shape may be made up of shapes we also need to get the components of a shape so
+they can be independently manipulated.
+
+A base class `Shape` defines methods needed for all shape objects:
+
+    class Shape {
+     public:
+      virtual ~Shape() {}
+
+      virtual void Rescale(double x, double y) = 0;
+
+      virtual std::pair<double, double> Position() const = 0;
+
+      virtual void Move(std::pair<double, double> position) = 0;
+
+      virtual size_t Components() const = 0;
+
+      virtual Shape& Component(size_t index) const = 0;
+    };
+
+Implementation classes for basic shapes would look something like this:
+
+    class Rectangle : public Shape {
+      double width_;
+      double height_;
+      std::pair<double, double> position_;
+     public:
+      Rectangle(double width, double height, std::pair<double,double> position)
+      : width_(width), height_(height), position_(position) {}
+
+      void Rescale(double x, double y) override {
+        width_ *= x;
+        height_ *= y;
+      }
+
+      std::pair<double, double> Position() const override {
+        return position_;
+      }
+
+      virtual void Move(std::pair<double, double> position) override {
+        position_ = position;
+      }
+
+      size_t Components() const override {
+        return 0;
+      }
+
+      Shape& Component(size_t index) const override {
+        throw std::runtime_error("Basic shapes do not have components.");
+      }
+    };
+
+We want to be able to define a composite shape class (a shape composed of other
+shapes) and be able to copy a shape so that we can easily reproduce parts of
+our drawing.
+
+[heading Conventional Solution]
+
+    class Composite : public Shape {
+      std::vector<std::unique_ptr<Shape>> components_;
+      std::pair<double, double> position_;
+     public:
+      Composite(std::vector<std::unique_ptr<Shape>> components,
+                std::pair<double, double> position)
+      : components_(components), position_(position) {}
+
+      void Rescale(double x, double y) override;
+
+      std::pair<double, double> Position() const override {
+        return position_;
+      }
+
+      virtual void Move(std::pair<double, double> position) override {
+        position_ = position;
+      }
+
+      size_t Components() const override {
+        return components_.size();
+      }
+
+      Shape& Component(size_t index) const override {
+        assert(index<components_.size());
+        return *components_[index];
+      }
+    };
+
+By adding a `Clone()` method to the Shape class we allow Shapes to be copied.
+
+    virtual std::unique_ptr<Shape> Shape::Clone() const = 0;
+
+For the basic shapes this will be simple to implement:
+
+    std::unique_ptr<Shape> Rectangle::Clone() const override {
+      return std::unique_ptr<Shape>(new Rectangle(*this));
+    }
+
+For the composite shape we will need to write more code as the compiler cannot
+generate a copy constructor for a class with non-copyable members
+(`std::unique_ptr`)`:
+
+    std::unique_ptr<Shape> Composite::Clone() const override {
+      std::vector cloned_components = std::vector<std::unique_ptr<Shape>>(components_.size());
+      for(size_t i=0; i<components_.size(); ++i) {
+        cloned_components[i] = components_[i]->Clone();
+      }
+      return std::unique_ptr<Shape>(new Composite(std::move(cloned_components), position_));
+    }
+
+For more complicated component-based Shape subclasses, implementing `Clone`
+will become tedious and error-prone as there will be multiple component-based
+substructures to copy.
+
+[heading Solution using `polymorphic_value`]
+
+    class RevisedComposite : public Shape {
+      std::vector<boost::polymorphic_value<Shape>> components_;
+      std::pair<double, double> position_;
+     public:
+      RevisedComposite(std::vector<boost::polymorphic_value<Shape>> components,
+                       std::pair<double, double> position)
+      : components_(components), position_(position) {}
+
+      void Rescale(double x, double y) override;
+
+      std::pair<double, double> Position() const override {
+        return position_;
+      }
+
+      void Move(std::pair<double, double> position) override {
+        position_ = position;
+      }
+
+      size_t Components() const override {
+        return components_.size();
+      }
+
+      Shape& Component(size_t index) const override {
+        assert(index<components_.size());
+        return *components_[index];
+      }
+    };
+
+To support using `boost::polymorphic_value` we need the Shape class to be
+copyable from derived classes.  A protected default copy constructor will
+satisfy this requirement.
+
+    class Shape {
+      ...
+     protected:
+      Shape(const Shape& shape) = default;
+    };
+
+Since `boost::polymorphic_value` is copyable, the compiler-generated copy
+constructor for `RevisedComposite` will work - there is no need to implement a
+copy constructor or a `Clone` method.
+
+[heading A const-propagation bug]
+
+The API we designed has a bug that the `polymorphic_value` implementation will
+reveal.  `polymorphic_value` propagates const to the owned object which
+`unique_ptr` does not do for its pointee:
+
+    T& unique_ptr<T>::operator*() const;
+
+    const T& polymorphic_value<T>::operator*() const;
+    T& polymorphic_value<T>::operator*();
+
+The `Shape` class needs a redesign - it should not be possible to get non-const
+access to part of a const composite:
+
+    Shape& Shape::Component(size_t index) const = 0;
+
+should be changed to:
+
+    const Shape& Shape::Component(size_t index) const = 0;
+    Shape& Shape::Component(size_t index) = 0;
+
+As `polymorphic_value` propagates const to the owned object, our
+`RevisedComposite` will only compile after this logically necessary API change
+has been made.
 
 [endsect]
+

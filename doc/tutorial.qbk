@@ -1,0 +1,225 @@
+[section Tutorial]
+
+[section Motivation]
+
+Object-oriented programming allows objects to be composed of other objects.  A
+class hierarchy of `Shape`s might lead to a `Picture` class being a collection
+of `Shape`s and their respective positions.
+
+When components are stored as values, the compiler is able to generate special
+member functions: destructor, copy constructor, copy assignment operator, move
+constructor and move assignment operator.
+
+Storing components as values means that the type of the component must be known
+at compile time. For cases when components are base classes from an inheritance
+hierarchy - like `Shape`s in a `Picture` - we are unable to store components as
+values and will have to implement special member functions ourselves.
+
+`polymorphic_value` is a class template that imparts value semantics to a
+polymorphic object. Use of it allows design of a composite object in terms of
+abstract or base class objects without the need to implement (and maintain)
+special member functions.
+
+[endsect]
+
+[section Design Overview]
+
+A `polymorphic_value` member can be used with the same syntax one would use for
+a pointer member: `operator->` and `operator*` will respectively return a
+pointer and a reference. Like a pointer, `polymorphic_value` can be null so,
+when used as a member variable, should probably be initialised within the
+parent object constructor. 
+
+`polymorphic_value` has value semantics: it propagates `const` to the owned
+object, and when copied, it will perform a deep copy of the owned object.
+
+[heading Deep copies]
+
+`polymorphic_value` enables deep-copies through inheritance hierarchies: a
+`polymorphic_value<Shape>` initialized with a `Circle` object will produce a
+`polymorphic_value<Shape>` managing a copy of the `Circle` object produced
+using `Circle`'s copy constructor.
+
+Virtual destructors can be used to ensure that a derived class object is
+correctly destroyed through a base class pointer. C++ offers no equivalent of
+virtual destructors for copy construction; `polymorphic_value` uses
+type-erasure to store type information about the managed object and call the
+copy constructor when required. Note that virtual destructors are not needed
+for `polymorphic_value` as the type-erasure mechanism used to produce copies is
+  also used to call the correct derived-class destructor.
+
+[heading Const-propagation]
+
+As `polymorphic_value` is intended to be used to model a value-type, a
+`const` `polymorphic_value<T>` will only give access to a `const T&` and `const
+T*`.  For non-`const` access, a non-`const` `polymorphic_value<T>` is needed.
+
+For design of component-based objects, const-propagation is required as no part
+of a contextually immutable object should be mutable. Where access to a
+non-`const` `polymorphic_value<T>` is truly required from a `const` access
+path, a `mutable polymorphic_value<T>` member can be used (this should be
+rare).
+
+[heading Default construction and an empty state]
+
+The default constructor puts `polymorphic_value` in an empty state where no
+object is managed. Both `operator->` and `operator*` have preconditions where
+calling them on an empty `polymorphic_value` is prohibited. An `explicit`
+`operator bool` is provided to allow idiomatic checking for a null state.
+
+As `polymorphic_value<T>` can be instantiated for an abstract class `T`, the
+default constructor cannot, in general, default construct the managed object.
+There may also be cases where default construction of the managed object would
+be undesirably expensive in terms of memory or speed.
+
+Without an empty state there would be no state that a moved-from
+`polymorphic_value` could be expected to be found in (without incurring the
+cost of allocation or being required to instantiate abstract classes).
+Following the pattern of other standard library components we opt to make the
+moved-from state the same as the default-constructed state.
+
+[heading Reference stability]
+
+`polymorphic_value` makes no guarantees of the stability of pointers and
+references obtained from `operator->` and `operator*`. `polymorphic_value`
+models a value-type like optional or variant and may make use of a small object
+optimization to avoid heap allocation for small objects. Such an optimisation
+would render pointers and references to a managed object invalid after a move
+operation. The result of `operator->` and `operator*` should be used directly,
+not cached for later use.
+
+    // recommended use
+    auto pv = make_polymorphic_value<Shape, Circle>(8);
+    mutate(pv);
+    double area = pv->Area();
+
+    // mis-use (pointer stability not guaranteed)
+    auto pv = make_polymorphic_value<Shape, Circle>(8);
+    Shape* s = pv.operator->();
+    mutate(pv);
+    double area = s->Area(); // mutating operation may render this pointer invalid.
+
+The unnatural looking code that one is required to write to cache a pointer to
+a `polymorphic_value`'s managed object should be a suitable deterrent.
+
+[endsect]
+
+[section When to use `polymorphic_value`]
+
+`polymorphic_value` is designed to be used in polymorphic component-based
+designs where the set of possible component types is open to extension
+(open-set polymorphism).
+
+`polymorphic_value` introduces a virtual function call into copy construction
+and memory indirection into member function invocation. C++ advocates only
+paying for what you use so we would advocate avoiding the unnecessary use of
+`polymorphic_value`.
+
+When designing a component-based class there are multiple factors to consider.
+The table below gives guidance based on requirements for polymorphism,
+copyability and mutability.
+
+[table What to use for a component `T`
+[[Polymorphism][Copyable][Mutable][Recommend]]
+[[none][][][`T`]]
+[[compile-time][][][`template <class T>`]]
+[[closed-set][][][`std::variant<Ts...>`]]
+[[open-set][no][no][`std::unique_ptr<const T>`]]
+[[open-set][no][yes][`std::experimental::propagate_const<std::unique_ptr<T>>`]]
+[[open-set][yes][no][`std::shared_ptr<const T>`]]
+[[open-set][yes][yes][`boost::polymorphic_value<T>`]]
+]
+
+[endsect]
+
+[section Factory functions]
+
+[section Custom copiers and deleters]
+
+`polymorphic_value` supports the use of custom copiers and deleters through a
+raw-pointer factory-function: `assume_polymorphic_value`, where the
+`polymorphic_value` returned takes ownership of the pointee.
+
+    template <class T, class U, 
+              class C = std::default_copy<U>, 
+              class D = default_delete<U>>
+              // requires U* is convertible to T*
+    polymorphic_value<T> assume_polymorphic_value(U* u, C c = {}, D d = {});
+
+This factory-function is intended for situations where the copy constructor of
+`U` and `delete U` are not appropriate choices for copying and deleting the
+owned object. 
+
+[heading Migrating from a `Clone` method]
+
+The pointer constructor can be used to migrate from a class hierarchy with a
+`Clone` method. 
+
+Suppose there is a base class that inherits from the mixin `Cloneable`:
+
+    template <class T>
+    struct Cloneable {
+      virtual ~Cloneable() = default;
+      virtual std::unique_ptr<T> Clone() const = 0;
+    };
+
+    class Shape : public Cloneable<Shape> {
+     public:
+      virtual ~Shape() = default;
+      // ... 
+    };
+
+We can use the pointer constructor to ensure that `polymorphic_value` calls the
+clone method. 
+    
+    std::unique_ptr<Shape> s = shape_factory("Ellipse");
+    polymorphic_value<Shape> pv = boost::assume_polymorphic_value(
+      s.release(),
+      [](const Shape& o) { return o.Clone().release(); },
+    );
+
+We can wrap the code above in a new factory method:
+
+    boost::polymorphic_value<Shape> shape_factory_v2(const char*);
+
+Once `Clone` is only used within `polymorphic_value` we can modify
+`Shape` to make it copyable.
+
+    class Shape {
+     public:
+      virtual ~Shape() = default;
+      Shape(const Shape&) = default; 
+      Shape(Shape&&) = default; 
+      Shape& operator=(const Shape&) = default; 
+      Shape& operator=(Shape&&) = default; 
+      // ... 
+    };
+
+The implementation of the updated factory method can then be updated in
+isolation to make use of the copyable `Shape`.
+
+[heading Interacting with objects from a C-API]
+
+When objects are created from a C-API there may be API-provided methods to
+create, copy and delete objects. The factory method `assume_polymorphic_value`
+would enable use of such objects.
+
+    // C-API pointer
+    struct c_api_t;
+    using c_api_p = c_api_t*;
+
+    // C-API functions
+    c_api_p c_api_object_create(int arg);
+    c_api_p c_api_object_copy(c_api_p p);
+    void c_api_object_dispose(c_api_p p);
+
+    polymorphic_value<c_api_t> pv(
+      c_api_object_create(42),
+      [](const c_api_t& o) { return c_api_object_copy(&o);},
+      [](const c_api_p* p) { c_api_object_dispose(p); }
+    );
+
+
+[endsect]
+
+[endsect]

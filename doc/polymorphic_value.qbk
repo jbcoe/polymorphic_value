@@ -4,9 +4,9 @@
  /]
 
 [library Boost.PolymorphicValue (Proposed)
-    [quickbook 1.3]
+    [quickbook 1.4]
     [authors [Coe, Jonathan]]
-    [copyright 2017 Jonathan Coe]
+    [copyright 2018 Jonathan Coe]
     [category template]
     [id polymorphic_value]
     [dirname polymorphic_value]
@@ -36,5 +36,9 @@
 [/ Links ]
 
 [include intro.qbk]
+
+[include tutorial.qbk]
+
+[include type_requirements.qbk]
 
 [xinclude polymorphic_value_reference.xml]
