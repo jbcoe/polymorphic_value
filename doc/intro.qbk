@@ -35,7 +35,7 @@ A base class `Shape` defines methods needed for all shape objects:
 
       virtual size_t Components() const = 0;
 
-      virtual Shape* Component(size_t index) const = 0;
+      virtual Shape& Component(size_t index) const = 0;
     };
 
 Implementation classes for basic shapes would look something like this:
@@ -127,7 +127,7 @@ generate a copy constructor for a class with non-copyable members
     }
 
 For more complicated component-based Shape subclasses, implementing `Clone`
-could be come tedious and error-prone as there will be multiple component-based
+will become tedious and error-prone as there will be multiple component-based
 substructures to copy.
 
 [heading Solution using `polymorphic_value`]
@@ -146,7 +146,7 @@ substructures to copy.
         return position_;
       }
 
-      virtual void Move(std::pair<double, double> position) override {
+      void Move(std::pair<double, double> position) override {
         position_ = position;
       }
 
