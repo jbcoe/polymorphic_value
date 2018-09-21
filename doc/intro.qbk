@@ -21,11 +21,6 @@ We want to be able to render, rescale and move any shape instance. Given that a
 shape may be made up of shapes we also need to get the components of a shape so
 they can be independently manipulated.
 
-The classes defined below are intended as an illustrative example of
-composite class design, not as an illustration of how a drawing program could
-be written. If you're creating CAD software, please don't base it on this
-code!
-
 A base class `Shape` defines methods needed for all shape objects:
 
     class Shape {
