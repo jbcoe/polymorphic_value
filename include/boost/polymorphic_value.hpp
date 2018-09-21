@@ -38,7 +38,7 @@ namespace boost {
 
   template <class T>
   struct default_copy {
-    /** 
+    /**
      * _Returns_:  `new T(t)`.
      */
     T* operator()(const T& t) const { return new T(t); }
@@ -49,6 +49,9 @@ namespace boost {
   ////////////////////////////////////////////////////////////////////////////
 
   namespace detail {
+
+    struct private_ctor_tag_t {};
+    constexpr private_ctor_tag_t private_ctor_tag;
 
     template <class T>
     struct control_block {
@@ -121,12 +124,12 @@ namespace boost {
 
   class bad_polymorphic_value_construction : std::exception {
   public:
-    /** 
+    /**
      * _Effects_: Constructs a `bad_polymorphic_value_construction` object.
      */
     bad_polymorphic_value_construction() noexcept = default;
 
-    /** 
+    /**
      * _Returns_: An implementation-defined NTBS.
      */
     const char* what() const noexcept override {
@@ -197,7 +200,7 @@ namespace boost {
     friend polymorphic_value<T_>
     polymorphic_value_cast(polymorphic_value<U>&& p);
 
-public:
+  public:
     using element_type = T;
 
     //
@@ -216,7 +219,7 @@ public:
     // Constructors
     //
 
-    /** 
+    /**
      * _Effects_: Constructs an empty `polymorphic_value`.
      */
     polymorphic_value() {}
@@ -338,7 +341,7 @@ public:
     // Modifiers
     //
 
-    /** 
+    /**
      * _Effects_: Exchanges the contents of `p` and `*this`.
      */
     void swap(polymorphic_value& p) noexcept {
@@ -386,7 +389,7 @@ public:
       return *ptr_;
     }
 
-    /** 
+    /**
      * _Requires_: `bool(*this)`.
      *
      * _Returns_: A reference to the owned object.
@@ -395,8 +398,8 @@ public:
       assert(ptr_);
       return *ptr_;
     }
-  
-private:
+
+  private:
     T* ptr_ = nullptr;
     std::unique_ptr<detail::control_block<element_type>> cb_;
 
@@ -408,7 +411,8 @@ private:
     template <class U, class C = default_copy<U>,
               class D = std::default_delete<U>,
               class = std::enable_if_t<std::is_base_of<T, U>::value>>
-    explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{}) {
+    explicit polymorphic_value(detail::private_ctor_tag_t, U* u, C copier = C{},
+                               D deleter = D{}) {
       if (!u) {
         return;
       }
@@ -428,21 +432,17 @@ private:
     // Converting constructors.
     //
 
-    template <class U,
-              class = std::enable_if_t<
-                  !std::is_same<T, U>::value &&
-                  std::is_base_of<T, U>::value>>
-    polymorphic_value(const polymorphic_value<U>& p) {
-      cb_ = std::make_unique<
-          detail::delegating_control_block<T, U>>(
+    template <class U, class = std::enable_if_t<!std::is_same<T, U>::value &&
+                                                std::is_base_of<T, U>::value>>
+    polymorphic_value(detail::private_ctor_tag_t, const polymorphic_value<U>& p) {
+      cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
           p.cb_->clone());
       ptr_ = cb_->ptr();
     }
 
-    template <class U,
-              class = std::enable_if_t<!std::is_same<T, U>::value &&
-                                       std::is_base_of<T, U>::value>>
-    polymorphic_value(polymorphic_value<U>&& p) {
+    template <class U, class = std::enable_if_t<!std::is_same<T, U>::value &&
+                                                std::is_base_of<T, U>::value>>
+    polymorphic_value(detail::private_ctor_tag_t, polymorphic_value<U>&& p) {
       ptr_ = p.ptr_;
       cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
           std::move(p.cb_));
@@ -450,14 +450,13 @@ private:
     }
 
 #endif // BOOST_POLYMORPHIC_VALUE_DOXYGEN
-
   };
 
   //
   // polymorphic_value creation
   //
 
-  /** 
+  /**
    * _Returns_: A `polymorphic_value<T>` owning an object initialised with
    * `U(std::forward<Ts>(ts)...)`.
    */
@@ -478,10 +477,10 @@ private:
             class D = std::default_delete<U>,
             class = std::enable_if_t<std::is_base_of<T, U>::value>>
 #endif
-  /** 
+  /**
    * _Remarks_: This function shall not participate in overload resolution
-   * unless `std::is_base_of<T,U>::value` is true.  A custom copier and 
-   * deleter are said to be 'present' in a `polymorphic_value` initialized 
+   * unless `std::is_base_of<T,U>::value` is true.  A custom copier and
+   * deleter are said to be 'present' in a `polymorphic_value` initialized
    * with this constructor.
    *
    * _Returns_: If `p` is null, creates an empty `polymorphic_value`, otherwise
@@ -493,16 +492,17 @@ private:
    * _Requires_: `C` and `D` satisfy the requirements of CopyConstructible.
    * If `p` is non-null then the expression `c(*p)` returns an object of type
    * `U*`. The expression `d(p)` is well formed, has well defined behavior, and
-   * does not throw exceptions.  
+   * does not throw exceptions.
    *
    * _Throws_: `bad_polymorphic_value_construction` if `is_same_v<C,
    * boost::default_copy<U>>`, `is_same_v<D, std::default_delete<U>>` and
    * `typeid(*u)!=typeid(U)`; `std::bad_alloc` if required storage cannot be
    * obtained.
    */
-  polymorphic_value<T>
-  assume_polymorphic_value(U* u, C copier = {}, D deleter = {}) {
-    return polymorphic_value<T>(u, std::move(copier), std::move(deleter));
+  polymorphic_value<T> assume_polymorphic_value(U* u, C copier = {},
+                                                D deleter = {}) {
+    return polymorphic_value<T>(detail::private_ctor_tag, u, std::move(copier),
+                                std::move(deleter));
   }
 
   //
@@ -530,7 +530,7 @@ private:
    * obtained.
    */
   polymorphic_value<T> polymorphic_value_cast(const polymorphic_value<U>& p) {
-    return polymorphic_value<T>(p);
+    return polymorphic_value<T>(detail::private_ctor_tag, p);
   }
 
 #ifdef BOOST_POLYMORPHIC_VALUE_DOXYGEN
@@ -555,14 +555,14 @@ private:
    * _Postconditions_: `p` is empty.
    */
   polymorphic_value<T> polymorphic_value_cast(polymorphic_value<U>&& p) {
-    return polymorphic_value<T>(std::move(p));
+    return polymorphic_value<T>(detail::private_ctor_tag, std::move(p));
   }
 
   //
   // non-member swap
   //
 
-  /** 
+  /**
    * _Effects_: Equivalent to `p.swap(u)`.
    */
   template <class T>
