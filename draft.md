@@ -4,9 +4,9 @@ ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
 D0201R4
 
-Working Group: Library
+Working Group: Library Evolution, Library
 
-Date: 2018-04-27
+Date: 2018-10-02
 
 _Jonathan Coe \<jonathanbcoe@gmail.com\>_
 
@@ -20,7 +20,7 @@ Changes in P0201R4
 
 * Add wording to clarify meaning of custom copier and deleter.
 
-* Adjust wording to allow copy-construction of a `polymorphic_value<T>` from a `polymorphic_value<const T>`.
+* Make constructors explicit and remove converting assignment.
 
 Changes in P0201R3
 
@@ -470,24 +470,19 @@ template <class T> class polymorphic_value {
     explicit polymorphic_value(U* p, C c=C{}, D d=D{});
 
   polymorphic_value(const polymorphic_value& p);
-  template <class U> polymorphic_value(const polymorphic_value<U>& p);
+  template <class U> 
+    explicit polymorphic_value(const polymorphic_value<U>& p);
+  
   polymorphic_value(polymorphic_value&& p) noexcept;
-  template <class U> polymorphic_value(polymorphic_value<U>&& p);
+  template <class U> 
+    explicit polymorphic_value(polymorphic_value<U>&& p);
 
   // Destructor
   ~polymorphic_value();
 
   // Assignment
   polymorphic_value& operator=(const polymorphic_value& p);
-  template <class U>
-    polymorphic_value& operator=(const polymorphic_value<U>& p);
   polymorphic_value& operator=(polymorphic_value&& p) noexcept;
-  template <class U>
-    polymorphic_value& operator=(polymorphic_value<U>&& p);
-
-  template <class U>
-    polymorphic_value& operator=(U&& u);
-
 
   // Modifiers
   void swap(polymorphic_value& p) noexcept;
@@ -568,7 +563,7 @@ template <class U> polymorphic_value(const polymorphic_value<U>& p);
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
-  resolution unless `remove_const_t<U>*` is convertible to `remove_const_t<T>*`.
+  resolution unless `U*` is convertible to `T*`.
 
 * _Effects_: Creates a `polymorphic_value` object that owns a copy of the
   object managed by `p`. If `p` has a custom copier then the copy is created by

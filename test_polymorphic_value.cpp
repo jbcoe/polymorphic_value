@@ -837,23 +837,6 @@ TEST_CASE("polymorphic_value dynamic and static type mismatch is not a problem "
   }());
 }
 
-TEST_CASE("Copy polymorphic_value from const polymorphic_value", "[polymorphic_value.constructors]")
-{
-  polymorphic_value<const int> cp(1);
-  polymorphic_value<int> p(cp);
-
-  CHECK(*p==1);
-}
-
-TEST_CASE("Assign polymorphic_value with const polymorphic_value", "[polymorphic_value.constructors]")
-{
-  polymorphic_value<const int> cp(1);
-  polymorphic_value<int> p;
-  p = cp;
-  
-  CHECK(*p==1);
-}
-
 TEST_CASE("Dangling reference in forwarding constructor", "[polymorphic_value.constructors]")
 {
   int x = 7;
