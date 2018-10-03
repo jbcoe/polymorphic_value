@@ -2,7 +2,7 @@
 
 #include "polymorphic_value.h"
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 #include <new>
 #include <stdexcept>
 
@@ -342,7 +342,6 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
 
     polymorphic_value<BaseType> cptr1(new DerivedType(v1));
     const polymorphic_value<BaseType> cptr2;
-    const auto p = &cptr1.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
