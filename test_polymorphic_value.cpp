@@ -342,7 +342,6 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
 
     polymorphic_value<BaseType> cptr1(new DerivedType(v1));
     const polymorphic_value<BaseType> cptr2;
-    const auto p = &cptr1.value();
 
     REQUIRE(DerivedType::object_count == 1);
 
