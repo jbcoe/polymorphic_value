@@ -22,6 +22,9 @@ Changes in P0201R4
 
 * Make constructors explicit and remove converting assignment.
 
+* Add a second template parameter to `make_polymorphic_value` to facilitate
+  construction of objects of derived classes.
+
 Changes in P0201R3
 
 * Add rationale for absence of allocator support.
@@ -496,7 +499,7 @@ template <class T> class polymorphic_value {
 };
 
 // polymorphic_value creation
-template <class T, class... Ts> polymorphic_value<T>
+template <class T, class U=T, class... Ts> polymorphic_value<T>
   make_polymorphic_value(Ts&&... ts);
 
 // polymorphic_value specialized algorithms
@@ -715,12 +718,12 @@ explicit operator bool() const noexcept;
 ### X.Z.8 Class template `polymorphic_value` creation [polymorphic_value.creation]
 
 ```
-template <class T, class ...Ts> polymorphic_value<T>
+template <class T, class U=T, class ...Ts> polymorphic_value<T>
   make_polymorphic_value(Ts&& ...ts);
 ```
 
 * _Returns_: A `polymorphic_value<T>` owning an object initialised with
-  `T(std::forward<Ts>(ts)...)`.
+  `U(std::forward<Ts>(ts)...)`.
 
 [Note: Implementations are encouraged to avoid multiple allocations.]
 

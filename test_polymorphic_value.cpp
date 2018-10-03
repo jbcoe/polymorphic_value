@@ -527,6 +527,20 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
   }
 }
 
+TEST_CASE("make_polymorphic_value with single template argument")
+{
+  auto pv = make_polymorphic_value<DerivedType>(7);
+  static_assert(std::is_same<decltype(pv), polymorphic_value<DerivedType>>::value, "");
+  REQUIRE(pv->value() == 7);
+}
+
+TEST_CASE("make_polymorphic_value with two template arguments")
+{
+  auto pv = make_polymorphic_value<BaseType, DerivedType>(7);
+  static_assert(std::is_same<decltype(pv), polymorphic_value<BaseType>>::value, "");
+  REQUIRE(pv->value() == 7);
+}
+
 TEST_CASE("Derived types", "[polymorphic_value.derived_types]")
 {
   GIVEN("A polymorphic_value<BaseType> constructed from make_polymorphic_value<DerivedType>")
