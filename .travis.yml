@@ -8,18 +8,18 @@ matrix:
     # 1/ Linux Clang Builds
     - os: linux
       compiler: clang
-      addons: &clang39
+      addons: &clang5.0
         apt:
-          sources: ['llvm-toolchain-precise-3.9', 'ubuntu-toolchain-r-test']
-          packages: ['clang-3.9', 'g++-6']
-      env: COMPILER='clang++-3.9'
+          sources: ['llvm-toolchain-precise-5.0', 'ubuntu-toolchain-r-test']
+          packages: ['clang-5.0', 'g++-6']
+      env: COMPILER='clang++-5.0'
 
     # 2/ Linux GCC Builds
     - os: linux
       compiler: gcc
       addons: &gcc6
         apt:
-          sources: ['llvm-toolchain-precise-3.9', 'ubuntu-toolchain-r-test']
+          sources: ['llvm-toolchain-precise-5.0', 'ubuntu-toolchain-r-test']
           packages: ['g++-6']
       env: COMPILER='g++-6'
 
