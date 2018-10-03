@@ -11,10 +11,10 @@ else()
 endif()
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-  add_compile_options("-Werror;-Wall")
+  add_compile_options("-Werror;-Wall;-Wno-self-assign-overloaded")
 endif()
 
-include_directories(externals/catch/include)
+include_directories(externals/catch/single_include)
 add_executable(test_polymorphic_value test_polymorphic_value.cpp)
 
 enable_testing()
