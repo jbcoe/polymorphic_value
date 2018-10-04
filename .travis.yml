@@ -104,11 +104,12 @@ matrix:
 
 # Added following instructions from https://docs.travis-ci.com/user/installing-dependencies#Installing-Packages-with-the-APT-Addon
 before_install:
-  if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
-    sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-    sudo apt-get update -q
-    sudo apt-get install gcc-4.8 -y
-  fi
+  -|
+   if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+     sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+     sudo apt-get update -q
+     sudo apt-get install gcc-4.8 -y
+   fi
 
 install:
   # Set the ${CXX} variable properly
