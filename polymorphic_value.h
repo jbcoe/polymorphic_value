@@ -148,14 +148,14 @@ namespace jbcoe
 
   class bad_polymorphic_value_construction : std::exception
   {
-    public:
-      bad_polymorphic_value_construction() noexcept = default;
+  public:
+    bad_polymorphic_value_construction() noexcept = default;
 
-      const char* what() const noexcept override
-      {
-        return "Dynamic and static type mismatch in polymorphic_value "
-               "construction";
-      }
+    const char* what() const noexcept override
+    {
+      return "Dynamic and static type mismatch in polymorphic_value "
+             "construction";
+    }
   };
 
   template <class T>
@@ -186,6 +186,8 @@ namespace jbcoe
     friend class polymorphic_value;
 
     template <class T_, class U, class... Ts>
+    friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
+    template <class T_, class... Ts>
     friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
 
     T* ptr_ = nullptr;
@@ -270,7 +272,7 @@ namespace jbcoe
       cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
           std::move(tmp.cb_));
     }
-    
+
     template <class U,
               class V = std::enable_if_t<!std::is_same<T, U>::value &&
                                          std::is_convertible<U*, T*>::value>>
@@ -390,7 +392,16 @@ namespace jbcoe
   //
   // polymorphic_value creation
   //
-  template <class T, class U=T, class... Ts>
+  template <class T, class... Ts>
+  polymorphic_value<T> make_polymorphic_value(Ts&&... ts)
+  {
+    polymorphic_value<T> p;
+    p.cb_ = std::make_unique<detail::direct_control_block<T, T>>(
+        std::forward<Ts>(ts)...);
+    p.ptr_ = p.cb_->ptr();
+    return std::move(p);
+  }
+  template <class T, class U, class... Ts>
   polymorphic_value<T> make_polymorphic_value(Ts&&... ts)
   {
     polymorphic_value<T> p;
