@@ -358,6 +358,56 @@ As `polymorphic_value` is a value, `dynamic_pointer_cast`,
 is no way for a user to implement the cast operations provided for
 `cloned_ptr`.
 
+
+## No implicit conversions
+Following design feedback, `polymorphic_value`'s constructors have been made
+explicit so that surprising implicit conversions cannot take place. Any
+conversion to a `polymorphic_value` must be explicitly requested by user-code. 
+
+Matching this decision, the converting assignment operators that were present
+in earlier drafts have been removed.
+
+For a base class, `BaseClass` and derived class `DerivedClass` the converting
+assignment
+
+```
+polymorphic_value<DerivedClass> derived;
+polymorphic_value<Base> base = derived;
+```
+
+is no longer valid, the conversion must be made explicit:
+
+```
+polymorphic_value<DerivedClass> derived;
+auto base = polymorphic_value<Base>(derived);
+```
+
+The removal of converting assigments makes `make_polymorphic_value` slightly
+more verbose to use:
+
+```
+polymorphic_value<Base> base = make_polymorphic_value<DerivedClass>(args);
+```
+
+is not longer valid and must be written as
+
+```
+auto base = polymorphic_value<Base>(make_polymorphic_value<DerivedClass>(args));
+```
+
+This is somewhat cumbersome so `make_polymorphic_value` has been modified to
+take an optional extra template argument allowing users to write
+
+```
+polymorphic_value<Base> base = make_polymorphic_value<Base, DerivedClass>(args);
+```
+
+The change from implicit to explicit construction is deliverately conservative.
+One can change explicit constructors into implicit constructors without
+breaking code (other than SFINAE checks), the reverse is not true. Similarly,
+converting assignments could be added non-disruptively but not so readily
+removed.
+
 ## Impact on the standard
 This proposal is a pure library extension. It requires additions to be made to
 the standard library header `<memory>`.
