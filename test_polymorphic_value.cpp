@@ -98,26 +98,6 @@ TEST_CASE("Value move-constructor", "[polymorphic_value.constructors]")
   REQUIRE(i->value() == 7);
 }
 
-TEST_CASE("Value assignment", "[polymorphic_value.constructors]")
-{
-  DerivedType d(7);
-
-  polymorphic_value<BaseType> i;
-  i = d;
-
-  REQUIRE(i->value() == 7);
-}
-
-TEST_CASE("Value move-assignment", "[polymorphic_value.constructors]")
-{
-  DerivedType d(7);
-
-  polymorphic_value<BaseType> i;
-  i = std::move(d);
-
-  REQUIRE(i->value() == 7);
-}
-
 TEST_CASE("Pointer constructor","[polymorphic_value.constructors]")
 {
   GIVEN("A pointer-constructed polymorphic_value")
@@ -238,7 +218,7 @@ TEST_CASE("polymorphic_value copy constructor","[polymorphic_value.constructors]
 
     THEN("values are distinct")
     {
-      REQUIRE(&cptr.value() != &original_cptr.value());
+      REQUIRE(cptr.operator->() != original_cptr.operator->());
     }
 
     THEN("Operator-> calls the pointee method")
@@ -292,7 +272,7 @@ TEST_CASE("polymorphic_value move constructor","[polymorphic_value.constructors]
   {
     int v = 7;
     polymorphic_value<BaseType> original_cptr(new DerivedType(v));
-    auto original_pointer = &original_cptr.value();
+    auto original_pointer = original_cptr.operator->();
     CHECK(DerivedType::object_count == 1);
 
     polymorphic_value<BaseType> cptr(std::move(original_cptr));
@@ -305,7 +285,7 @@ TEST_CASE("polymorphic_value move constructor","[polymorphic_value.constructors]
 
     THEN("The move-constructed pointer is the original pointer")
     {
-      REQUIRE(&cptr.value()==original_pointer);
+      REQUIRE(cptr.operator->()==original_pointer);
       REQUIRE(cptr.operator->()==original_pointer);
       REQUIRE((bool)cptr);
     }
@@ -361,7 +341,7 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
 
     polymorphic_value<BaseType> cptr1;
     const polymorphic_value<BaseType> cptr2(new DerivedType(v1));
-    const auto p = &cptr2.value();
+    const auto p = cptr2.operator->();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -371,7 +351,7 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(&cptr2.value() == p);
+      REQUIRE(cptr2.operator->() == p);
     }
 
     THEN("The assigned-to object is non-empty")
@@ -386,7 +366,7 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
 
     THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
     {
-      REQUIRE(&cptr1.value() != &cptr2.value());
+      REQUIRE(cptr1.operator->() != cptr2.operator->());
     }
 
   }
@@ -398,7 +378,7 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
 
     polymorphic_value<BaseType> cptr1(new DerivedType(v1));
     const polymorphic_value<BaseType> cptr2(new DerivedType(v2));
-    const auto p = &cptr2.value();
+    const auto p = cptr2.operator->();
 
     REQUIRE(DerivedType::object_count == 2);
 
@@ -408,7 +388,7 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(&cptr2.value() == p);
+      REQUIRE(cptr2.operator->() == p);
     }
 
     THEN("The assigned-to object is non-empty")
@@ -423,7 +403,7 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
 
     THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
     {
-      REQUIRE(&cptr1.value() != &cptr2.value());
+      REQUIRE(cptr1.operator->() != cptr2.operator->());
     }
   }
 
@@ -432,7 +412,7 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
     int v1 = 7;
 
     polymorphic_value<BaseType> cptr1(new DerivedType(v1));
-    const auto p = &cptr1.value();
+    const auto p = cptr1.operator->();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -442,7 +422,7 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
 
     THEN("The assigned-from object is unchanged")
     {
-      REQUIRE(&cptr1.value() == p);
+      REQUIRE(cptr1.operator->() == p);
     }
   }
 }
@@ -501,7 +481,7 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
 
     polymorphic_value<BaseType> cptr1;
     polymorphic_value<BaseType> cptr2(new DerivedType(v1));
-    const auto p = &cptr2.value();
+    const auto p = cptr2.operator->();
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -516,7 +496,7 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
 
     THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
     {
-      REQUIRE(&cptr1.value() == p);
+      REQUIRE(cptr1.operator->() == p);
     }
   }
 
@@ -527,7 +507,7 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
 
     polymorphic_value<BaseType> cptr1(new DerivedType(v1));
     polymorphic_value<BaseType> cptr2(new DerivedType(v2));
-    const auto p = &cptr2.value();
+    const auto p = cptr2.operator->();
 
     REQUIRE(DerivedType::object_count == 2);
 
@@ -542,9 +522,23 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
 
     THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
     {
-      REQUIRE(&cptr1.value() == p);
+      REQUIRE(cptr1.operator->() == p);
     }
   }
+}
+
+TEST_CASE("make_polymorphic_value with single template argument")
+{
+  auto pv = make_polymorphic_value<DerivedType>(7);
+  static_assert(std::is_same<decltype(pv), polymorphic_value<DerivedType>>::value, "");
+  REQUIRE(pv->value() == 7);
+}
+
+TEST_CASE("make_polymorphic_value with two template arguments")
+{
+  auto pv = make_polymorphic_value<BaseType, DerivedType>(7);
+  static_assert(std::is_same<decltype(pv), polymorphic_value<BaseType>>::value, "");
+  REQUIRE(pv->value() == 7);
 }
 
 TEST_CASE("Derived types", "[polymorphic_value.derived_types]")
@@ -557,22 +551,6 @@ TEST_CASE("Derived types", "[polymorphic_value.derived_types]")
     WHEN("A polymorphic_value<BaseType> is copy-constructed")
     {
       polymorphic_value<BaseType> bptr(cptr);
-
-      THEN("Operator-> calls the pointee method")
-      {
-        REQUIRE(bptr->value() == v);
-      }
-
-      THEN("operator bool returns true")
-      {
-        REQUIRE((bool)bptr == true);
-      }
-    }
-
-    WHEN("A polymorphic_value<BaseType> is assigned")
-    {
-      polymorphic_value<BaseType> bptr;
-      bptr = cptr;
 
       THEN("Operator-> calls the pointee method")
       {
@@ -599,41 +577,6 @@ TEST_CASE("Derived types", "[polymorphic_value.derived_types]")
         REQUIRE((bool)bptr == true);
       }
     }
-
-    WHEN("A polymorphic_value<BaseType> is move-assigned")
-    {
-      polymorphic_value<BaseType> bptr;
-      bptr = std::move(cptr);
-
-      THEN("Operator-> calls the pointee method")
-      {
-        REQUIRE(bptr->value() == v);
-      }
-
-      THEN("operator bool returns true")
-      {
-        REQUIRE((bool)bptr == true);
-      }
-    }
-  }
-}
-
-TEST_CASE("make_polymorphic_value return type can be converted to base-type", "[polymorphic_value.make_polymorphic_value]")
-{
-  GIVEN("A polymorphic_value<BaseType> constructed from make_polymorphic_value<DerivedType>")
-  {
-    int v = 7;
-    polymorphic_value<BaseType> cptr = make_polymorphic_value<DerivedType>(v);
-
-    THEN("Operator-> calls the pointee method")
-    {
-      REQUIRE(cptr->value() == v);
-    }
-
-    THEN("operator bool returns true")
-    {
-      REQUIRE((bool)cptr == true);
-    }
   }
 }
 
@@ -651,14 +594,14 @@ TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[polymorphic
 
     THEN("When copied to a polymorphic_value to an intermediate base type, data is accessible as expected")
     {
-      polymorphic_value<IntermediateBaseA> cptr_IA = cptr;
+      auto cptr_IA = polymorphic_value<IntermediateBaseA>(cptr);
       REQUIRE(cptr_IA->a_ == 3);
       REQUIRE(cptr_IA->v_ == 42);
     }
 
     THEN("When copied to a polymorphic_value to an intermediate base type, data is accessible as expected")
     {
-      polymorphic_value<IntermediateBaseB> cptr_IB = cptr;
+      auto cptr_IB = polymorphic_value<IntermediateBaseB>(cptr);
       REQUIRE(cptr_IB->b_ == 101);
       REQUIRE(cptr_IB->v_ == 42);
     }
@@ -836,29 +779,13 @@ TEST_CASE("polymorphic_value dynamic and static type mismatch is not a problem "
   }());
 }
 
-TEST_CASE("Copy polymorphic_value from const polymorphic_value", "[polymorphic_value.constructors]")
-{
-  polymorphic_value<const int> cp(1);
-  polymorphic_value<int> p(cp);
-
-  CHECK(*p==1);
-}
-
-TEST_CASE("Assign polymorphic_value with const polymorphic_value", "[polymorphic_value.constructors]")
-{
-  polymorphic_value<const int> cp(1);
-  polymorphic_value<int> p;
-  p = cp;
-  
-  CHECK(*p==1);
-}
-
 TEST_CASE("Dangling reference in forwarding constructor", "[polymorphic_value.constructors]")
 {
-  int x = 7;
-  int& rx = x;
-  polymorphic_value<int> p(rx);
+  auto d = DerivedType(7);
+  auto& rd = d;
+  polymorphic_value<DerivedType> p(rd);
   
-  x = 6;
-  CHECK(*p == 7);
+  d.set_value(6);
+  CHECK(p->value() == 7);
 }
+

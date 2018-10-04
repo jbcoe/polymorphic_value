@@ -4,9 +4,9 @@ ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
 D0201R4
 
-Working Group: Library
+Working Group: Library Evolution, Library
 
-Date: 2018-04-27
+Date: 2018-10-02
 
 _Jonathan Coe \<jonathanbcoe@gmail.com\>_
 
@@ -20,7 +20,10 @@ Changes in P0201R4
 
 * Add wording to clarify meaning of custom copier and deleter.
 
-* Adjust wording to allow copy-construction of a `polymorphic_value<T>` from a `polymorphic_value<const T>`.
+* Make constructors explicit and remove converting assignment.
+
+* Add a second template parameter to `make_polymorphic_value` to facilitate
+  construction of objects of derived classes.
 
 Changes in P0201R3
 
@@ -210,8 +213,9 @@ The component `c1_` can be constructed from an instance of any class that
 inherits from `IComponent1`.  Similarly, `c2_` can be constructed from an
 instance of any class that inherits from `IComponent2`.
 
-`CompositeObject_5` has a (correct) compiler-generated destructor, copy, move,
-and assignment operators.
+`CompositeObject_5` has a compiler-generated destructor, copy constructor, move
+constructor, assignment operator and move assignment operator. All of these
+compiler-generated functions will behave correctly.
 
 ## Deep copies
 
@@ -355,10 +359,58 @@ is no way for a user to implement the cast operations provided for
 `cloned_ptr`.
 
 
+## No implicit conversions
+Following design feedback, `polymorphic_value`'s constructors have been made
+explicit so that surprising implicit conversions cannot take place. Any
+conversion to a `polymorphic_value` must be explicitly requested by user-code. 
+
+Matching this decision, the converting assignment operators that were present
+in earlier drafts have been removed.
+
+For a base class, `BaseClass` and derived class `DerivedClass` the converting
+assignment
+
+```
+polymorphic_value<DerivedClass> derived;
+polymorphic_value<Base> base = derived;
+```
+
+is no longer valid, the conversion must be made explicit:
+
+```
+polymorphic_value<DerivedClass> derived;
+auto base = polymorphic_value<Base>(derived);
+```
+
+The removal of converting assigments makes `make_polymorphic_value` slightly
+more verbose to use:
+
+```
+polymorphic_value<Base> base = make_polymorphic_value<DerivedClass>(args);
+```
+
+is not longer valid and must be written as
+
+```
+auto base = polymorphic_value<Base>(make_polymorphic_value<DerivedClass>(args));
+```
+
+This is somewhat cumbersome so `make_polymorphic_value` has been modified to
+take an optional extra template argument allowing users to write
+
+```
+polymorphic_value<Base> base = make_polymorphic_value<Base, DerivedClass>(args);
+```
+
+The change from implicit to explicit construction is deliverately conservative.
+One can change explicit constructors into implicit constructors without
+breaking code (other than SFINAE checks), the reverse is not true. Similarly,
+converting assignments could be added non-disruptively but not so readily
+removed.
+
 ## Impact on the standard
 This proposal is a pure library extension. It requires additions to be made to
 the standard library header `<memory>`.
-
 
 ## Technical specifications
 
@@ -418,16 +470,16 @@ const char* what() const noexcept override;
 
 ### X.Z.1 Class template `polymorphic_value` general [polymorphic_value.general]
 
-[See how shared_ptr defines owns.]
+The `polymorphic_value` class template stores a pointer to another object.
+The object pointed to by the pointer is referred to as an owned object.
+`polymorphic_value` implements value semantics: the owned object is copied or
+destroyed when the `polymorphic_value` is copied or destroyed.
 
+A `polymorphic_value`, `v`, will dispose of its owned object when `v` is itself
+destroyed (e.g., when leaving block scope (9.7)). 
 
-A `polymorphic_value` is an object that owns another object and manages that
-other object through a pointer. More precisely, a `polymorphic_value` is an
-object `v` that stores a pointer to a second object `p` and will dispose of `p`
-when `v` is itself destroyed (e.g., when leaving block scope (9.7)). In this
-context, `v` is said to own `p`.
-
-A `polymorphic_value` object is empty if it does not own a pointer.
+A `polymorphic_value` object is empty if there is no owned object (The stored
+pointer is `nullptr`).
 
 Copying a non-empty `polymorphic_value` will copy the owned object so that the
 copied `polymorphic_value` will have its own unique copy of the owned object.
@@ -470,24 +522,19 @@ template <class T> class polymorphic_value {
     explicit polymorphic_value(U* p, C c=C{}, D d=D{});
 
   polymorphic_value(const polymorphic_value& p);
-  template <class U> polymorphic_value(const polymorphic_value<U>& p);
+  template <class U> 
+    explicit polymorphic_value(const polymorphic_value<U>& p);
+  
   polymorphic_value(polymorphic_value&& p) noexcept;
-  template <class U> polymorphic_value(polymorphic_value<U>&& p);
+  template <class U> 
+    explicit polymorphic_value(polymorphic_value<U>&& p);
 
   // Destructor
   ~polymorphic_value();
 
   // Assignment
   polymorphic_value& operator=(const polymorphic_value& p);
-  template <class U>
-    polymorphic_value& operator=(const polymorphic_value<U>& p);
   polymorphic_value& operator=(polymorphic_value&& p) noexcept;
-  template <class U>
-    polymorphic_value& operator=(polymorphic_value<U>&& p);
-
-  template <class U>
-    polymorphic_value& operator=(U&& u);
-
 
   // Modifiers
   void swap(polymorphic_value& p) noexcept;
@@ -501,7 +548,7 @@ template <class T> class polymorphic_value {
 };
 
 // polymorphic_value creation
-template <class T, class... Ts> polymorphic_value<T>
+template <class T, class U=T, class... Ts> polymorphic_value<T>
   make_polymorphic_value(Ts&&... ts);
 
 // polymorphic_value specialized algorithms
@@ -522,7 +569,7 @@ constexpr polymorphic_value(nullptr_t) noexcept;
 * _Effects_:  Constructs an empty `polymorphic_value`.
 
 ```
-template <class U> polymorphic_value(U&& u);
+template <class U> explicit polymorphic_value(U&& u);
 ```
 
 * _Remarks_: Let `V` be `remove_cvref_t<U>`. This
@@ -564,11 +611,11 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 
 ```
 polymorphic_value(const polymorphic_value& p);
-template <class U> polymorphic_value(const polymorphic_value<U>& p);
+template <class U> explicit polymorphic_value(const polymorphic_value<U>& p);
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
-  resolution unless `remove_const_t<U>*` is convertible to `remove_const_t<T>*`.
+  resolution unless `U*` is convertible to `T*`.
 
 * _Effects_: Creates a `polymorphic_value` object that owns a copy of the
   object managed by `p`. If `p` has a custom copier then the copy is created by
@@ -585,7 +632,7 @@ template <class U> polymorphic_value(const polymorphic_value<U>& p);
 
 ```
 polymorphic_value(polymorphic_value&& p) noexcept;
-template <class U> polymorphic_value(polymorphic_value<U>&& p) noexcept;
+template <class U> explicit polymorphic_value(polymorphic_value<U>&& p) noexcept;
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
@@ -619,11 +666,7 @@ dynamic memory allocation.]
 
 ```
 polymorphic_value& operator=(const polymorphic_value& p);
-template <class U> polymorphic_value& operator=(const polymorphic_value<U>& p);
 ```
-
-* _Remarks_: The second function shall not participate in overload resolution
-  unless `U*` is convertible to `T*`.
 
 * _Effects_: `*this` owns a copy of the resource managed by `p`.  If `p` has a
   custom copier and deleter then the copy is created by the copier in `p`, and
@@ -640,31 +683,8 @@ template <class U> polymorphic_value& operator=(const polymorphic_value<U>& p);
 
 
 ```
-template <class U> polymorphic_value& operator=(U&& u);
-```
-
-* _Remarks_: Let `V` be `remove_cvref_t<U>`. This
-  function shall not participate in overload resolution unless `V` is not a
-  specialization of `polymorphic_value` and `V*` is convertible to `T*`.
-
-* _Effects_: the owned object of `*this` is initialised with
-  `V(std::forward<U>(u))`.
-
-* _Throws_: Any exception thrown by the selected constructor of `V` or
-  `bad_alloc` if required storage cannot be obtained.
-
-* _Returns_: `*this`.
-
-* _Postconditions_:  `bool(*this) == bool(p)`.
-
-
-```
 polymorphic_value& operator=(polymorphic_value&& p) noexcept;
-template <class U> polymorphic_value& operator=(polymorphic_value<U>&& p);
 ```
-
-* _Remarks_: The second constructor shall not participate in overload
-  resolution unless `U*` is convertible to `T*`.
 
 * _Effects_: Ownership of the resource managed by `p` is transferred to `this`.
   Potentially move constructs the owned object (if the dynamic type of the
@@ -720,12 +740,12 @@ explicit operator bool() const noexcept;
 ### X.Z.8 Class template `polymorphic_value` creation [polymorphic_value.creation]
 
 ```
-template <class T, class ...Ts> polymorphic_value<T>
+template <class T, class U=T, class ...Ts> polymorphic_value<T>
   make_polymorphic_value(Ts&& ...ts);
 ```
 
 * _Returns_: A `polymorphic_value<T>` owning an object initialised with
-  `T(std::forward<Ts>(ts)...)`.
+  `U(std::forward<Ts>(ts)...)`.
 
 [Note: Implementations are encouraged to avoid multiple allocations.]
 
@@ -764,4 +784,5 @@ Patrice Roy, Tony van Eerd and Ville Voutilainen for useful discussion.
 [P0302r1] "Removing Allocator support in std::function", Jonathan Wakely
 
 ```<http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0302r1.html>```
+
 
