@@ -206,6 +206,12 @@ matrix:
     - env: COMPILER=g++-7 BUILD_TYPE=Release 
       addons: *gcc7
 
+# Added following instructions from https://docs.travis-ci.com/user/installing-dependencies#Installing-Packages-with-the-APT-Addon
+before_install:
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+  - sudo apt-get update -q
+  - sudo apt-get install gcc-4.8 -y
+
 install:
   # Set the ${CXX} variable properly
   - export CXX=${COMPILER}
