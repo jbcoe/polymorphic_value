@@ -260,5 +260,14 @@ install:
       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
     fi
   
+before_script:
+  # have CMake to generate build files
+  - cd "${TRAVIS_BUILD_DIR}"
+  - mkdir build && cd build
+  - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DGSL_CXX_STANDARD=$GSL_CXX_STANDARD
+
 script:
-  - ./scripts/build.py --tests
+  # build and run tests
+  - cmake --build . -- -j${JOBS}
+  - ctest --output-on-failure -j${JOBS}
+
