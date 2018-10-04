@@ -358,11 +358,9 @@ As `polymorphic_value` is a value, `dynamic_pointer_cast`,
 is no way for a user to implement the cast operations provided for
 `cloned_ptr`.
 
-
 ## Impact on the standard
 This proposal is a pure library extension. It requires additions to be made to
 the standard library header `<memory>`.
-
 
 ## Technical specifications
 
@@ -422,16 +420,16 @@ const char* what() const noexcept override;
 
 ### X.Z.1 Class template `polymorphic_value` general [polymorphic_value.general]
 
-[See how shared_ptr defines owns.]
+The `polymorphic_value` class template stores a pointer to another object.
+The object pointed to by the pointer is referred to as an owned object.
+`polymorphic_value` implements value semantics: the owned object is copied or
+destroyed when the `polymorphic_value` is copied or destroyed.
 
+A `polymorphic_value`, `v`, will dispose of its owned object when `v` is itself
+destroyed (e.g., when leaving block scope (9.7)). 
 
-A `polymorphic_value` is an object that owns another object and manages that
-other object through a pointer. More precisely, a `polymorphic_value` is an
-object `v` that stores a pointer to a second object `p` and will dispose of `p`
-when `v` is itself destroyed (e.g., when leaving block scope (9.7)). In this
-context, `v` is said to own `p`.
-
-A `polymorphic_value` object is empty if it does not own a pointer.
+A `polymorphic_value` object is empty if there is no owned object (The stored
+pointer is `nullptr`).
 
 Copying a non-empty `polymorphic_value` will copy the owned object so that the
 copied `polymorphic_value` will have its own unique copy of the owned object.
@@ -521,7 +519,7 @@ constexpr polymorphic_value(nullptr_t) noexcept;
 * _Effects_:  Constructs an empty `polymorphic_value`.
 
 ```
-template <class U> polymorphic_value(U&& u);
+template <class U> explicit polymorphic_value(U&& u);
 ```
 
 * _Remarks_: Let `V` be `remove_cvref_t<U>`. This
@@ -563,7 +561,7 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 
 ```
 polymorphic_value(const polymorphic_value& p);
-template <class U> polymorphic_value(const polymorphic_value<U>& p);
+template <class U> explicit polymorphic_value(const polymorphic_value<U>& p);
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
@@ -584,7 +582,7 @@ template <class U> polymorphic_value(const polymorphic_value<U>& p);
 
 ```
 polymorphic_value(polymorphic_value&& p) noexcept;
-template <class U> polymorphic_value(polymorphic_value<U>&& p) noexcept;
+template <class U> explicit polymorphic_value(polymorphic_value<U>&& p) noexcept;
 ```
 
 * _Remarks_: The second constructor shall not participate in overload
@@ -618,11 +616,7 @@ dynamic memory allocation.]
 
 ```
 polymorphic_value& operator=(const polymorphic_value& p);
-template <class U> polymorphic_value& operator=(const polymorphic_value<U>& p);
 ```
-
-* _Remarks_: The second function shall not participate in overload resolution
-  unless `U*` is convertible to `T*`.
 
 * _Effects_: `*this` owns a copy of the resource managed by `p`.  If `p` has a
   custom copier and deleter then the copy is created by the copier in `p`, and
@@ -639,31 +633,8 @@ template <class U> polymorphic_value& operator=(const polymorphic_value<U>& p);
 
 
 ```
-template <class U> polymorphic_value& operator=(U&& u);
-```
-
-* _Remarks_: Let `V` be `remove_cvref_t<U>`. This
-  function shall not participate in overload resolution unless `V` is not a
-  specialization of `polymorphic_value` and `V*` is convertible to `T*`.
-
-* _Effects_: the owned object of `*this` is initialised with
-  `V(std::forward<U>(u))`.
-
-* _Throws_: Any exception thrown by the selected constructor of `V` or
-  `bad_alloc` if required storage cannot be obtained.
-
-* _Returns_: `*this`.
-
-* _Postconditions_:  `bool(*this) == bool(p)`.
-
-
-```
 polymorphic_value& operator=(polymorphic_value&& p) noexcept;
-template <class U> polymorphic_value& operator=(polymorphic_value<U>&& p);
 ```
-
-* _Remarks_: The second constructor shall not participate in overload
-  resolution unless `U*` is convertible to `T*`.
 
 * _Effects_: Ownership of the resource managed by `p` is transferred to `this`.
   Potentially move constructs the owned object (if the dynamic type of the
@@ -763,4 +734,5 @@ Patrice Roy, Tony van Eerd and Ville Voutilainen for useful discussion.
 [P0302r1] "Removing Allocator support in std::function", Jonathan Wakely
 
 ```<http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0302r1.html>```
+
 
