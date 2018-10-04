@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017 Jonathan B. Coe
+Copyright (c) 2016 Jonathan B. Coe
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -61,8 +61,6 @@ namespace jbcoe
     template <class T>
     struct control_block
     {
-      static_assert(!std::is_const<T>::value,"");
-
       virtual ~control_block() = default;
 
       virtual std::unique_ptr<control_block> clone() const = 0;
@@ -73,9 +71,7 @@ namespace jbcoe
     template <class T, class U = T>
     class direct_control_block : public control_block<T>
     {
-      static_assert(!std::is_const<U>::value,"");
       static_assert(!std::is_reference<U>::value, "");
-      
       U u_;
 
     public:
@@ -99,8 +95,6 @@ namespace jbcoe
               class D = default_delete<U>>
     class pointer_control_block : public control_block<T>, public C
     {
-      static_assert(!std::is_const<U>::value,"");
-      
       std::unique_ptr<U, D> p_;
 
     public:
@@ -182,20 +176,16 @@ namespace jbcoe
   // `polymorphic_value` class definition
   ////////////////////////////////////////////////////////////////////////////////
 
-  template <class cqT> // Take a const-qualified T. Control block owns a non-const T. 
+  template <class T>
   class polymorphic_value
   {
-    using T = std::remove_const_t<cqT>;
-
     static_assert(!std::is_union<T>::value, "");
-    static_assert(!std::is_function<T>::value, "");
-    static_assert(!std::is_array<T>::value, "");
-    static_assert(!std::is_pointer<T>::value, "");
+    static_assert(std::is_class<T>::value, "");
 
     template <class U>
     friend class polymorphic_value;
 
-    template <class T_, class... Ts>
+    template <class T_, class U, class... Ts>
     friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
 
     T* ptr_ = nullptr;
@@ -255,24 +245,6 @@ namespace jbcoe
       cb_ = std::move(tmp_cb);
     }
 
-    template <class U,
-              class V = std::enable_if_t<
-                  !std::is_same<T, U>::value &&
-                  std::is_convertible<std::remove_const_t<U>*, T*>::value>>
-    polymorphic_value(const polymorphic_value<U>& p)
-    {
-      if (!p)
-      {
-        return;
-      }
-      polymorphic_value<U> tmp(p);
-      cb_ = std::make_unique<
-          detail::delegating_control_block<T, std::remove_const_t<U>>>(
-          std::move(tmp.cb_));     
-      ptr_ = cb_ ? cb_->ptr() : nullptr;
-    }
-
-
     //
     // Move-constructors
     //
@@ -284,10 +256,25 @@ namespace jbcoe
       p.ptr_ = nullptr;
     }
 
+    //
+    // Converting constructors
+    //
+
     template <class U,
               class V = std::enable_if_t<!std::is_same<T, U>::value &&
                                          std::is_convertible<U*, T*>::value>>
-    polymorphic_value(polymorphic_value<U>&& p)
+    explicit polymorphic_value(const polymorphic_value<U>& p)
+    {
+      polymorphic_value<U> tmp(p);
+      ptr_ = tmp.ptr_;
+      cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
+          std::move(tmp.cb_));
+    }
+    
+    template <class U,
+              class V = std::enable_if_t<!std::is_same<T, U>::value &&
+                                         std::is_convertible<U*, T*>::value>>
+    explicit polymorphic_value(polymorphic_value<U>&& p)
     {
       ptr_ = p.ptr_;
       cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
@@ -302,7 +289,7 @@ namespace jbcoe
     template <class U, class V = std::enable_if_t<
                            std::is_convertible<std::decay_t<U>*, T*>::value &&
                            !is_polymorphic_value<std::decay_t<U>>::value>>
-    polymorphic_value(U&& u)
+    explicit polymorphic_value(U&& u)
         : cb_(std::make_unique<
               detail::direct_control_block<T, std::decay_t<U>>>(
               std::forward<U>(u)))
@@ -335,24 +322,6 @@ namespace jbcoe
       return *this;
     }
 
-    template <class U,
-              class V = std::enable_if_t<
-                  !std::is_same<T, U>::value &&
-                  std::is_convertible<std::remove_const_t<U>*, T*>::value>>
-    polymorphic_value& operator=(const polymorphic_value<U>& p)
-    {
-      if (!p)
-      {
-        return *this;
-      }
-      polymorphic_value<U> tmp(p);
-      cb_ = std::make_unique<
-          detail::delegating_control_block<T, std::remove_const_t<U>>>(
-          std::move(tmp.cb_));
-      ptr_ = cb_ ? cb_->ptr() : nullptr;
-      return *this;
-    }
-
 
     //
     // Move-assignment
@@ -368,32 +337,6 @@ namespace jbcoe
       cb_ = std::move(p.cb_);
       ptr_ = p.ptr_;
       p.ptr_ = nullptr;
-      return *this;
-    }
-
-    template <class U,
-              class V = std::enable_if_t<!std::is_same<T, U>::value &&
-                                         std::is_convertible<U*, T*>::value>>
-    polymorphic_value& operator=(polymorphic_value<U>&& p)
-    {
-      cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
-          std::move(p.cb_));
-      ptr_ = p.ptr_;
-      p.ptr_ = nullptr;
-      return *this;
-    }
-
-    //
-    // Forwarding assignment
-    //
-
-    template <class U,
-              class V = std::enable_if_t<std::is_convertible<std::decay_t<U>*, T*>::value &&
-                                         !is_polymorphic_value<std::decay_t<U>>::value>>
-    polymorphic_value& operator=(U&& u)
-    {
-      polymorphic_value tmp(std::forward<U>(u));
-      *this = std::move(tmp);
       return *this;
     }
 
@@ -425,12 +368,6 @@ namespace jbcoe
       return ptr_;
     }
 
-    const T& value() const
-    {
-      assert(*this);
-      return *ptr_;
-    }
-
     const T& operator*() const
     {
       assert(*this);
@@ -443,12 +380,6 @@ namespace jbcoe
       return ptr_;
     }
 
-    T& value()
-    {
-      assert(*this);
-      return *ptr_;
-    }
-
     T& operator*()
     {
       assert(*this);
@@ -459,11 +390,11 @@ namespace jbcoe
   //
   // polymorphic_value creation
   //
-  template <class T, class... Ts>
+  template <class T, class U=T, class... Ts>
   polymorphic_value<T> make_polymorphic_value(Ts&&... ts)
   {
     polymorphic_value<T> p;
-    p.cb_ = std::make_unique<detail::direct_control_block<T>>(
+    p.cb_ = std::make_unique<detail::direct_control_block<T, U>>(
         std::forward<Ts>(ts)...);
     p.ptr_ = p.cb_->ptr();
     return std::move(p);
