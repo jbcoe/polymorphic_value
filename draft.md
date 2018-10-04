@@ -213,8 +213,9 @@ The component `c1_` can be constructed from an instance of any class that
 inherits from `IComponent1`.  Similarly, `c2_` can be constructed from an
 instance of any class that inherits from `IComponent2`.
 
-`CompositeObject_5` has a (correct) compiler-generated destructor, copy, move,
-and assignment operators.
+`CompositeObject_5` has a compiler-generated destructor, copy constructor, move
+constructor, assignment operator and move assignment operator. All of these
+compiler-generated functions will behave correctly.
 
 ## Deep copies
 
