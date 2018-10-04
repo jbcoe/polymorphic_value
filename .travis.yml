@@ -1,33 +1,35 @@
 language: cpp
 sudo: required
+os: linux
 dist: trusty
 
 matrix:
   include:
 
-    # 1/ Linux Clang Builds
-    - os: linux
-      compiler: clang
-      addons: &clang5.0
+    # Linux Clang 4
+    - env: COMPILER=clang++-4.0
+      addons: &clang40
         apt:
-          sources: ['llvm-toolchain-precise-5.0', 'ubuntu-toolchain-r-test']
-          packages: ['clang-5.0', 'g++-6']
-      env: COMPILER='clang++-5.0'
-
-    # 2/ Linux GCC Builds
-    - os: linux
-      compiler: gcc
+          packages:
+            - clang-4.0
+            - g++-5
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-4.0
+    
+    # Linux GCC 6
+    - env: COMPILER=g++-6 BUILD_TYPE=Debug GSL_CXX_STANDARD=14
       addons: &gcc6
         apt:
-          sources: ['llvm-toolchain-precise-5.0', 'ubuntu-toolchain-r-test']
-          packages: ['g++-6']
-      env: COMPILER='g++-6'
+          packages: g++-6
+          sources:
+            - ubuntu-toolchain-r-tests
 
-    # 3/ OSX Clang Builds
-    - os: osx
-      osx_image: xcode9.3
+    # OSX Clang Builds
+    - env: COMPILER=clang++
+      os: osx
+      osx_image: xcode9.1
       compiler: clang
-      env: COMPILER='clang++'
 
 install:
   - DEPS_DIR="${TRAVIS_BUILD_DIR}/deps"
