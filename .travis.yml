@@ -21,17 +21,17 @@ matrix:
     # so leave this first for the overall build to be faster
     ##########################################################################
 
-    # XCode 8.3
-    - env: COMPILER=clang++ BUILD_TYPE=Debug 
-      os: osx
-      osx_image: xcode8.3
-      compiler: clang
+#   # XCode 8.3
+#   - env: COMPILER=clang++ BUILD_TYPE=Debug 
+#     os: osx
+#     osx_image: xcode8.3
+#     compiler: clang
 
-    # XCode 9.1
-    - env: COMPILER=clang++ BUILD_TYPE=Debug 
-      os: osx
-      osx_image: xcode9.1
-      compiler: clang
+#   # XCode 9.1
+#   - env: COMPILER=clang++ BUILD_TYPE=Debug 
+#     os: osx
+#     osx_image: xcode9.1
+#     compiler: clang
 
     ##########################################################################
     # Clang on Linux
@@ -104,12 +104,9 @@ matrix:
 
 # Added following instructions from https://docs.travis-ci.com/user/installing-dependencies#Installing-Packages-with-the-APT-Addon
 before_install:
-  -|
-   if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
-     sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-     sudo apt-get update -q
-     sudo apt-get install gcc-4.8 -y
-   fi
+  sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+  sudo apt-get update -q
+  sudo apt-get install gcc-4.8 -y
 
 install:
   # Set the ${CXX} variable properly
