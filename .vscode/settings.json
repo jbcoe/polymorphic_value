@@ -1,0 +1,4 @@
+{
+    "markdown-pdf.headerTemplate": "<div style=\"font-size: 9px; margin-left: 1cm;\"></div> <div style=\"font-size: 9px; margin-left: auto; margin-right: 1cm; \"></div>",
+    "markdown-pdf.footerTemplate": "<div style=\"font-size: 9px; margin: 0 auto;\"> <span class='pageNumber'></span> / <span class='totalPages'></span></div>",
+}
