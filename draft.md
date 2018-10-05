@@ -402,7 +402,7 @@ take an optional extra template argument allowing users to write
 polymorphic_value<Base> base = make_polymorphic_value<Base, DerivedClass>(args);
 ```
 
-The change from implicit to explicit construction is deliverately conservative.
+The change from implicit to explicit construction is deliberately conservative.
 One can change explicit constructors into implicit constructors without
 breaking code (other than SFINAE checks), the reverse is not true. Similarly,
 converting assignments could be added non-disruptively but not so readily
