@@ -16,7 +16,7 @@ _Sean Parent \<sparent@adobe.com\>_
 
 Changes in P0201R4
 
-* Clarify authors agreement with LEWG design changes.
+* Clarify authors' agreement with LEWG design changes.
 
 * Add wording to clarify meaning of custom copier and deleter.
 
@@ -220,10 +220,10 @@ compiler-generated functions will behave correctly.
 ## Deep copies
 
 To allow correct copying of polymorphic objects, `polymorphic_value` uses the
-copy constructor of the derived-type pointee when copying a base type
+copy constructor of the owned derived-type object when copying a base type
 `polymorphic_value`.  Similarly, to allow correct destruction of polymorphic
-component objects, `polymorphic_value` uses the destructor of the derived-type
-pointee in the destructor of a base type `polymorphic_value`.
+component objects, `polymorphic_value` uses the destructor of the owned
+derived-type object in the destructor of a base type `polymorphic_value`.
 
 The requirements of deep-copying can be illustrated by some simple test code:
 ```
@@ -231,14 +231,14 @@ The requirements of deep-copying can be illustrated by some simple test code:
 class Base { virtual void foo() const = 0; };
 class Derived : public Base { void foo() const override {} };
 
-// WHEN a polymorphic_value to base is formed from a derived pointer
-polymorphic_value<Base> poly(new Derived());
+// WHEN a polymorphic_value to base is formed from a derived object
+polymorphic_value<Base> poly(Derived());
 // AND the polymorphic_value to base is copied.
 auto poly_copy = poly;
 
-// THEN the copy points to a distinct object
+// THEN the copy owns a distinct object
 assert(&*poly != &*poly_copy);
-// AND the copy points to a derived type.
+// AND the copy owns a derived type.
 assert(dynamic_cast<Derived*>(*&poly_copy));
 ```
 
@@ -246,7 +246,7 @@ Note that while deep-destruction of a derived class object from a base class
 pointer can be performed with a virtual destructor, the same is not true for
 deep-copying. `C++` has no concept of a virtual copy constructor and we are not
 proposing its addition.  The class template `shared_ptr` already implements
-deep-destruction without needing virtual destructors: deep-destruction and
+deep-destruction without needing virtual destructors; deep-destruction and
 deep-copying can be implemented using type-erasure [Impl].
 
 ## Pointer constructor
@@ -286,7 +286,7 @@ If the user has not supplied a custom copier or deleter, an exception
 the dynamic and static types of the pointer argument do not agree.
 In cases where the user has supplied a custom copier or deleter it is assumed
 that they will do so to avoid slicing and incomplete destruction: a class
-heirarchy with a custom `Clone` method and virtual desctructor would make use
+heirarchy with a custom `Clone` method and virtual destructor would make use
 of `Clone` in a user-supplied copier.
 
 
@@ -326,10 +326,10 @@ We define the default copier in technical specifications below.
 
 ## Allocator Support
 
-The design of `polymorphic_value` is similar to that of `std::any` which does
+The design of `polymorphic_value` is similar to that of `std::any`, which does
 not have support for allocators.
 
-`polymorphic_value`, like `std::any` and `std::function` is implemented in
+`polymorphic_value`, like `std::any` and `std::function`, is implemented in
 terms of type-erasure. There are technical issues with storing an allocator in
 a type-erased context and recovering it later for allocations needed during
 copy assignment [P0302r1].
@@ -341,7 +341,7 @@ allocators.
 
 ## Design changes from `cloned_ptr`
 The design of `polymorphic_value` is based upon `cloned_ptr` and modified
-following advice from LEWG. The authors (Who unreservedly agree with the design
+following advice from LEWG. The authors (who unreservedly agree with the design
 direction suggested by LEWG) would like to make explicit the cost of these
 design changes.
 
@@ -355,8 +355,8 @@ propagation from `polymorphic_value`.
 As `polymorphic_value` is a value, `dynamic_pointer_cast`,
 `static_pointer_cast` and `const_pointer_cast` are not provided.  If a
 `polymorphic_value` is constructed with a custom copier or deleter, then there
-is no way for a user to implement the cast operations provided for
-`cloned_ptr`.
+is no way for a user to implement cast operations like those that are provided
+by the standard for `std::shared_ptr`.
 
 
 ## No implicit conversions
@@ -364,11 +364,11 @@ Following design feedback, `polymorphic_value`'s constructors have been made
 explicit so that surprising implicit conversions cannot take place. Any
 conversion to a `polymorphic_value` must be explicitly requested by user-code. 
 
-Matching this decision, the converting assignment operators that were present
-in earlier drafts have been removed.
+The converting assignment operators that were present in earlier drafts have
+also been removed.
 
-For a base class, `BaseClass` and derived class `DerivedClass` the converting
-assignment
+For a base class, `BaseClass`, and derived class, `DerivedClass`, the
+converting assignment
 
 ```
 polymorphic_value<DerivedClass> derived;
@@ -478,7 +478,7 @@ destroyed when the `polymorphic_value` is copied or destroyed.
 A `polymorphic_value`, `v`, will dispose of its owned object when `v` is itself
 destroyed (e.g., when leaving block scope (9.7)). 
 
-A `polymorphic_value` object is empty if there is no owned object (The stored
+A `polymorphic_value` object is empty if there is no owned object (the stored
 pointer is `nullptr`).
 
 Copying a non-empty `polymorphic_value` will copy the owned object so that the

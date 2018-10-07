@@ -89,6 +89,13 @@ TEST_CASE("Value constructor", "[polymorphic_value.constructors]")
   REQUIRE(i->value() == 7);
 }
 
+TEST_CASE("Value constructor rvalue", "[polymorphic_value.constructors]")
+{
+  polymorphic_value<BaseType> i(DerivedType(7));
+
+  REQUIRE(i->value() == 7);
+}
+
 TEST_CASE("Value move-constructor", "[polymorphic_value.constructors]")
 {
   DerivedType d(7);
