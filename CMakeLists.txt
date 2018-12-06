@@ -14,7 +14,7 @@ target_include_directories(test_polymorphic_value
 target_compile_options(test_polymorphic_value
     PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
-        $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:"-Werror;-Wall;-Wno-self-assign-overloaded;-Wno-unknown-warning-option">
+        $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Werror;-Wall;-Wno-self-assign-overloaded;-Wno-unknown-warning-option>
 )
 
 set_target_properties(test_polymorphic_value PROPERTIES
