@@ -8,7 +8,7 @@ add_executable(test_polymorphic_value test_polymorphic_value.cpp)
 
 target_include_directories(test_polymorphic_value
     PRIVATE
-	     externals/catch/single_include
+         externals/catch/single_include
 )
 
 target_compile_options(test_polymorphic_value
@@ -24,35 +24,35 @@ set_target_properties(test_polymorphic_value PROPERTIES
 )
 
 if (ENABLE_SANITIZERS)
-	set(SANITIZER_FLAGS_ASAN "-fsanitize=address -fno-omit-frame-pointer")
-	set(SANITIZER_FLAGS_UBSAN "-fsanitize=undefined")
+    set(SANITIZER_FLAGS_ASAN "-fsanitize=address -fno-omit-frame-pointer")
+    set(SANITIZER_FLAGS_UBSAN "-fsanitize=undefined")
 
-	include(CheckCXXCompilerFlag)
-	check_cxx_compiler_flag("${SANITIZER_FLAGS_ASAN}" COMPILER_SUPPORTS_ASAN)
-	check_cxx_compiler_flag("${SANITIZER_FLAGS_UBSAN}" COMPILER_SUPPORTS_UBSAN)
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("${SANITIZER_FLAGS_ASAN}" COMPILER_SUPPORTS_ASAN)
+    check_cxx_compiler_flag("${SANITIZER_FLAGS_UBSAN}" COMPILER_SUPPORTS_UBSAN)
 
     if (COMPILER_SUPPORTS_ASAN)
         add_library(asan INTERFACE IMPORTED)
-	    set_target_properties(asan PROPERTIES
-		    INTERFACE_COMPILE_OPTIONS "${SANITIZER_FLAGS_ASAN}"
-		    INTERFACE_LINK_OPTIONS "${SANITIZER_FLAGS_ASAN}"
-	    )
-		target_link_libraries(test_polymorphic_value
-			PRIVATE
-				 asan
-		)
+        set_target_properties(asan PROPERTIES
+            INTERFACE_COMPILE_OPTIONS "${SANITIZER_FLAGS_ASAN}"
+            INTERFACE_LINK_OPTIONS "${SANITIZER_FLAGS_ASAN}"
+        )
+        target_link_libraries(test_polymorphic_value
+            PRIVATE
+                 asan
+        )
     endif(COMPILER_SUPPORTS_ASAN)
 
     if (COMPILER_SUPPORTS_UBSAN)
         add_library(ubsan INTERFACE IMPORTED)
-	    set_target_properties(ubsan PROPERTIES
-		    INTERFACE_COMPILE_OPTIONS "${SANITIZER_FLAGS_UBSAN}"
-		    INTERFACE_LINK_OPTIONS "${SANITIZER_FLAGS_UBSAN}"
-	    )
-		target_link_libraries(test_polymorphic_value
-			PRIVATE
-				 ubsan
-		)
+        set_target_properties(ubsan PROPERTIES
+            INTERFACE_COMPILE_OPTIONS "${SANITIZER_FLAGS_UBSAN}"
+            INTERFACE_LINK_OPTIONS "${SANITIZER_FLAGS_UBSAN}"
+        )
+        target_link_libraries(test_polymorphic_value
+            PRIVATE
+                 ubsan
+        )
     endif(COMPILER_SUPPORTS_UBSAN)
 endif(ENABLE_SANITIZERS)
 
