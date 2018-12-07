@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 project(polymorphic_value)
 
-option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" ON)
+option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" OFF)
 
 add_subdirectory(externals/catch)
 

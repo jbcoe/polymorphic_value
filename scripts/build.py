@@ -36,6 +36,11 @@ def main():
         help='config (Debug or Release)',
         default='Debug',
         dest='config')
+    parser.add_argument(
+        '-s', '--sanitizers',
+        help='Run tests with address and undefined behaviour sanitizer if available',
+        default=False,
+        dest='sanitizers')		
 
     if platform.system() == "Windows":
         parser.add_argument(
@@ -55,9 +60,9 @@ def main():
     cmake_invocation = ['cmake', '.', '-B{}'.format(args.out_dir)]
     if args.platform == 'Windows':
         if args.win32:
-            cmake_invocation.extend(['-G', 'Visual Studio 14 2015'])
+            cmake_invocation.extend(['-G', 'Visual Studio 15 2017'])
         else:
-            cmake_invocation.extend(['-G', 'Visual Studio 14 2015 Win64'])
+            cmake_invocation.extend(['-G', 'Visual Studio 15 2017 Win64'])
     else:
         if check_for_executable('ninja'):
             cmake_invocation.extend(['-GNinja'])
@@ -67,6 +72,9 @@ def main():
     if args.verbose:
         cmake_invocation.append('-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON')
 
+    if args.sanitizers:
+        cmake_invocation.append('-DENABLE_SANITIZERS:BOOL=ON')
+		
     subprocess.check_call(cmake_invocation, cwd=src_dir)
     subprocess.check_call(
         'cmake --build ./{}'.format(args.out_dir).split(), cwd=src_dir)
