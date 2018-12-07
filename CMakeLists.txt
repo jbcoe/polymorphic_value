@@ -4,11 +4,19 @@ project(polymorphic_value)
 
 option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" OFF)
 
-add_executable(test_polymorphic_value test_polymorphic_value.cpp)
+add_subdirectory(externals/catch)
 
-target_include_directories(test_polymorphic_value
+add_library(polymorphic_value INTERFACE)
+target_sources(polymorphic_value
+    INTERFACE
+        "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h"
+)
+
+add_executable(test_polymorphic_value test_polymorphic_value.cpp)
+target_link_libraries(test_polymorphic_value
     PRIVATE
-         externals/catch/single_include
+        polymorphic_value
+        Catch2::Catch2
 )
 
 target_compile_options(test_polymorphic_value
