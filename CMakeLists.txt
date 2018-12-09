@@ -87,6 +87,10 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
       COMMAND test_polymorphic_value
       WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/externals/catch/contrib)
+    include(Catch)
+    catch_discover_tests(test_polymorphic_value)
+
     install(
       FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h"
@@ -104,15 +108,15 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
       TARGETS polymorphic_value
       EXPORT polymorphic_value_target
       DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake
-	  COMPONENT polymorphic_value
+      COMPONENT polymorphic_value
     )
 
     install(
       EXPORT polymorphic_value_target
-	  FILE polymorphic_value.cmake
+      FILE polymorphic_value.cmake
       NAMESPACE polymorphic_value::
       DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake
-	  COMPONENT polymorphic_value
+      COMPONENT polymorphic_value
     )
 
 endif(POLYMORPHIC_IS_NOT_SUBPROJECT)
