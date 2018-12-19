@@ -26,6 +26,20 @@ target_sources(polymorphic_value
         $<$<CXX_COMPILER_ID:MSVC>:$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/polymorphic_value.natvis>>
 )
 
+target_compile_features(polymorphic_value
+    INTERFACE
+        cxx_auto_type
+        cxx_defaulted_functions
+        cxx_explicit_conversions
+        cxx_noexcept
+        cxx_nullptr
+        cxx_override
+        cxx_right_angle_brackets
+        cxx_rvalue_references
+        cxx_static_assert
+        cxx_variadic_templates
+)
+
 # namespaced alias for users depending on polymorphic_value as a sub-project.
 add_library(polymorphic_value::polymorphic_value ALIAS polymorphic_value)
 
