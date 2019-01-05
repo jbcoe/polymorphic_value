@@ -4,7 +4,9 @@ if(NOT DEFINED PROJECT_NAME)
   set(POLYMORPHIC_IS_NOT_SUBPROJECT ON)
 endif()
 
-project(polymorphic_value)
+set(POLYMOPHIC_VALUE_VERSION "1.3.0") # Revision 3, see paper p0201r3
+
+project(polymorphic_value VERSION ${POLYMOPHIC_VALUE_VERSION})
 
 option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" OFF)
 
@@ -98,41 +100,62 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
 
     enable_testing()
     add_test(
-      NAME test_polymorphic_value
-      COMMAND test_polymorphic_value
-      WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+        NAME test_polymorphic_value
+        COMMAND test_polymorphic_value
+        WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    )
 
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/externals/catch/contrib)
     include(Catch)
     catch_discover_tests(test_polymorphic_value)
 
     install(
-      FILES
-        "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h"
-        "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.natvis"
-      DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+        FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.natvis"
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include
     )
 
     install(
-      FILES
-        "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt"
-      DESTINATION ${CMAKE_INSTALL_PREFIX}
+        FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt"
+        DESTINATION ${CMAKE_INSTALL_PREFIX}
     )
 
     install(
-      TARGETS polymorphic_value
-      EXPORT polymorphic_value_target
-      DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake
-      COMPONENT polymorphic_value
+        TARGETS polymorphic_value
+        EXPORT polymorphic_value_target
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake
     )
 
     install(
-      EXPORT polymorphic_value_target
-      FILE polymorphic_value.cmake
-      NAMESPACE polymorphic_value::
-      DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake
-      COMPONENT polymorphic_value
+        EXPORT polymorphic_value_target
+        NAMESPACE polymorphic_value::
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake
+	    FILE polymorphic_value-target.cmake
     )
-
+    set(INCLUDE_INSTALL_DIR include/  )
+    include(CMakePackageConfigHelpers)
+    configure_package_config_file(
+        ${CMAKE_CURRENT_LIST_DIR}/polymorphic_value-config.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-config.cmake
+        INSTALL_DESTINATION
+            ${CMAKE_INSTALL_PREFIX}/cmake
+    )
+    set(TEMP_CMAKE_SIZEOF_VOID_P ${CMAKE_SIZEOF_VOID_P})
+    unset(CMAKE_SIZEOF_VOID_P)
+    write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-version.cmake
+        VERSION ${POLYMOPHIC_VALUE_VERSION}
+        COMPATIBILITY SameMajorVersion
+    )
+    set(CMAKE_SIZEOF_VOID_P ${TEMP_CMAKE_SIZEOF_VOID_P})
+    install(
+        FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-config.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-version.cmake
+        DESTINATION
+            ${CMAKE_INSTALL_PREFIX}/cmake
+    )
 endif(POLYMORPHIC_IS_NOT_SUBPROJECT)
 
