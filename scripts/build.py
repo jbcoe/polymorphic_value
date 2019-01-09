@@ -37,7 +37,7 @@ def main():
         default='Debug',
         dest='config')
     parser.add_argument(
-        '-s', '--sanitizers',
+        '--sanitizers',
         help='Run tests with address and undefined behaviour sanitizer if available',
         default=False,
         dest='sanitizers')		
