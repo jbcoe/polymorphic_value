@@ -66,7 +66,12 @@ endif(ENABLE_SANITIZERS)
 
 enable_testing()
 add_test(
-  NAME test_polymorphic_value
-  COMMAND test_polymorphic_value
-  WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    NAME test_polymorphic_value
+    COMMAND test_polymorphic_value
+    WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/externals/catch/contrib)
+include(Catch)
+catch_discover_tests(test_polymorphic_value)
 
