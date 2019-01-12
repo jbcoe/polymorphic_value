@@ -541,7 +541,7 @@ TEST_CASE("make_polymorphic_value with single template argument","[polymorphic_v
   REQUIRE(pv->value() == 7);
 }
 
-TEST_CASE("make_polymorphic_value with two template arguments","[polymorphic_value..make_polymorphic_value.double]")
+TEST_CASE("make_polymorphic_value with two template arguments","[polymorphic_value.make_polymorphic_value.double]")
 {
   auto pv = make_polymorphic_value<BaseType, DerivedType>(7);
   static_assert(std::is_same<decltype(pv), polymorphic_value<BaseType>>::value, "");
