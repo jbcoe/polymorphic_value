@@ -312,7 +312,7 @@ provably identical.
 If the user has not supplied a custom copier or deleter, an exception
 `bad_polymorphic_value_construction` is thrown from the pointer-constructor if
 the dynamic and static types of the pointer argument do not agree.
-In cases where the user has supplied a custom copier or deleter it is assumed
+In cases where the user has supplied a custom copier and deleter it is assumed
 that they will do so to avoid slicing and incomplete destruction: a class
 heirarchy with a custom `Clone` method and virtual destructor would make use
 of `Clone` in a user-supplied copier.
@@ -346,7 +346,11 @@ For a given user-defined type `T` the user is free to specialize
 The resource management performed by `polymorphic_value` - copying and
 destruction of the managed object - can be customized by supplying a _copier_
 and _deleter_.  If no copier or deleter is supplied then a default copier or
-deleter will be used.
+deleter may be used. 
+
+A custom copier and deleter are _not_ required, if no custom copier and deleter
+are provided then the copy constructor and destructor of the managed object 
+will be used.
 
 The default deleter is already defined by the standard library and used by
 `unique_ptr`.
@@ -517,12 +521,12 @@ Copying from an empty `polymorphic_value` produces another empty
 `polymorphic_value`.
 
 Copying and disposal of the owned object can be customized by supplying a
-copier and deleter.
+custom copier and deleter.
 
-If a `polymorphic_value` is constructed from a pointer then it is said to have
-a custom copier and deleter. Any `polymorphic_value` instance constructed from
-another `polymorphic_value` instance constructed with a custom copier and
-deleter will also have a custom copier and deleter.
+If a `polymorphic_value` is constructed from a pointer then a custom copier 
+and deleter are said to be `present`. Any `polymorphic_value` instance 
+constructed from another `polymorphic_value` instance constructed with a 
+custom copier and deleter will also have a custom copier and deleter.
 
 The template parameter `T` of `polymorphic_value<T>` shall be a non-union class
 type. Otherwise the program is ill-formed.
@@ -651,11 +655,11 @@ template <class U> explicit polymorphic_value(const polymorphic_value<U>& p);
 * _Constraints_: For the second constructor, `U*` is _convertible_ to `T*`."
 
 * _Effects_: Creates a `polymorphic_value` object that owns a copy of the
-  object managed by `p`. If `p` has a custom copier then the copy is created by
-  the copier in `p`. Otherwise the copy is created by copy construction of the
-  owned object.  If `p` has a custom copier and deleter then the custom copier
-  and deleter of the `polymorphic_value` constructed are copied from those in
-  `p`.
+  object managed by `p`. If a custom copier and deleter are present in `p` then 
+  the copy is created by the copier in `p`. Otherwise the copy is created by copy 
+  construction of the owned object.  If a custom copier and deleter are present 
+  in `p` then the custom copier and deleter of the `polymorphic_value` constructed 
+  are copied from those in `p`.
 
 * _Throws_: Any exception thrown by the copier or `bad_alloc` if required
   storage cannot be obtained.
@@ -672,8 +676,8 @@ template <class U> explicit polymorphic_value(polymorphic_value<U>&& p) noexcept
 * _Effects_: Ownership of the resource managed by `p` is transferred to the
   constructed `polymorphic_value`.  Potentially move constructs the owned
   object (if the dynamic type of the owned object is no-throw
-  move-constructible).  If `p` has a custom copier and deleter then the copier
-  and deleter are transferred to the `polymorphic_value` constructed.
+  move-constructible).  If a custom copier and deleter are present in `p` then 
+  the copier and deleter are transferred to the `polymorphic_value` constructed.
   
 * _Postconditions_:  `*this` contains the old value of `p`. `p` is empty.
 
@@ -696,11 +700,12 @@ Otherwise the destructor of the owned object is called.
 polymorphic_value& operator=(const polymorphic_value& p);
 ```
 
-* _Effects_: `*this` owns a copy of the resource managed by `p`.  If `p` has a
-  custom copier and deleter then the copy is created by the copier in `p`, and
-  the copier and deleter of `*this` are copied from those in `p`. Otherwise the
-  resource managed by `*this` is initialised by the copy constructor of the
-  resource managed by `p`.
+* _Effects_: `*this` owns a copy of the resource managed by `p`. 
+  Any resource initially managed by `*this` is destroyed. 
+  If a custom copier and deleter are present in `p` then the copy is created by 
+  the copier in `p`, and the copier and deleter of `*this` are copied from those 
+  in `p`. Otherwise the resource managed by `*this` is initialised by the copy 
+  constructor of the resource managed by `p`.
 
 * _Throws_: Any exception thrown by the copier or `bad_alloc` if required
   storage cannot be obtained.
@@ -714,9 +719,10 @@ polymorphic_value& operator=(polymorphic_value&& p) noexcept;
 ```
 
 * _Effects_: Ownership of the resource managed by `p` is transferred to `this`.
+  Any resource initially managed by `*this` is destroyed. 
   Potentially move constructs the owned object (if the dynamic type of the
-  owned object is no-throw move-constructible).  If `p` has a custom copier and
-  deleter then the copier and deleter of `*this` are the same as those in `p`.
+  owned object is no-throw move-constructible).  If custom copier and deleter 
+  are present in `p` then the copier and deleter of `p` are transferred to `*this`.
 
 * _Throws_: `bad_alloc` if required storage cannot be obtained.
 
