@@ -645,7 +645,7 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
   default_copy<U>>`, `is_same_v<D, default_delete<U>>` and
   `typeid(*p)!=typeid(U)`; `bad_alloc` if required storage cannot be obtained.
 
-* _Postconditions_:  `bool(*this) == bool(p)`.
+* _Ensures_:  `bool(*this) == bool(p)`.
 
 ```cpp
 polymorphic_value(const polymorphic_value& p);
@@ -664,7 +664,7 @@ template <class U> explicit polymorphic_value(const polymorphic_value<U>& p);
 * _Throws_: Any exception thrown by the copier or `bad_alloc` if required
   storage cannot be obtained.
 
-* _Postconditions_:  `bool(*this) == bool(p)`.
+* _Ensures_:  `bool(*this) == bool(p)`.
 
 ```cpp
 polymorphic_value(polymorphic_value&& p) noexcept;
@@ -679,7 +679,7 @@ template <class U> explicit polymorphic_value(polymorphic_value<U>&& p) noexcept
   move-constructible).  If a custom copier and deleter are present in `p` then 
   the copier and deleter are transferred to the `polymorphic_value` constructed.
   
-* _Postconditions_:  `*this` contains the old value of `p`. `p` is empty.
+* _Ensures_:  `*this` contains the old value of `p`. `p` is empty.
 
 [Note: This constructor can allow an implementation to avoid the need for
 dynamic memory allocation.]
@@ -712,7 +712,7 @@ polymorphic_value& operator=(const polymorphic_value& p);
 
 * _Returns_: `*this`.
 
-* _Postconditions_:  `bool(*this) == bool(p)`.
+* _Ensures_:  `bool(*this) == bool(p)`.
 
 ```cpp
 polymorphic_value& operator=(polymorphic_value&& p) noexcept;
@@ -728,7 +728,7 @@ polymorphic_value& operator=(polymorphic_value&& p) noexcept;
 
 * _Returns_: `*this`.
 
-* _Postconditions_: `*this` contains the old value of `p`. `p` is empty.
+* _Ensures_: `*this` contains the old value of `p`. `p` is empty.
 
 [Note: move construction of an owned object may be used by an implementation to
 avoid the need for use of dynamic memory.]
