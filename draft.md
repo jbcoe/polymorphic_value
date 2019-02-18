@@ -122,8 +122,8 @@ class CompositeObject_2 {
   IComponent2* c2_;
 
   public:
-  CompositeObject_2(const IComponent1* c1,
-                    const IComponent2* c2) :
+  CompositeObject_2(IComponent1* c1,
+                    IComponent2* c2) :
                     c1_(c1), c2_(c2) {}
 
   void foo() { c1_->foo(); }
