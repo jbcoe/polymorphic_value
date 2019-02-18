@@ -647,8 +647,7 @@ polymorphic_value(const polymorphic_value& p);
 template <class U> explicit polymorphic_value(const polymorphic_value<U>& p);
 ```
 
-* _Remarks_: The second constructor shall not participate in overload
-  resolution unless `U*` is convertible to `T*`.
+* _Constraints_: For the second constructor, `U*` is _convertible_ to `T*`."
 
 * _Effects_: Creates a `polymorphic_value` object that owns a copy of the
   object managed by `p`. If `p` has a custom copier then the copy is created by
