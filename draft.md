@@ -635,7 +635,7 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
   If `p` is non-null then the copier and deleter of the `polymorphic_value`
   constructed are initialized from `std::move(c)` and `std::move(d)`.
 
-* _Requires_: `C` and `D` satisfy the requirements of Cpp17CopyConstructible.
+* _Expects_: `C` and `D` satisfy the requirements of Cpp17CopyConstructible.
   If `p` is non-null then the expression `c(*p)` returns an object of type
   `U*`. The expression `d(p)` is well formed, has well defined behavior, and
   does not throw exceptions.  Either `U` and `T` must be the same type, or the
