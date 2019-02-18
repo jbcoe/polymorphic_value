@@ -620,9 +620,10 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
   explicit polymorphic_value(U* p, C c=C{}, D d=D{});
 ```
 
-* _Remarks_: This constructor shall not participate in overload resolution
-  unless `U*` is convertible to `T*`.  A custom copier and deleter are said to
-  be 'present' in a `polymorphic_value` initialized with this constructor.
+* _Constraints_: `U*` is convertible to `T*`. 
+  
+* _Remarks_:  A custom copier and deleter are said to be 'present' in a 
+`polymorphic_value` initialized with this constructor.
 
 * _Effects_: If `p` is null, creates an empty object, otherwise creates a
   `polymorphic_value` object that owns the pointer `p`.
@@ -666,8 +667,7 @@ polymorphic_value(polymorphic_value&& p) noexcept;
 template <class U> explicit polymorphic_value(polymorphic_value<U>&& p) noexcept;
 ```
 
-* _Remarks_: The second constructor shall not participate in overload
-  resolution unless `U*` is convertible to `T*`.
+* _Constraints_: For the second constructor, `U*` is convertible to `T*`.
 
 * _Effects_: Ownership of the resource managed by `p` is transferred to the
   constructed `polymorphic_value`.  Potentially move constructs the owned
