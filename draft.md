@@ -458,7 +458,7 @@ template <class T> struct default_copy {
 The class template `default_copy` serves as the default copier for the class
 template `polymorphic_value`.
 
-The template parameter `T` of `default_copy` may be an incomplete type.
+The template parameter `T` of `default_copy<T>` may be an incomplete type.
 
 ```cpp
 T* operator()(const T& t) const;
@@ -524,10 +524,10 @@ a custom copier and deleter. Any `polymorphic_value` instance constructed from
 another `polymorphic_value` instance constructed with a custom copier and
 deleter will also have a custom copier and deleter.
 
-The template parameter `T` of `polymorphic_value` shall be a non-union class
+The template parameter `T` of `polymorphic_value<T>` shall be a non-union class
 type. Otherwise the program is ill-formed.
 
-The template parameter `T` of `polymorphic_value` may be an incomplete type.
+The template parameter `T` of `polymorphic_value<T>` may be an incomplete type.
 
 [Note: Implementations are encouraged to avoid the use of dynamic memory for
 ownership of small objects.]
