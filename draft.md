@@ -689,9 +689,9 @@ dynamic memory allocation.]
 ~polymorphic_value();
 ```
 
-* _Effects_: If get() == nullptr there are no effects. If a custom deleter `d`
-  is present then `d(p)` is called and the copier and deleter are destroyed.
-  Otherwise the destructor of the managed object is called.
+* _Effects_: If `!bool(*this)` there are no effects. If a custom copier `c` and a 
+custom deleter `d` are present, then `d(p)` is called and `c` and `d` are destroyed. 
+Otherwise the destructor of the owned object is called.
 
 ### X.Z.5 Class template `polymorphic_value` assignment [polymorphic_value.assignment]
 
