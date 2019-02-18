@@ -673,11 +673,8 @@ template <class U> explicit polymorphic_value(polymorphic_value<U>&& p) noexcept
   constructed `polymorphic_value`.  Potentially move constructs the owned
   object (if the dynamic type of the owned object is no-throw
   move-constructible).  If `p` has a custom copier and deleter then the copier
-  and deleter of the `polymorphic_value` constructed are the same as those in
-  `p`.
-
-* _Throws_: `bad_alloc` if required storage cannot be obtained.
-
+  and deleter are transferred to the `polymorphic_value` constructed.
+  
 * _Postconditions_:  `*this` contains the old value of `p`. `p` is empty.
 
 [Note: This constructor can allow an implementation to avoid the need for
