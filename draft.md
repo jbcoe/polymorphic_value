@@ -524,7 +524,7 @@ Copying and disposal of the owned object can be customized by supplying a
 custom copier and deleter.
 
 If a `polymorphic_value` is constructed from a pointer then a custom copier 
-and deleter are said to be `present`. Any `polymorphic_value` instance 
+and deleter are said to be _present_. Any `polymorphic_value` instance 
 constructed from another `polymorphic_value` instance constructed with a 
 custom copier and deleter will also have a custom copier and deleter.
 
@@ -626,7 +626,7 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 
 * _Constraints_: `U*` is convertible to `T*`. 
   
-* _Remarks_:  A custom copier and deleter are said to be 'present' in a 
+* _Remarks_:  A custom copier and deleter are said to be _present_ in a 
 `polymorphic_value` initialized with this constructor.
 
 * _Effects_: If `p` is null, creates an empty object, otherwise creates a
