@@ -745,7 +745,7 @@ const T& operator*() const;
 T& operator*();
 ```
 
-* _Requires_: `bool(*this)`.
+* _Expects_: `bool(*this)`.
 
 * _Returns_: A reference to the owned object.
 
@@ -754,7 +754,7 @@ const T* operator->() const;
 T* operator->();
 ```
 
-* _Requires_: `bool(*this)`.
+* _Expects_: `bool(*this)`.
 
 * _Returns_: A pointer to the owned object.
 
