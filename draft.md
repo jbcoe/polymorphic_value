@@ -289,7 +289,7 @@ when copying and incomplete deletion during destruction.
 class Base { /* methods and members */ };
 class Derived : public Base { /* methods and members */ };
 
-Derived d = new Derived();
+Derived* d = new Derived();
 Base* p = d; // static type and dynamic type differ
 polymorphic_value<Base> poly(p);
 
