@@ -485,7 +485,7 @@ class bad_polymorphic_value_construction : public exception
 ```
 
 Objects of type `bad_polymorphic_value_construction` are thrown to report
-invalid construction of a `polymorphic_value` from a pointer argument.
+invalid construction of a `polymorphic_value`.
 
 ```cpp
 bad_polymorphic_value_construction() noexcept;
@@ -503,35 +503,21 @@ const char* what() const noexcept override;
 
 ### X.Z.1 Class template `polymorphic_value` general [polymorphic_value.general]
 
-The `polymorphic_value` class template stores a pointer to another object.
-The object pointed to by the pointer is referred to as an owned object.
-`polymorphic_value` implements value semantics: the owned object is copied or
-destroyed when the `polymorphic_value` is copied or destroyed.
-
-A `polymorphic_value`, `v`, will dispose of its owned object when `v` is itself
-destroyed (e.g., when leaving block scope (9.7)).
-
-A `polymorphic_value` object is empty if there is no owned object (the stored
-pointer is `nullptr`).
-
-Copying a non-empty `polymorphic_value` will copy the owned object so that the
-copied `polymorphic_value` will have its own unique copy of the owned object.
-
-Copying from an empty `polymorphic_value` produces another empty
-`polymorphic_value`.
-
-Copying and disposal of the owned object can be customized by supplying a
-custom copier and deleter.
-
-If a `polymorphic_value` is constructed from a pointer then a custom copier 
-and deleter are said to be _present_. Any `polymorphic_value` instance 
-constructed from another `polymorphic_value` instance constructed with a 
-custom copier and deleter will also have a custom copier and deleter.
+A `polymorphic_value` is an object that manages the lifetime of an owned object.
+A `polymorphic_value` object may own objects of different types at different points in its 
+lifetime. A `polymorphic_value` object is empty if it has no owned object.
+`polymorphic_value` implements value semantics: the owned object (if any) is 
+copied or destroyed when the `polymorphic_value` is copied or destroyed.
+Copying and destruction of the owned object can be customized by supplying a 
+copier and deleter.
 
 The template parameter `T` of `polymorphic_value<T>` shall be a non-union class
-type. Otherwise the program is ill-formed.
-
+type; otherwise the program is ill-formed.
 The template parameter `T` of `polymorphic_value<T>` may be an incomplete type.
+
+A copier and deleter are said to be _present_ if a `polymorphic_value` object is 
+constructed from a non-null pointer, or from a `polymorphic_value` object where 
+a copier and deleter are present.
 
 [Note: Implementations are encouraged to avoid the use of dynamic memory for
 ownership of small objects.]
@@ -574,8 +560,8 @@ template <class T> class polymorphic_value {
 
   // Observers
   T& operator*();
-  T* operator->();
   const T& operator*() const;
+  T* operator->();
   const T* operator->() const;
   explicit operator bool() const noexcept;
 };
@@ -601,7 +587,7 @@ constexpr polymorphic_value(nullptr_t) noexcept;
 
 ```
 
-* _Effects_:  Constructs an empty `polymorphic_value`.
+* _Ensures_: `*this` is empty.
 
 ```cpp
 
@@ -609,12 +595,12 @@ template <class U> explicit polymorphic_value(U&& u);
 
 ```
 
-* _Remarks_: Let `V` be `remove_cvref_t<U>`. This
-  constructor shall not participate in overload resolution unless `V*` is
-  convertible to `T*`.
+Let `V` be `remove_cvref_t<U>`.
 
-* _Effects_: Constructs a `polymorphic_value` whose owned object is initialised
-  with `V(std::forward<U>(u))`.
+* _Constraints_: `V*` is convertible to `T*`.
+
+* _Effects_: Constructs a `polymorphic_value` which owns an object of type `V`,
+  direct-non-list-initialized with `std::forward<U>(u)`.
 
 * _Throws_: Any exception thrown by the selected constructor of `V` or
   `bad_alloc` if required storage cannot be obtained.
@@ -626,60 +612,66 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
 
 * _Constraints_: `U*` is convertible to `T*`. 
   
-* _Remarks_:  A custom copier and deleter are said to be _present_ in a 
-`polymorphic_value` initialized with this constructor.
+* _Expects_: `C` and `D` meet the `Cpp17CopyConstructible` 
+  and `Cpp17Destructible` requirements.
+  
+  Move-initialization of objects of type `C` and `D` does not exit 
+  via an exception.
 
-* _Effects_: If `p` is null, creates an empty object, otherwise creates a
-  `polymorphic_value` object that owns the pointer `p`.
+  If `p` is non-null then the expression `c(*p)` has type `U*`. 
+  The expression `d(p)` is well formed, has well-defined behavior, and
+  does not throw exceptions.
 
-  If `p` is non-null then the copier and deleter of the `polymorphic_value`
-  constructed are initialized from `std::move(c)` and `std::move(d)`.
+* _Effects_: If `p` is null, creates an empty object. 
 
-* _Expects_: `C` and `D` satisfy the requirements of Cpp17CopyConstructible.
-  If `p` is non-null then the expression `c(*p)` returns an object of type
-  `U*`. The expression `d(p)` is well formed, has well defined behavior, and
-  does not throw exceptions.  Either `U` and `T` must be the same type, or the
-  dynamic and static type of `*p` must be the same.
+  If `p` is non-null creates an object that owns the object `*p`, 
+  with a copier and deleter initialized from `std::move(c)` 
+  and `std::move(d)`.
 
-* _Throws_: `bad_polymorphic_value_construction` if `is_same_v<C,
+* _Throws_: `bad_alloc` if required storage cannot be obtained;
+  `bad_polymorphic_value_construction` if `is_same_v<C,
   default_copy<U>>`, `is_same_v<D, default_delete<U>>` and
-  `typeid(*p)!=typeid(U)`; `bad_alloc` if required storage cannot be obtained.
+  `typeid(*p)!=typeid(U)` are all `true`.
 
-* _Ensures_:  `bool(*this) == bool(p)`.
+* _Note_:  A copier and deleter are said to be _present_ in a 
+  non-empty object initialized with this constructor.
 
 ```cpp
 polymorphic_value(const polymorphic_value& p);
 template <class U> explicit polymorphic_value(const polymorphic_value<U>& p);
 ```
 
-* _Constraints_: For the second constructor, `U*` is _convertible_ to `T*`."
+* _Constraints_: For the second constructor, `U*` is convertible to `T*`.
 
-* _Effects_: Creates a `polymorphic_value` object that owns a copy of the
-  object managed by `p`. If a custom copier and deleter are present in `p` then 
+* _Effects_: Creates an object that owns a copy of the object managed by `p`. 
+  If a copier and deleter are present in `p` then 
   the copy is created by the copier in `p`. Otherwise the copy is created by copy 
-  construction of the owned object.  If a custom copier and deleter are present 
-  in `p` then the custom copier and deleter of the `polymorphic_value` constructed 
+  construction of the owned object.  If a copier and deleter are present 
+  in `p` then the copier and deleter of the object constructed 
   are copied from those in `p`.
-
-* _Throws_: Any exception thrown by the copier or `bad_alloc` if required
-  storage cannot be obtained.
 
 * _Ensures_:  `bool(*this) == bool(p)`.
 
+* _Throws_: Any exception thrown by invocation of the copier, copying the 
+  copier and deleter, or `bad_alloc` if required storage cannot be obtained.
+
 ```cpp
-polymorphic_value(polymorphic_value&& p) noexcept;
-template <class U> explicit polymorphic_value(polymorphic_value<U>&& p) noexcept;
+polymorphic_value(polymorphic_value&& pv) noexcept;
+template <class U> explicit polymorphic_value(polymorphic_value<U>&& pv);
 ```
 
 * _Constraints_: For the second constructor, `U*` is convertible to `T*`.
 
-* _Effects_: Ownership of the resource managed by `p` is transferred to the
-  constructed `polymorphic_value`.  Potentially move constructs the owned
-  object (if the dynamic type of the owned object is no-throw
-  move-constructible).  If a custom copier and deleter are present in `p` then 
-  the copier and deleter are transferred to the `polymorphic_value` constructed.
+* _Effects_: Ownership of the resource managed by `pv` is transferred to the
+  constructed object.  Potentially move constructs the owned object 
+  (if the dynamic type of the owned object is no-throw move-constructible).
+  If a copier and deleter are present in `pv` then the same copier and 
+  deleter are present in the object constructed and no longer present in `pv`.
   
-* _Ensures_:  `*this` contains the old value of `p`. `p` is empty.
+  [TODO](jbcoe, ccarter) Look at move constructor for std::any, use the same approach.
+
+* _Ensures_:  `*this` owns the object previously owned by `pv` (if any). 
+  `pv` is empty.
 
 [Note: This constructor can allow an implementation to avoid the need for
 dynamic memory allocation.]
@@ -690,33 +682,40 @@ dynamic memory allocation.]
 ~polymorphic_value();
 ```
 
-* _Effects_: If `!bool(*this)` there are no effects. If a custom copier `c` and a 
-custom deleter `d` are present, then `d(p)` is called and `c` and `d` are destroyed. 
-Otherwise the destructor of the owned object is called.
+* _Effects_: If a copier `c` and a deleter `d` are present, 
+evaluates `d(operator->())` and destroys `c` and `d`. 
+Otherwise destroys the owned object (if any).
 
 ### X.Z.5 Class template `polymorphic_value` assignment [polymorphic_value.assignment]
 
 ```cpp
-polymorphic_value& operator=(const polymorphic_value& p);
+polymorphic_value& operator=(const polymorphic_value& pv);
 ```
 
-* _Effects_: `*this` owns a copy of the resource managed by `p`. 
-  Any resource initially managed by `*this` is destroyed. 
-  If a custom copier and deleter are present in `p` then the copy is created by 
-  the copier in `p`, and the copier and deleter of `*this` are copied from those 
-  in `p`. Otherwise the resource managed by `*this` is initialised by the copy 
-  constructor of the resource managed by `p`.
+* _Effects_: If `addressof(pv)==this` then no effects. 
+  Otherwise the object owned by `*this` is destroyed along with the 
+  copier and deleter (if present) as if by calling the `polymorphic_value` 
+  destructor .
+
+  [TODO](jbcoe): Improve wording. Use copy constructor wording? See [any.assign].
+
+  If a custom copier and deleter are present in `pv` then the copy of `pv`'s 
+  owned object is created by the copier in `pv`, and the copier and deleter of 
+  `*this` are copied from those in `pv`. Otherwise the object owned by `*this` 
+  is initialised by the copy constructor of the object owned by `pv`.
 
 * _Throws_: Any exception thrown by the copier or `bad_alloc` if required
   storage cannot be obtained.
 
 * _Returns_: `*this`.
 
-* _Ensures_:  `bool(*this) == bool(p)`.
+* _Ensures_:  The state of `*this` is as if copy constructed from `pv`.
 
 ```cpp
 polymorphic_value& operator=(polymorphic_value&& p) noexcept;
 ```
+
+[TODO](jbcoe): See std::any's move assignment. Keep 'Ensures'.
 
 * _Effects_: Ownership of the resource managed by `p` is transferred to `this`.
   Any resource initially managed by `*this` is destroyed. 
@@ -739,7 +738,7 @@ avoid the need for use of dynamic memory.]
 void swap(polymorphic_value& p) noexcept;
 ```
 
-* _Effects_: Exchanges the contents of `p` and `*this`.
+* _Effects_: Exchanges the state of `p` and `*this`.
 
 ### X.Z.7 Class template `polymorphic_value` observers [polymorphic_value.observers]
 
@@ -748,7 +747,7 @@ const T& operator*() const;
 T& operator*();
 ```
 
-* _Expects_: `bool(*this)`.
+* _Expects_: `bool(*this)` is `true`.
 
 * _Returns_: A reference to the owned object.
 
@@ -757,7 +756,7 @@ const T* operator->() const;
 T* operator->();
 ```
 
-* _Expects_: `bool(*this)`.
+* _Expects_: `bool(*this)` is `true`.
 
 * _Returns_: A pointer to the owned object.
 
@@ -765,7 +764,8 @@ T* operator->();
 explicit operator bool() const noexcept;
 ```
 
-* _Returns_: `false` if the `polymorphic_value` is empty, otherwise `true`.
+* _Returns_: `true` if the `polymorphic_value` owns an object, 
+  otherwise `false`.
 
 ### X.Z.8 Class template `polymorphic_value` creation [polymorphic_value.creation]
 
@@ -774,8 +774,8 @@ template <class T, class U=T, class ...Ts> polymorphic_value<T>
   make_polymorphic_value(Ts&& ...ts);
 ```
 
-* _Returns_: A `polymorphic_value<T>` owning an object initialised with
-  `U(std::forward<Ts>(ts)...)`.
+* _Returns_: A `polymorphic_value<T>` owning an object of type `U`
+  direct-non-list-initialized with `std::forward<Ts>(ts)...`.
 
 [Note: Implementations are encouraged to avoid multiple allocations.]
 
@@ -790,9 +790,9 @@ void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
 
 ## Acknowledgements
 
-The authors would like to thank Maciej Bogus, Matthew Calbrese, Germán Diago,
+The authors would like to thank Maciej Bogus, Matthew Calabrese, Germán Diago,
 Louis Dionne, Bengt Gustafsson, Tom Hudson, Stephan T Lavavej, Tomasz Kamiński,
-David Krauss, Thomas Koeppe, LanguageLawyer, Nevin Liber, Nathan Meyers,
+David Krauss, Thomas Koeppe, LanguageLawyer, Nevin Liber, Nathan Myers,
 Roger Orr, Geoff Romer, Patrice Roy, Tony van Eerd and Ville Voutilainen
 for suggestions and useful discussion.
 
