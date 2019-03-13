@@ -87,7 +87,7 @@ namespace jbcoe
 
       T* ptr() override
       {
-        return &u_;
+        return std::addressof(u_);
       }
     };
 
@@ -306,7 +306,7 @@ namespace jbcoe
 
     polymorphic_value& operator=(const polymorphic_value& p)
     {
-      if (&p == this)
+      if (std::addressof(p) == this)
       {
         return *this;
       }
@@ -331,7 +331,7 @@ namespace jbcoe
 
     polymorphic_value& operator=(polymorphic_value&& p) noexcept
     {
-      if (&p == this)
+      if (std::addressof(p) == this)
       {
         return *this;
       }
