@@ -2,7 +2,7 @@
 
 ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
-P0201R5
+D0201R6
 
 Working Group: Library Evolution, Library
 
