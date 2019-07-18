@@ -2,7 +2,7 @@
 
 ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
-D0201R6.0
+D0201R6.1
 
 Working Group: Library Evolution, Library
 
@@ -450,6 +450,12 @@ the standard library header `<memory>`.
 
 ## Technical specifications
 
+Add the following entry to [tab:support.ft]
+
+|Macro Name|Value|Header(s)|
+|:-:|:-:|:-:|
+|`__cpp_lib_polymorphic_value`|`xxxxxxL`|`<memory>`|
+
 ## X.X Class template `default_copy` [default.copy]
 
 ```cpp
@@ -561,7 +567,7 @@ template <class T> class polymorphic_value {
   explicit operator bool() const noexcept;
 
   // polymorphic_value specialized algorithms
-  friend void swap(polymorphic_value& p, polymorphic_value& u) noexcept { p.swap(u); }
+  friend void swap(polymorphic_value& p, polymorphic_value& u) noexcept;
 };
 
 // polymorphic_value creation
@@ -763,11 +769,13 @@ template <class T, class U=T, class ...Ts> polymorphic_value<T>
 
 [Note: Implementations are encouraged to avoid multiple allocations.]
 
-### 17.3.1 General [support.limits.general]
+### X.Z.9 Class template `polymorphic_value` specialized algorithms [polymorphic_value.spec]
 
-We recommend the addition of a feature-testing macro name `__cpp_lib_polymorphic_value` 
-in the header `<memory>`.
+```cpp
+friend void swap(polymorphic_value& p, polymorphic_value& u) noexcept;
+```
 
+* _Effects_: Equivalent to `p.swap(u)`.
 
 ## Acknowledgements
 
