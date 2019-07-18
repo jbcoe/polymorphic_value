@@ -2,7 +2,7 @@
 
 ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
-D0201R6
+D0201R6.0
 
 Working Group: Library Evolution, Library
 
@@ -455,7 +455,7 @@ the standard library header `<memory>`.
 ```cpp
 namespace std {
 template <class T> struct default_copy {
-  constexpr default_copy() noexcept;
+  constexpr default_copy() noexcept = default;
   T* operator()(const T& t) const;
 };
 
@@ -478,7 +478,7 @@ namespace std {
 class bad_polymorphic_value_construction : public exception
 {
   public:
-    bad_polymorphic_value_construction() noexcept;
+    bad_polymorphic_value_construction() noexcept = default;
 
     const char* what() const noexcept override;
 };
@@ -499,20 +499,20 @@ const char* what() const noexcept override;
 ### X.Z.1 Class template `polymorphic_value` general [polymorphic_value.general]
 
 A `polymorphic_value` is an object that manages the lifetime of an owned object.
-A `polymorphic_value` object may own objects of different types at different points in its 
+A `polymorphic_value` object may own objects of different types at different points in its
 lifetime. A `polymorphic_value` object is empty if it has no owned object.
-`polymorphic_value` implements value semantics: the owned object (if any) is 
+`polymorphic_value` implements value semantics: the owned object (if any) is
 copied or destroyed when the `polymorphic_value` is copied or destroyed.
-Copying and destruction of the owned object can be customized by supplying a 
-copier and deleter.
+Copying and destruction of the owned object can be customized by supplying a
+copier and a deleter, respectively.
 
 The template parameter `T` of `polymorphic_value<T>` shall be a non-union class
 type; otherwise the program is ill-formed.
 The template parameter `T` of `polymorphic_value<T>` may be an incomplete type.
 
-A copier and deleter are said to be _present_ if a `polymorphic_value` object is 
-constructed from a non-null pointer, or from a `polymorphic_value` object where 
-a copier and deleter are present.
+A copier and deleter are said to be _present_ if and only if a `polymorphic_value`
+object is constructed from a non-null pointer, or from a `polymorphic_value`
+object where a copier and a deleter are present.
 
 [Note: Implementations are encouraged to avoid the use of dynamic memory for
 ownership of small objects.]
@@ -559,15 +559,15 @@ template <class T> class polymorphic_value {
   const T* operator->() const;
   T* operator->();
   explicit operator bool() const noexcept;
+
+  // polymorphic_value specialized algorithms
+  friend void swap(polymorphic_value& p, polymorphic_value& u) noexcept { p.swap(u); }
 };
 
 // polymorphic_value creation
 template <class T, class U=T, class... Ts> polymorphic_value<T>
   make_polymorphic_value(Ts&&... ts);
 
-// polymorphic_value specialized algorithms
-template<class T>
-  void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
 
 } // end namespace std
 
@@ -592,7 +592,9 @@ template <class U> explicit polymorphic_value(U&& u);
 
 Let `V` be `remove_cvref_t<U>`.
 
-* _Constraints_: `V*` is convertible to `T*`.
+* _Constraints_: `V*` is convertible to `T*`. `is_constructible_v<V, U>` is true.
+
+* _Expects_: `U` must meet the `Cpp17CopyConstructible` requirements.
 
 * _Effects_: Constructs a `polymorphic_value` which owns an object of type `V`,
   direct-non-list-initialized with `std::forward<U>(u)`.
@@ -616,20 +618,22 @@ template <class U, class C=default_copy<U>, class D=default_delete<U>>
   If `p` is non-null then the expression `c(*p)` has type `U*`. 
   The expression `d(p)` is well formed, has well-defined behavior, and
   does not throw exceptions.
+  Where `q=c(*p)`, the expression `d(q)` is well-defined and does 
+  not throw exceptions.
 
-* _Effects_: If `p` is null, creates an empty object. 
-
-  If `p` is non-null creates an object that owns the object `*p`, 
-  with a copier and deleter initialized from `std::move(c)` 
-  and `std::move(d)`.
+* _Effects_: If `p` is null, creates an empty object otherwise 
+  creates an object that owns the object `*p`,  with a copier 
+  and deleter initialized from `std::move(c)` and `std::move(d)` 
+  respectively.
 
 * _Throws_: `bad_alloc` if required storage cannot be obtained;
   `bad_polymorphic_value_construction` if `is_same_v<C,
   default_copy<U>>`, `is_same_v<D, default_delete<U>>` and
   `typeid(*p)!=typeid(U)` are all `true`.
 
-* _Note_:  A copier and deleter are said to be _present_ in a 
-  non-empty object initialized with this constructor.
+* _Ensures_: If `p` is null, the empty object created has no copier and no deleter.
+  Otherwise the object created owns the object `*p` and has a copier and a deleter 
+  present, initialized from `std::move(c)` and `std::move(d)` respectively.
 
 ```cpp
 polymorphic_value(const polymorphic_value& pv);
@@ -699,7 +703,7 @@ polymorphic_value& operator=(const polymorphic_value& pv);
 polymorphic_value& operator=(polymorphic_value&& pv) noexcept;
 ```
 
-* _Effects_: Equivalent to `polymorphic_value(pv).swap(*this)`.
+* _Effects_: Equivalent to `polymorphic_value(std::move(pv)).swap(*this)`.
 
 * _Returns_: `*this`.
 
@@ -715,7 +719,7 @@ avoid the need for use of dynamic memory.]
 void swap(polymorphic_value& p) noexcept;
 ```
 
-* _Effects_: Exchanges the state of `p` and `*this`.
+* _Effects_: Exchanges the states of `p` and `*this`.
 
 ### X.Z.7 Class template `polymorphic_value` observers [polymorphic_value.observers]
 
@@ -741,8 +745,7 @@ T* operator->();
 explicit operator bool() const noexcept;
 ```
 
-* _Returns_: `true` if the `polymorphic_value` owns an object, 
-  otherwise `false`.
+* _Returns_: `false` if the `polymorphic_value` is empty, otherwise `true`.
 
 ### X.Z.8 Class template `polymorphic_value` creation [polymorphic_value.creation]
 
@@ -751,19 +754,20 @@ template <class T, class U=T, class ...Ts> polymorphic_value<T>
   make_polymorphic_value(Ts&& ...ts);
 ```
 
+* _Constraints_: `is_constructible_v<U, Ts...>` is true.
+
+* _Expects_: `U` must meet the `Cpp17CopyConstructible` requirements.
+
 * _Returns_: A `polymorphic_value<T>` owning an object of type `U`
   direct-non-list-initialized with `std::forward<Ts>(ts)...`.
 
 [Note: Implementations are encouraged to avoid multiple allocations.]
 
-### X.Z.9 Class template `polymorphic_value` specialized algorithms [polymorphic_value.spec]
+### 17.3.1 General [support.limits.general]
 
-```cpp
-template <typename T>
-void swap(polymorphic_value<T>& p, polymorphic_value<T>& u) noexcept;
-```
+We recommend the addition of a feature-testing macro name `__cpp_lib_polymorphic_value` 
+in the header `<memory>`.
 
-* _Effects_: Equivalent to `p.swap(u)`.
 
 ## Acknowledgements
 
