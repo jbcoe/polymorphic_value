@@ -2,17 +2,21 @@
 
 ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
-D0201R6.1
+D0201R6.2
 
 Working Group: Library Evolution, Library
 
-Date: 2019-03-11
+Date: 2019-07-19
 
 _Jonathan Coe \<jonathanbcoe@gmail.com\>_
 
 _Sean Parent \<sparent@adobe.com\>_
 
 ## Change history
+
+Changes in P0201R6
+
+* Further clarifications to formal wording.
 
 Changes in P0201R5
 
@@ -600,7 +604,7 @@ Let `V` be `remove_cvref_t<U>`.
 
 * _Constraints_: `V*` is convertible to `T*`. `is_constructible_v<V, U>` is true.
 
-* _Expects_: `U` must meet the `Cpp17CopyConstructible` requirements.
+* _Expects_: `V` meets the `Cpp17CopyConstructible` requirements.
 
 * _Effects_: Constructs a `polymorphic_value` which owns an object of type `V`,
   direct-non-list-initialized with `std::forward<U>(u)`.
@@ -762,7 +766,7 @@ template <class T, class U=T, class ...Ts> polymorphic_value<T>
 
 * _Constraints_: `is_constructible_v<U, Ts...>` is true.
 
-* _Expects_: `U` must meet the `Cpp17CopyConstructible` requirements.
+* _Expects_: `U` meets the `Cpp17CopyConstructible` requirements.
 
 * _Returns_: A `polymorphic_value<T>` owning an object of type `U`
   direct-non-list-initialized with `std::forward<Ts>(ts)...`.
