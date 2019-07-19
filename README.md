@@ -40,6 +40,9 @@ To get the submodule run:
 git submodule update --init
 ```
 
+## Using
+Include the header `"polymorphic_value.h"` to use the `polymorphic_value` class template in your code.
+
 ## Building
 The build uses cmake driven by a simple Python script. To build and run tests, run the following from the console:
 
