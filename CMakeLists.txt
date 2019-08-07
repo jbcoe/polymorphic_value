@@ -10,8 +10,6 @@ project(polymorphic_value VERSION ${POLYMOPHIC_VALUE_VERSION})
 
 option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" OFF)
 
-add_subdirectory(externals/catch)
-
 add_library(polymorphic_value INTERFACE)
 target_include_directories(polymorphic_value
     INTERFACE
@@ -45,6 +43,8 @@ target_compile_features(polymorphic_value
 add_library(polymorphic_value::polymorphic_value ALIAS polymorphic_value)
 
 if(POLYMORPHIC_IS_NOT_SUBPROJECT)
+    add_subdirectory(externals/catch)
+
     add_executable(test_polymorphic_value test_polymorphic_value.cpp)
     target_link_libraries(test_polymorphic_value
         PRIVATE
