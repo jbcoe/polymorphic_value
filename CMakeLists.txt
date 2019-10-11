@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.14)
 
 if(NOT DEFINED PROJECT_NAME)
   set(POLYMORPHIC_IS_NOT_SUBPROJECT ON)
@@ -14,7 +14,7 @@ add_library(polymorphic_value INTERFACE)
 target_include_directories(polymorphic_value
     INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
+        $<INSTALL_INTERFACE:include>
 )
 
 target_sources(polymorphic_value
@@ -22,7 +22,7 @@ target_sources(polymorphic_value
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h>
         # Only include natvis files in Visual Studio
         $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.natvis>>
-        $<INSTALL_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:${CMAKE_INSTALL_PREFIX}/include/polymorphic_value.natvis>>
+        $<INSTALL_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:include/polymorphic_value.natvis>>
 )
 
 target_compile_features(polymorphic_value
@@ -112,49 +112,53 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
         FILES
             "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h"
             "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.natvis"
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+        DESTINATION
+            include
     )
 
     install(
         FILES
             "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt"
-        DESTINATION ${CMAKE_INSTALL_PREFIX}
+        DESTINATION
+            ./
     )
 
     install(
         TARGETS polymorphic_value
         EXPORT polymorphic_value_target
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake
+        DESTINATION
+            lib/cmake/polymorphic_value
     )
 
     install(
         EXPORT polymorphic_value_target
         NAMESPACE polymorphic_value::
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake
+        DESTINATION lib/cmake/polymorphic_value
         FILE polymorphic_value-target.cmake
     )
+
     set(INCLUDE_INSTALL_DIR include/  )
     include(CMakePackageConfigHelpers)
     configure_package_config_file(
         ${CMAKE_CURRENT_LIST_DIR}/polymorphic_value-config.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-config.cmake
         INSTALL_DESTINATION
-            ${CMAKE_INSTALL_PREFIX}/cmake
+            lib/cmake/polymorphic_value
     )
-    set(TEMP_CMAKE_SIZEOF_VOID_P ${CMAKE_SIZEOF_VOID_P})
-    unset(CMAKE_SIZEOF_VOID_P)
+
     write_basic_package_version_file(
         ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-version.cmake
         VERSION ${POLYMOPHIC_VALUE_VERSION}
         COMPATIBILITY SameMajorVersion
+        ARCH_INDEPENDENT
     )
-    set(CMAKE_SIZEOF_VOID_P ${TEMP_CMAKE_SIZEOF_VOID_P})
+
     install(
         FILES
             ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-config.cmake
             ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-version.cmake
         DESTINATION
-            ${CMAKE_INSTALL_PREFIX}/cmake
+            lib/cmake/polymorphic_value
     )
 endif(POLYMORPHIC_IS_NOT_SUBPROJECT)
 

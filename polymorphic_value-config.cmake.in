@@ -2,4 +2,4 @@
 
 set_and_check(POLYMORPHIC_VALUE_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
 
-check_required_components(Foo)
+check_required_components(polymorphic_value)
