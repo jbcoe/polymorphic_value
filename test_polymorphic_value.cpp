@@ -6,7 +6,7 @@
 #include <new>
 #include <stdexcept>
 
-using namespace jbcoe;
+using namespace isocpp_p0201;
 
 struct BaseType
 {

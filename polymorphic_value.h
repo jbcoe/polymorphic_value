@@ -30,7 +30,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <type_traits>
 #include <typeinfo>
 
-namespace jbcoe
+namespace isocpp_p0201
 {
 
   namespace detail
@@ -420,6 +420,6 @@ namespace jbcoe
     t.swap(u);
   }
 
-} // end namespace jbcoe
+} // end namespace isocpp_p0201
 
 #endif
