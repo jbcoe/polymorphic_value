@@ -137,6 +137,16 @@ TEST_CASE("Pointer constructor","[polymorphic_value.constructors]")
       REQUIRE((bool)ccptr == true);
     }
   }
+  GIVEN("Ensure nullptr pointer-constructed const polymorphic_value construct to be default initialised")
+  {
+    DerivedType* null_derived_ptr = nullptr;
+    const polymorphic_value<BaseType> ccptr(null_derived_ptr);
+
+    THEN("operator bool returns true")
+    {
+      REQUIRE((bool)ccptr == false);
+    }
+  }
 }
 
 struct BaseCloneSelf
@@ -541,7 +551,7 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
 
     REQUIRE(DerivedType::object_count == 1);
 
-    // Manually move to avoid caused by flags "-Wself-move":
+    // Manually move to avoid issues caused by flags "-Wself-move":
     //      explicitly moving variable of type 'polymorphic_value<BaseType>' to itself
     cptr1 = static_cast<jbcoe::polymorphic_value<BaseType>&&>(cptr1);
 
