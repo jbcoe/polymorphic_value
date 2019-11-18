@@ -38,7 +38,7 @@ matrix:
     ##########################################################################
 
     # Clang 4.0
-    - env: COMPILER=clang++-4.0 BUILD_TYPE=Debug 
+    - env: COMPILER=clang++-4.0 BUILD_TYPE=Debug COVERAGE=1
       addons: &clang40
         apt:
           packages:
@@ -49,7 +49,7 @@ matrix:
             - llvm-toolchain-trusty-4.0
 
     # Clang 5.0
-    - env: COMPILER=clang++-5.0 BUILD_TYPE=Debug 
+    - env: COMPILER=clang++-5.0 BUILD_TYPE=Debug COVERAGE=1
       addons: &clang50
         apt:
           packages:
@@ -62,7 +62,7 @@ matrix:
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
 
     # Clang 6.0
-    - env: COMPILER=clang++-6.0 BUILD_TYPE=Debug 
+    - env: COMPILER=clang++-6.0 BUILD_TYPE=Debug COVERAGE=1
       addons: &clang60
         apt:
           packages:
@@ -79,7 +79,7 @@ matrix:
     ##########################################################################
 
     # GCC 5
-    - env: COMPILER=g++-5 BUILD_TYPE=Debug 
+    - env: COMPILER=g++-5 BUILD_TYPE=Debug COVERAGE=1
       addons: &gcc5
         apt:
           packages: g++-5
@@ -87,7 +87,7 @@ matrix:
             - ubuntu-toolchain-r-test
 
     # GCC 6
-    - env: COMPILER=g++-6 BUILD_TYPE=Debug 
+    - env: COMPILER=g++-6 BUILD_TYPE=Debug COVERAGE=1
       addons: &gcc6
         apt:
           packages: g++-6
@@ -95,7 +95,7 @@ matrix:
             - ubuntu-toolchain-r-test
 
     # GCC 7
-    - env: COMPILER=g++-7 BUILD_TYPE=Debug 
+    - env: COMPILER=g++-7 BUILD_TYPE=Debug COVERAGE=1
       addons: &gcc7
         apt:
           packages: g++-7
@@ -166,10 +166,17 @@ before_script:
   # have CMake to generate build files
   - cd "${TRAVIS_BUILD_DIR}"
   - mkdir build && cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+  - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DENABLE_CODE_COVERAGE=$COVERAGE
 
 script:
   # build and run tests
   - cmake --build . -- -j${JOBS}
   - ctest --output-on-failure -j${JOBS}
+  # Waiting for the following issue to be fixed before Mac OS X support can be enabled: https://github.com/RWTH-HPC/CMake-codecov/pull/15
+  - |
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]] && [[ "${COVERAGE}" == "1" ]]; then
+      cmake --build . --target gcov
+      cmake --build . --target lcov
+      bash <(curl -s https://codecov.io/bash) -X gcov || echo "Codecov did not collect coverage reports"
+    fi
 
