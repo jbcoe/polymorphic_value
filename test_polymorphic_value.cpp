@@ -532,6 +532,24 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
       REQUIRE(cptr1.operator->() == p);
     }
   }
+
+  GIVEN("Guard against self-assignment during move-assigned to a pointer-constructed polymorphic_value")
+  {
+    int v1 = 7;
+
+    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
+
+    REQUIRE(DerivedType::object_count == 1);
+
+    cptr1 = std::move(cptr1);
+
+    REQUIRE(DerivedType::object_count == 1);
+
+    THEN("The move-assigned-to object is valid")
+    {
+      REQUIRE((bool)cptr1);
+    }
+  }
 }
 
 TEST_CASE("make_polymorphic_value with single template argument","[polymorphic_value.make_polymorphic_value.single]")
