@@ -541,7 +541,9 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
 
     REQUIRE(DerivedType::object_count == 1);
 
-    cptr1 = std::move(cptr1);
+    // Manually move to avoid caused by flags "-Wself-move":
+    //      explicitly moving variable of type 'polymorphic_value<BaseType>' to itself
+    cptr1 = static_cast<jbcoe::polymorphic_value<BaseType>&&>(cptr1);
 
     REQUIRE(DerivedType::object_count == 1);
 
