@@ -8,9 +8,9 @@ set(POLYMOPHIC_VALUE_VERSION "1.3.0") # Revision 3, see paper p0201r3
 
 project(polymorphic_value VERSION ${POLYMOPHIC_VALUE_VERSION})
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/conanbuildinfo.cmake)
-    include(${CMAKE_SOURCE_DIR}/conanbuildinfo.cmake)
-    conan_basic_setup(TARGETS NO_OUTPUT_DIRS)
+if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    conan_basic_setup(TARGETS)
 endif()
 
 option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" OFF)
@@ -42,23 +42,17 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
 
     include(CTest)
     if (${BUILD_TESTING})
-        #[[
-        if (NOT ${Catch2_ROOT})
-            include(FetchContent)
-            FetchContent_Declare(
-                    catch2
-                    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-            )
+        include(FetchContent)
+        FetchContent_Declare(
+            catch2
+            GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        )
 
-            FetchContent_GetProperties(catch2)
-            if(NOT catch2_POPULATED)
-                FetchContent_Populate(catch2)
-                add_subdirectory(${catch2_SOURCE_DIR} ${catch2_BINARY_DIR})
-            endif()
-        endif()]]
-
-        find_package(Catch2 REQUIRED)
-        add_subdirectory(externals/catch)
+        FetchContent_GetProperties(catch2)
+        if(NOT catch2_POPULATED)
+            FetchContent_Populate(catch2)
+            add_subdirectory(${catch2_SOURCE_DIR} ${catch2_BINARY_DIR})
+        endif()
 
         add_executable(test_polymorphic_value test_polymorphic_value.cpp)
         target_link_libraries(test_polymorphic_value
@@ -119,10 +113,10 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
             WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
         )
 
-        list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/externals/catch/contrib)
+        list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/contrib)
         include(Catch)
         catch_discover_tests(test_polymorphic_value)
-    endif(BUILD_TESTING)
+    endif(${BUILD_TESTING})
 
     include(GNUInstallDirs)
     install(
