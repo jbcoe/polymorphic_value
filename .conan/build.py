@@ -26,8 +26,8 @@ def stable_branch_pattern():
 
 def version():
     version = 'latest'
-    with open(os.path.join(os.path.dirname(__file__), "..", "linear_algebra", "code", "CMakeLists.txt")) as file:
-        pattern = re.compile(r'project\(wg21_linear_algebra VERSION (\d+\.\d+\.\d+)\)')
+    with open(os.path.join(os.path.dirname(__file__), "..", "CMakeLists.txt")) as file:
+        pattern = re.compile(r'set(POLYMOPHIC_VALUE_VERSION (\d+\.\d+\.\d+)\)')
         for line in file:
             result = pattern.search(line)
             if result:
@@ -35,7 +35,7 @@ def version():
     return version
 
 def reference():
-    return os.getenv("CONAN_REFERENCE", "linear_algebra/{}".format(version()))
+    return os.getenv("CONAN_REFERENCE", "polymorphic_value/{}".format(version()))
 
 if __name__ == "__main__":
 

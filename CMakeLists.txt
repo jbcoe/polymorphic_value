@@ -4,9 +4,9 @@ if(NOT DEFINED PROJECT_NAME)
   set(POLYMORPHIC_IS_NOT_SUBPROJECT ON)
 endif()
 
-set(POLYMOPHIC_VALUE_VERSION "1.3.0") # Revision 3, see paper p0201r3
+set(POLYMOPHIC_VALUE_VERSION 1.3.0) # Revision 3, see paper p0201r3
 
-project(polymorphic_value VERSION ${POLYMOPHIC_VALUE_VERSION})
+project(polymorphic_value LANGUAGES CXX  VERSION ${POLYMOPHIC_VALUE_VERSION})
 
 if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)

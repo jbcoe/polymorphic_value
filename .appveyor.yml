@@ -48,5 +48,4 @@ install:
   - conan user # It creates the conan data directory
 
 build_script:
-  - python .conan/build.py 
-
+  - python .conan/build.py
