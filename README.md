@@ -1,17 +1,5 @@
-
-
-## Submodules
-Tests use the 'catch' test framework: <https://github.com/philsquared/Catch.git>
-
-To get the submodule run:
-
-```
-git submodule update --init
-```
-
-## Build status
-- on Travis: [![Travis Build Status](https://travis-ci.org/jbcoe/polymorphic_value.svg?branch=master)](https://travis-ci.org/jbcoe/polymorphic_value)
-- on AppVeyor: [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/jbcoe/polymorphic_value?svg=true&branch=master)](https://ci.appveyor.com/project/jbcoe/polymorphic-value)
+[![Travis Build Status](https://travis-ci.org/jbcoe/polymorphic_value.svg?branch=master)](https://travis-ci.org/jbcoe/polymorphic_value)
+[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/jbcoe/polymorphic_value?svg=true&branch=master)](https://ci.appveyor.com/project/jbcoe/polymorphic-value)
 
 # Contents
 - [A polymorphic value-type for C++](#a-polymorphic-value-type-for-c++)
