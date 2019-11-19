@@ -108,33 +108,34 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
     include(Catch)
     catch_discover_tests(test_polymorphic_value)
 
+    include(GNUInstallDirs)
     install(
         FILES
             "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h"
             "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.natvis"
         DESTINATION
-            include
+            ${CMAKE_INSTALL_INCLUDEDIR}
     )
 
     install(
         FILES
             "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt"
         DESTINATION
-            ./
+            "${CMAKE_INSTALL_DATAROOTDIR}/licenses/polymorphic_value"
     )
 
     install(
         TARGETS polymorphic_value
-        EXPORT polymorphic_value_target
-        DESTINATION
-            lib/cmake/polymorphic_value
+        EXPORT polymorphic_value-target
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
 
     install(
-        EXPORT polymorphic_value_target
+        EXPORT polymorphic_value-target
         NAMESPACE polymorphic_value::
-        DESTINATION lib/cmake/polymorphic_value
-        FILE polymorphic_value-target.cmake
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/polymorphic_value"
     )
 
     set(INCLUDE_INSTALL_DIR include/  )
@@ -143,7 +144,7 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
         ${CMAKE_CURRENT_LIST_DIR}/polymorphic_value-config.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-config.cmake
         INSTALL_DESTINATION
-            lib/cmake/polymorphic_value
+            "${CMAKE_INSTALL_LIBDIR}/cmake/polymorphic_value"
     )
 
     write_basic_package_version_file(
@@ -158,7 +159,7 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
             ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-config.cmake
             ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-version.cmake
         DESTINATION
-            lib/cmake/polymorphic_value
+            "${CMAKE_INSTALL_LIBDIR}/cmake/polymorphic_value"
     )
 endif(POLYMORPHIC_IS_NOT_SUBPROJECT)
 
