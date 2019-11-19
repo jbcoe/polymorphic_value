@@ -27,7 +27,7 @@ def stable_branch_pattern():
 def version():
     version = 'latest'
     with open(os.path.join(os.path.dirname(__file__), "..", "CMakeLists.txt")) as file:
-        pattern = re.compile(r'set(POLYMOPHIC_VALUE_VERSION (\d+\.\d+\.\d+)\)')
+        pattern = re.compile(r'set\(POLYMOPHIC_VALUE_VERSION (\d+\.\d+\.\d+)\)')
         for line in file:
             result = pattern.search(line)
             if result:
