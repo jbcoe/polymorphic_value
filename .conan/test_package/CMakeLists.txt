@@ -12,6 +12,11 @@ find_package(Catch2 REQUIRED)
 add_executable(test_polymorphic_value ../../test_polymorphic_value.cpp)
 target_link_libraries(test_polymorphic_value PRIVATE polymorphic_value::polymorphic_value Catch2::Catch2)
 
+target_compile_options(test_polymorphic_value
+    PRIVATE
+        $<$<PLATFORM_ID:MinGW>:-Wa;-mbig-obj>
+)
+
 enable_testing()
 include(Catch)
 catch_discover_tests(test_polymorphic_value)
