@@ -5,8 +5,7 @@ environment:
   CONAN_CMAKE_GENERATOR: Ninja
   CONAN_PRINT_RUN_COMMANDS: 1
   PYTHON_HOME: "C:\\Python37"
-
-    matrix:
+  matrix:
       - MINGW_CONFIGURATIONS: '6@x86_64@seh@posix'
       - MINGW_CONFIGURATIONS: '7@x86_64@seh@posix'
       - MINGW_CONFIGURATIONS: '8@x86_64@seh@posix'
