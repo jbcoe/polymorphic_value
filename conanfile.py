@@ -3,7 +3,7 @@
 from conans import ConanFile, CMake, tools
 import os.path
 
-class LinearAlgebraConan(ConanFile):
+class PolymorphicValueConan(ConanFile):
     name = "polymorphic_value"
     version = "1.3.0"
     license = "MIT"
