@@ -766,20 +766,6 @@ TEST_CASE("polymorphic_value<const T>", "[polymorphic_value.compatible_types]")
   // p->set_value(42);
 }
 
-
-class ExceptionMatcher : public Catch::MatcherBase<bad_polymorphic_value_construction> {
-public:
-    ExceptionMatcher() = default;
-    bool match(bad_polymorphic_value_construction const& se) const override {
-        return std::string(se.what()).find("polymorphic_value") != std::string::npos;
-    }
-    std::string describe() const override {
-        std::ostringstream ss;
-        ss << "Exception of type bad_polymorphic_value_construction was thrown";
-        return ss.str();
-    }
-};
-
 TEST_CASE("Check exception object construction",
           "[polymorphic_value.construction.exception]")
 {
