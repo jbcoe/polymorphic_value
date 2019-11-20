@@ -15,11 +15,16 @@ endif()
 
 option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" OFF)
 
+include(CTest)
+include(FetchContent)
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 add_library(polymorphic_value INTERFACE)
 target_include_directories(polymorphic_value
     INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 target_sources(polymorphic_value
@@ -27,7 +32,7 @@ target_sources(polymorphic_value
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h>
         # Only include natvis files in Visual Studio
         $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.natvis>>
-        $<INSTALL_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:include/polymorphic_value.natvis>>
+        $<INSTALL_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:${CMAKE_INSTALL_INCLUDEDIR}/polymorphic_value.natvis>>
 )
 
 target_compile_features(polymorphic_value
@@ -40,9 +45,7 @@ add_library(polymorphic_value::polymorphic_value ALIAS polymorphic_value)
 
 if(POLYMORPHIC_IS_NOT_SUBPROJECT)
 
-    include(CTest)
     if (${BUILD_TESTING})
-        include(FetchContent)
         FetchContent_Declare(
             catch2
             GIT_REPOSITORY https://github.com/catchorg/Catch2.git
@@ -118,7 +121,6 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
         catch_discover_tests(test_polymorphic_value)
     endif(${BUILD_TESTING})
 
-    include(GNUInstallDirs)
     install(
         FILES
             "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h"
@@ -148,8 +150,6 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/polymorphic_value"
     )
 
-    set(INCLUDE_INSTALL_DIR include/  )
-    include(CMakePackageConfigHelpers)
     configure_package_config_file(
         ${CMAKE_CURRENT_LIST_DIR}/polymorphic_value-config.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-config.cmake
