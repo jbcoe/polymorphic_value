@@ -32,7 +32,7 @@ target_sources(polymorphic_value
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h>
         # Only include natvis files in Visual Studio
         $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.natvis>>
-        $<INSTALL_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:${CMAKE_INSTALL_INCLUDEDIR}/polymorphic_value.natvis>>
+        $<INSTALL_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}/polymorphic_value.natvis>>
 )
 
 target_compile_features(polymorphic_value
