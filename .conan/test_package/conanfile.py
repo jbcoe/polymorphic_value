@@ -3,8 +3,6 @@
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 from conans import ConanFile, CMake, tools
-import os
-
 
 class TestPackageConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
