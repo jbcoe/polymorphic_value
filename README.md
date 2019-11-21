@@ -4,7 +4,6 @@
 [![appveyor][badge.appveyor]][appveyor]
 [![language][badge.language]][language]
 [![license][badge.license]][license]
-https://img.shields.io/travis/BlackMATov/enum.hpp/master.svg?logo=travis
 
 [badge.travis]: https://img.shields.io/travis/jbcoe/polymorphic_value/master.svg?logo=travis
 [badge.appveyor]: https://img.shields.io/appveyor/ci/jbcoe/polymorphic-value/master.svg?logo=appveyor
