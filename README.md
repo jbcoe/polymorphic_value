@@ -4,9 +4,10 @@
 [![appveyor][badge.appveyor]][appveyor]
 [![language][badge.language]][language]
 [![license][badge.license]][license]
+https://img.shields.io/travis/BlackMATov/enum.hpp/master.svg?logo=travis
 
 [badge.travis]: https://img.shields.io/travis/jbcoe/polymorphic_value/master.svg?logo=travis
-[badge.appveyor]: https://img.shields.io/appveyor/jbcoe/polymorphic_value/master.svg?logo=appveyor
+[badge.appveyor]: https://img.shields.io/appveyor/ci/jbcoe/polymorphic-value/master.svg?logo=appveyor
 [badge.language]: https://img.shields.io/badge/language-C%2B%2B14-yellow.svg
 [badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
 
