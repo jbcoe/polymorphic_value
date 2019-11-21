@@ -11,13 +11,18 @@ class TestPackageConan(ConanFile):
     generators = "cmake"
     build_requires = "Catch2/2.10.2@catchorg/stable"
 
+    _cmake = None
+    @property
+    def cmake(self):
+        if self._cmake is None:
+            self._cmake = CMake(self)
+            self._cmake.configure()
+        return self._cmake
+
     def build(self):
-        cmake = CMake(self)
-        cmake.configure()
-        cmake.build()
+        self.cmake.build()
 
     def test(self):
         if tools.cross_building(self.settings):
             return
-        bin_path = os.path.join("bin", "test_polymorphic_value")
-        self.run(bin_path, run_environment=True)
+        self.cmake.test()
