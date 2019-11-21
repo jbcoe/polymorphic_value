@@ -14,7 +14,8 @@ target_link_libraries(test_polymorphic_value PRIVATE polymorphic_value::polymorp
 
 target_compile_options(test_polymorphic_value
     PRIVATE
-        $<$<PLATFORM_ID:MinGW>:-Wa;-mbig-obj>
+        $<$<CXX_COMPILER_ID:GNU>:-Wa;-mbig-obj>
+        #$<$<PLATFORM_ID:MinGW>:-Wa;-mbig-obj>
 )
 
 enable_testing()
