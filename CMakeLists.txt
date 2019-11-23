@@ -14,6 +14,7 @@ if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 endif()
 
 option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" OFF)
+option(ENABLE_CODE_COVERAGE "Enable code coverage if available (Mac OS X currently not supported)" OFF)
 
 include(CTest)
 include(FetchContent)
@@ -120,6 +121,30 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
         include(Catch)
         catch_discover_tests(test_polymorphic_value)
     endif(${BUILD_TESTING})
+
+    if (APPLE)
+        SET(ENABLE_CODE_COVERAGE OFF CACHE BOOL "Ensure code coverage is switched off for Mac OS until the code coverage library addresses the AppleClang issue" FORCE)
+    endif()
+
+    if (ENABLE_CODE_COVERAGE)
+        include(FetchContent)
+        FetchContent_Declare(
+            codecoverage
+            GIT_REPOSITORY https://github.com/RWTH-HPC/CMake-codecov.git
+        )
+
+        FetchContent_GetProperties(codecoverage)
+        if(NOT codecoverage_POPULATED)
+            FetchContent_Populate(codecoverage)
+            list(APPEND CMAKE_MODULE_PATH ${codecoverage_SOURCE_DIR}/cmake)
+        endif()
+
+        set(ENABLE_COVERAGE ON CACHE BOOL "Enable coverage build." FORCE)
+        find_package(codecov)
+        add_coverage(test_polymorphic_value)
+        list(APPEND LCOV_REMOVE_PATTERNS "'/usr/*'")
+        coverage_evaluate()
+    endif()
 
     install(
         FILES

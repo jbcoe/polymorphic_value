@@ -67,4 +67,11 @@ install:
 
 script:
   - ./.travis/run.sh
+  # Waiting for the following issue to be fixed before Mac OS X support can be enabled: https://github.com/RWTH-HPC/CMake-codecov/pull/15
+  - |
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]] && [[ "${COVERAGE}" == "1" ]]; then
+      cmake --build . --target gcov
+      cmake --build . --target lcov
+      bash <(curl -s https://codecov.io/bash) -X gcov || echo "Codecov did not collect coverage reports"
+    fi
 
