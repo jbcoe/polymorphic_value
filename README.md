@@ -1,3 +1,9 @@
+[![Travis Build Status](https://travis-ci.org/jbcoe/polymorphic_value.svg?branch=master)](https://travis-ci.org/jbcoe/polymorphic_value)
+[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/jbcoe/polymorphic_value?svg=true&branch=master)](https://ci.appveyor.com/project/jbcoe/polymorphic-value)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/jbcoe/polymorphic_value/master/LICENSE.MIT)
+[![GitHub Issues](https://img.shields.io/github/issues/jbcoe/indirect.svg)](http://github.com/jbcoe/polymorphic_value/issues)
+[![codecov](https://codecov.io/gh/jbcoe/polymorphic_value/branch/master/graph/badge.svg)](https://codecov.io/gh/jbcoe/polymorphic_value)
+
 # A polymorphic value-type for C++
 
 The class template `polymorphic_value` is proposed for addition to the C++ Standard Library.
@@ -49,10 +55,6 @@ The build uses cmake driven by a simple Python script. To build and run tests, r
 ```
 ./scripts/build.py --tests
 ```
-
-## Build status
-- on Travis: [![Travis Build Status](https://travis-ci.org/jbcoe/polymorphic_value.svg?branch=master)](https://travis-ci.org/jbcoe/polymorphic_value)
-- on AppVeyor: [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/jbcoe/polymorphic_value?svg=true&branch=master)](https://ci.appveyor.com/project/jbcoe/polymorphic-value)
 
 ## ISO Standardisation
 `polymorphic_value` has been proposed for standardisation for C++20 in P0201: <http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0201r1.pdf>.
