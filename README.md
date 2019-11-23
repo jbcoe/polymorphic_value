@@ -12,7 +12,7 @@
 [badge.language]: https://img.shields.io/badge/language-C%2B%2B14-yellow.svg
 [badge.codecov]: https://img.shields.io/codecov/c/github/jbcoe/polymorphic_value/master.svg?logo=codecov
 [badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
-[badge.issues]: https://img.shields.io/github/issues/jbcoe/indirect.svg
+[badge.issues]: https://img.shields.io/github/issues/jbcoe/polymorphic_value.svg
 
 [travis]: https://travis-ci.org/jbcoe/polymorphic_value
 [appveyor]: https://ci.appveyor.com/project/jbcoe/polymorphic-value
