@@ -137,6 +137,16 @@ TEST_CASE("Pointer constructor","[polymorphic_value.constructors]")
       REQUIRE((bool)ccptr == true);
     }
   }
+  GIVEN("Ensure nullptr pointer-constructed const polymorphic_value construct to be default initialised")
+  {
+    DerivedType* null_derived_ptr = nullptr;
+    const polymorphic_value<BaseType> ccptr(null_derived_ptr);
+
+    THEN("operator bool returns true")
+    {
+      REQUIRE((bool)ccptr == false);
+    }
+  }
 }
 
 struct BaseCloneSelf
@@ -532,6 +542,26 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
       REQUIRE(cptr1.operator->() == p);
     }
   }
+
+  GIVEN("Guard against self-assignment during move-assigned to a pointer-constructed polymorphic_value")
+  {
+    int v1 = 7;
+
+    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
+
+    REQUIRE(DerivedType::object_count == 1);
+
+    // Manually move to avoid issues caused by flags "-Wself-move":
+    //      explicitly moving variable of type 'polymorphic_value<BaseType>' to itself
+    cptr1 = static_cast<jbcoe::polymorphic_value<BaseType>&&>(cptr1);
+
+    REQUIRE(DerivedType::object_count == 1);
+
+    THEN("The move-assigned-to object is valid")
+    {
+      REQUIRE((bool)cptr1);
+    }
+  }
 }
 
 TEST_CASE("make_polymorphic_value with single template argument","[polymorphic_value.make_polymorphic_value.single]")
@@ -736,6 +766,14 @@ TEST_CASE("polymorphic_value<const T>", "[polymorphic_value.compatible_types]")
   // p->set_value(42);
 }
 
+TEST_CASE("Check exception object construction",
+          "[polymorphic_value.construction.exception]")
+{
+    bad_polymorphic_value_construction exception;
+    // Should find an error message referencing polymorphic_value.
+    CHECK(std::string(exception.what()).find("polymorphic_value") != std::string::npos);
+}
+
 class DeeplyDerivedType : public DerivedType
 {
 public:
@@ -752,8 +790,7 @@ TEST_CASE("polymorphic_value dynamic and static type mismatch",
 
   CHECK(typeid(*p) != typeid(DerivedType));
 
-  CHECK_THROWS_AS([p] { return polymorphic_value<BaseType>(p); }(),
-                  bad_polymorphic_value_construction);
+  CHECK_THROWS_AS([p] { return polymorphic_value<BaseType>(p); }(), bad_polymorphic_value_construction);
 }
 
 struct fake_copy
