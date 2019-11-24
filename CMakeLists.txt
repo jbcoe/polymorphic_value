@@ -125,10 +125,6 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
         catch_discover_tests(test_polymorphic_value)
     endif(${BUILD_TESTING})
 
-    if (APPLE)
-        SET(ENABLE_CODE_COVERAGE OFF CACHE BOOL "Ensure code coverage is switched off for Mac OS until the code coverage library addresses the AppleClang issue" FORCE)
-    endif()
-
     if (ENABLE_CODE_COVERAGE)
         include(FetchContent)
         FetchContent_Declare(
