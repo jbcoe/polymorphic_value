@@ -13,13 +13,13 @@ if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     conan_basic_setup(TARGETS)
 endif()
 
-option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" OFF)
-option(ENABLE_CODE_COVERAGE "Enable code coverage if available (Mac OS X currently not supported)" OFF)
-
 include(CTest)
 include(FetchContent)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+
+option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" OFF)
+option(ENABLE_CODE_COVERAGE "Enable code coverage if available (Mac OS X currently not supported)" OFF)
 
 add_library(polymorphic_value INTERFACE)
 target_include_directories(polymorphic_value
@@ -33,7 +33,7 @@ target_sources(polymorphic_value
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h>
         # Only include natvis files in Visual Studio
         $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.natvis>>
-        $<INSTALL_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}/polymorphic_value.natvis>>
+        $<INSTALL_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:${CMAKE_INSTALL_FULL_INCLUDEDIR}/polymorphic_value.natvis>>
 )
 
 target_compile_features(polymorphic_value
