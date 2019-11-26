@@ -8,7 +8,10 @@ class TestPackageConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
     build_requires = "Catch2/2.10.2@catchorg/stable"
-
+    options = {'build_testing': [True, False],
+               "enable_code_coverage": [True, False]}
+    default_options = {'build_testing': False,
+                       'enable_code_coverage': False}
     _cmake = None
     @property
     def cmake(self):

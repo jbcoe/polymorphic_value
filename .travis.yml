@@ -3,6 +3,7 @@ env:
     - CONAN_BUILD_REQUIRES="cmake_installer/3.14.7@conan/stable, ninja/1.9.0"
     - CONAN_CMAKE_GENERATOR=Ninja
     - CONAN_PRINT_RUN_COMMANDS=1
+    - COVERAGE=0
 
 linux: &linux
   os: linux
@@ -22,30 +23,30 @@ matrix:
     - <<: *linux
       env: CONAN_GCC_VERSIONS=9 CONAN_ARCHS=armv8 CONAN_DOCKER_IMAGE=conanio/gcc9-armv8
     - <<: *linux
-      env: CONAN_GCC_VERSIONS=5 CONAN_DOCKER_IMAGE=conanio/gcc5
+      env: CONAN_GCC_VERSIONS=5 CONAN_DOCKER_IMAGE=conanio/gcc5 COVERAGE=1
     - <<: *linux
-      env: CONAN_GCC_VERSIONS=6 CONAN_DOCKER_IMAGE=conanio/gcc6
+      env: CONAN_GCC_VERSIONS=6 CONAN_DOCKER_IMAGE=conanio/gcc6 COVERAGE=1
     - <<: *linux
-      env: CONAN_GCC_VERSIONS=7 CONAN_DOCKER_IMAGE=conanio/gcc7
+      env: CONAN_GCC_VERSIONS=7 CONAN_DOCKER_IMAGE=conanio/gcc7 COVERAGE=1
     - <<: *linux
-      env: CONAN_GCC_VERSIONS=8 CONAN_DOCKER_IMAGE=conanio/gcc8
+      env: CONAN_GCC_VERSIONS=8 CONAN_DOCKER_IMAGE=conanio/gcc8 COVERAGE=1
     - <<: *linux
       env: CONAN_GCC_VERSIONS=9 CONAN_DOCKER_IMAGE=conanio/gcc9
     - <<: *linux
-      env: CONAN_CLANG_VERSIONS=3.9 CONAN_DOCKER_IMAGE=conanio/clang39
+      env: CONAN_CLANG_VERSIONS=3.9 CONAN_DOCKER_IMAGE=conanio/clang39 COVERAGE=1
     - <<: *linux
-      env: CONAN_CLANG_VERSIONS=4.0 CONAN_DOCKER_IMAGE=conanio/clang40
+      env: CONAN_CLANG_VERSIONS=4.0 CONAN_DOCKER_IMAGE=conanio/clang40 COVERAGE=1
     - <<: *linux
-      env: CONAN_CLANG_VERSIONS=5.0 CONAN_DOCKER_IMAGE=conanio/clang50
+      env: CONAN_CLANG_VERSIONS=5.0 CONAN_DOCKER_IMAGE=conanio/clang50 COVERAGE=1
     - <<: *linux
-      env: CONAN_CLANG_VERSIONS=6.0 CONAN_DOCKER_IMAGE=conanio/clang60
+      env: CONAN_CLANG_VERSIONS=6.0 CONAN_DOCKER_IMAGE=conanio/clang60 COVERAGE=1
     - <<: *linux
-      env: CONAN_CLANG_VERSIONS=7.0 CONAN_DOCKER_IMAGE=conanio/clang7
+      env: CONAN_CLANG_VERSIONS=7.0 CONAN_DOCKER_IMAGE=conanio/clang7 COVERAGE=1
     # libc++ 32 bit is broken in the clang8/clang9 Docker images
     - <<: *linux
-      env: CONAN_CLANG_VERSIONS=8 CONAN_ARCHS=x86_64 CONAN_DOCKER_IMAGE=conanio/clang8
+      env: CONAN_CLANG_VERSIONS=8 CONAN_ARCHS=x86_64 CONAN_DOCKER_IMAGE=conanio/clang8 COVERAGE=1
     - <<: *linux
-      env: CONAN_CLANG_VERSIONS=9 CONAN_ARCHS=x86_64 CONAN_DOCKER_IMAGE=conanio/clang9
+      env: CONAN_CLANG_VERSIONS=9 CONAN_ARCHS=x86_64 CONAN_DOCKER_IMAGE=conanio/clang9 COVERAGE=1
     - <<: *osx
       osx_image: xcode8.3
       env: CONAN_APPLE_CLANG_VERSIONS=8.1

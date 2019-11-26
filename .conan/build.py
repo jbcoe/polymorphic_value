@@ -37,6 +37,16 @@ def version():
 def reference():
     return os.getenv("CONAN_REFERENCE", "polymorphic_value/{}".format(version()))
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 if __name__ == "__main__":
 
     # To call this its usual for Travis or Appveyor to set environment variables in order to either provide setting you dont want to be visible in the script (i.e. passwords)
@@ -53,7 +63,15 @@ if __name__ == "__main__":
     parser.add_argument('--login', default=login_username(), help="The name of a user within the organisation to upload the package under.")
     parser.add_argument('--upload', default=upload(), help="The remote URL to upload to.")
     parser.add_argument('--channel', default=channel(), help="The channel to upload to by default, unless the branch name matches the specified stable branch matching pattern.")
+    parser.add_argument('--testing', default=False, type=str2bool, help="Build and run the unit tests as part of the build process")
+    parser.add_argument('--code_coverage', default=False, type=str2bool, help="Calculate code coverage as part of running the unit tests.")
     args = parser.parse_args()
+
+    options = {}
+    if args.testing:
+        options['polymorphic_value:build_testing'] = True
+    if args.code_coverage:
+        options['polymorphic_value:enable_code_coverage'] = True
 
     builder = ConanMultiPackager(
         username = args.username,
@@ -64,5 +82,7 @@ if __name__ == "__main__":
         reference=reference(),
         test_folder=os.path.join(".conan", "test_package")
     )
+    if options:
+        builder.add(options=options)
     builder.add_common_builds()
     builder.run()
