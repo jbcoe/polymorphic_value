@@ -73,7 +73,7 @@ if __name__ == "__main__":
     if args.code_coverage:
         options['polymorphic_value:enable_code_coverage'] = True
 
-    builder = ConanMultiPackager(
+    builder = ConanMultiPackager(pip_install=["codecov==2.0.15"],
         username = args.username,
         login_username=args.login,
         upload=args.upload,

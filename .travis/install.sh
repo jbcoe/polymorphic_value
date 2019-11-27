@@ -21,6 +21,5 @@ fi
 
 pip install conan --upgrade
 pip install conan_package_tools==0.30.2
-pip install codecov
 
 conan user
