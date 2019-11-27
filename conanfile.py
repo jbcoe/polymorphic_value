@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from conans import ConanFile, CMake
-import codecov
 import sys
 import copy
 
@@ -49,7 +48,9 @@ class PolymorphicValueConan(ConanFile):
             self.cmake.test()
             if self._cmake.definitions["ENABLE_CODE_COVERAGE"]:
                 with ClearProgramArgs() as _:
+                    import codecov
                     codecov.main()
+                #codecov.main(sys.argv[0], "")
 
     def package(self):
         self.cmake.install()
