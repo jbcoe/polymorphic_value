@@ -9,7 +9,7 @@ conan_basic_setup(TARGETS)
 find_package(polymorphic_value REQUIRED)
 find_package(Catch2 REQUIRED)
 
-add_executable(test_polymorphic_value ../../test_polymorphic_value.cpp)
+add_executable(test_polymorphic_value test_package.cpp)
 target_link_libraries(test_polymorphic_value PRIVATE polymorphic_value::polymorphic_value Catch2::Catch2)
 
 target_compile_options(test_polymorphic_value
@@ -18,5 +18,8 @@ target_compile_options(test_polymorphic_value
 )
 
 enable_testing()
-include(Catch)
-catch_discover_tests(test_polymorphic_value)
+add_test(
+    NAME test_polymorphic_value
+    COMMAND test_polymorphic_value
+    WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
