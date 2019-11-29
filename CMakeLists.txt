@@ -13,13 +13,15 @@ if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     conan_basic_setup(TARGETS)
 endif()
 
-option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" OFF)
-option(ENABLE_CODE_COVERAGE "Enable code coverage if available (Mac OS X currently not supported)" OFF)
-
 include(CTest)
 include(FetchContent)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+
+# Ensure code coverage is switched off for Mac OS until the code coverage library addresses the AppleClang issue
+cmake_dependent_option(ENABLE_CODE_COVERAGE "Enable code coverage" ON "\"${CMAKE_CXX_COMPILER_ID}\" STREQUAL \"Clang\" OR \"${CMAKE_CXX_COMPILER_ID}\" STREQUAL \"GNU\"" OFF)
+cmake_dependent_option(ENABLE_INCLUDE_NATVIS "Enable inclusion of a natvis file for debugging" ON "\"${CMAKE_CXX_COMPILER_ID}\" STREQUAL \"MSVC\"" OFF)
+option(ENABLE_SANITIZERS "Enable Address Sanitizer and Undefined Behaviour Sanitizer if available" OFF)
 
 add_library(polymorphic_value INTERFACE)
 target_include_directories(polymorphic_value
@@ -33,7 +35,7 @@ target_sources(polymorphic_value
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h>
         # Only include natvis files in Visual Studio
         $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.natvis>>
-        $<INSTALL_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}/polymorphic_value.natvis>>
+        $<INSTALL_INTERFACE:$<$<BOOL:${ENABLE_INCLUDE_NATVIS}>:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}/polymorphic_value.natvis>>
 )
 
 target_compile_features(polymorphic_value
@@ -121,10 +123,6 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
         include(Catch)
         catch_discover_tests(test_polymorphic_value)
     endif(${BUILD_TESTING})
-
-    if (APPLE)
-        SET(ENABLE_CODE_COVERAGE OFF CACHE BOOL "Ensure code coverage is switched off for Mac OS until the code coverage library addresses the AppleClang issue" FORCE)
-    endif()
 
     if (ENABLE_CODE_COVERAGE)
         include(FetchContent)
