@@ -16,6 +16,7 @@ endif()
 include(CTest)
 include(FetchContent)
 include(GNUInstallDirs)
+include(CMakeDependentOption)
 include(CMakePackageConfigHelpers)
 
 # Ensure code coverage is switched off for Mac OS until the code coverage library addresses the AppleClang issue
