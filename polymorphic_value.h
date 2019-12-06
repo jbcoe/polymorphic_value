@@ -146,7 +146,7 @@ namespace jbcoe
 
   } // end namespace detail
 
-  class bad_polymorphic_value_construction : std::exception
+  class bad_polymorphic_value_construction : public std::exception
   {
   public:
     bad_polymorphic_value_construction() noexcept = default;
