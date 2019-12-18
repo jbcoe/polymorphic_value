@@ -361,7 +361,7 @@ namespace jbcoe
 
     explicit operator bool() const
     {
-      return (bool)cb_;
+      return bool (cb_);
     }
 
     const T* operator->() const
@@ -399,7 +399,7 @@ namespace jbcoe
     p.cb_ = std::make_unique<detail::direct_control_block<T, T>>(
         std::forward<Ts>(ts)...);
     p.ptr_ = p.cb_->ptr();
-    return std::move(p);
+    return p;
   }
   template <class T, class U, class... Ts>
   polymorphic_value<T> make_polymorphic_value(Ts&&... ts)
@@ -408,7 +408,7 @@ namespace jbcoe
     p.cb_ = std::make_unique<detail::direct_control_block<T, U>>(
         std::forward<Ts>(ts)...);
     p.ptr_ = p.cb_->ptr();
-    return std::move(p);
+    return p;
   }
 
   //
