@@ -20,7 +20,7 @@ class PolymorphicValueConan(ConanFile):
 
     _cmake = None
     @property
-    def cmake(self):git
+    def cmake(self)
         if self._cmake is None:
             self._cmake = CMake(self)
             self._cmake.definitions.update({
