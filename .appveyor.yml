@@ -7,11 +7,17 @@ environment:
   PYTHON_HOME: "C:\\Python37"
   matrix:
       - MINGW_CONFIGURATIONS: '6@x86@dwarf2@posix'
+        CONAN_ARCHS: x86
       - MINGW_CONFIGURATIONS: '6@x86_64@seh@posix'
+        CONAN_ARCHS: x86_64
       - MINGW_CONFIGURATIONS: '7@x86@dwarf2@posix'
+        CONAN_ARCHS: x86
       - MINGW_CONFIGURATIONS: '7@x86_64@seh@posix'
+        CONAN_ARCHS: x86_64
       - MINGW_CONFIGURATIONS: '8@x86@dwarf2@posix'
+        CONAN_ARCHS: x86
       - MINGW_CONFIGURATIONS: '8@x86_64@seh@posix'
+        CONAN_ARCHS: x86_64
       - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
         CONAN_VISUAL_VERSIONS: 15
         CONAN_BUILD_TYPES: Release
