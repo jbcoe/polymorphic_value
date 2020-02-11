@@ -219,11 +219,12 @@ namespace jbcoe
         return;
       }
 
+#ifndef POLYMORPHIC_VALUE_NO_RTTI
       if (std::is_same<D, detail::default_delete<U>>::value &&
           std::is_same<C, detail::default_copy<U>>::value &&
           typeid(*u) != typeid(U))
         throw bad_polymorphic_value_construction();
-
+#endif
       std::unique_ptr<U, D> p(u, std::move(deleter));
 
       cb_ = std::make_unique<detail::pointer_control_block<T, U, C, D>>(
