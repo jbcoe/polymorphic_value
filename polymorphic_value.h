@@ -146,7 +146,7 @@ namespace isocpp_p0201
 
   } // end namespace detail
 
-  class bad_polymorphic_value_construction : std::exception
+  class bad_polymorphic_value_construction : public std::exception
   {
   public:
     bad_polymorphic_value_construction() noexcept = default;
@@ -219,11 +219,12 @@ namespace isocpp_p0201
         return;
       }
 
+#ifndef POLYMORPHIC_VALUE_NO_RTTI
       if (std::is_same<D, detail::default_delete<U>>::value &&
           std::is_same<C, detail::default_copy<U>>::value &&
           typeid(*u) != typeid(U))
         throw bad_polymorphic_value_construction();
-
+#endif
       std::unique_ptr<U, D> p(u, std::move(deleter));
 
       cb_ = std::make_unique<detail::pointer_control_block<T, U, C, D>>(
@@ -361,7 +362,7 @@ namespace isocpp_p0201
 
     explicit operator bool() const
     {
-      return (bool)cb_;
+      return bool (cb_);
     }
 
     const T* operator->() const
@@ -399,7 +400,7 @@ namespace isocpp_p0201
     p.cb_ = std::make_unique<detail::direct_control_block<T, T>>(
         std::forward<Ts>(ts)...);
     p.ptr_ = p.cb_->ptr();
-    return std::move(p);
+    return p;
   }
   template <class T, class U, class... Ts>
   polymorphic_value<T> make_polymorphic_value(Ts&&... ts)
@@ -408,7 +409,7 @@ namespace isocpp_p0201
     p.cb_ = std::make_unique<detail::direct_control_block<T, U>>(
         std::forward<Ts>(ts)...);
     p.ptr_ = p.cb_->ptr();
-    return std::move(p);
+    return p;
   }
 
   //

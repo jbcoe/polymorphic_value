@@ -6,11 +6,11 @@ environment:
   CONAN_PRINT_RUN_COMMANDS: 1
   PYTHON_HOME: "C:\\Python37"
   matrix:
-      - MINGW_CONFIGURATIONS: '6@x86@dwarf2@posix'
+      - MINGW_CONFIGURATIONS: '6@x86@sjlj@posix'
       - MINGW_CONFIGURATIONS: '6@x86_64@seh@posix'
-      - MINGW_CONFIGURATIONS: '7@x86@dwarf2@posix'
+      - MINGW_CONFIGURATIONS: '7@x86@sjlj@posix'
       - MINGW_CONFIGURATIONS: '7@x86_64@seh@posix'
-      - MINGW_CONFIGURATIONS: '8@x86@dwarf2@posix'
+      - MINGW_CONFIGURATIONS: '8@x86@sjlj@posix'
       - MINGW_CONFIGURATIONS: '8@x86_64@seh@posix'
       - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
         CONAN_VISUAL_VERSIONS: 15
