@@ -38,7 +38,7 @@ target_sources(polymorphic_value
 
 target_compile_features(polymorphic_value
     INTERFACE
-        cxx_std_14
+        cxx_std_17
 )
 
 # namespaced alias for users depending on polymorphic_value as a sub-project.

@@ -29,6 +29,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <memory>
 #include <type_traits>
 #include <typeinfo>
+#include <utility>
 
 namespace isocpp_p0201
 {
@@ -286,16 +287,17 @@ namespace isocpp_p0201
     }
 
     //
-    // Forwarding constructor
+    // In-place constructor
     //
 
-    template <class U, class V = std::enable_if_t<
-                           std::is_convertible<std::decay_t<U>*, T*>::value &&
-                           !is_polymorphic_value<std::decay_t<U>>::value>>
-    explicit polymorphic_value(U&& u)
-        : cb_(std::make_unique<
-              detail::direct_control_block<T, std::decay_t<U>>>(
-              std::forward<U>(u)))
+    template <class U,
+              class V = std::enable_if_t<
+                  std::is_convertible<std::decay_t<U>*, T*>::value &&
+                  !is_polymorphic_value<std::decay_t<U>>::value>,
+              class... Ts>
+    explicit polymorphic_value(std::in_place_type_t<U>, Ts&&... ts)
+        : cb_(std::make_unique<detail::direct_control_block<T, U>>(
+              std::forward<Ts>(ts)...))
     {
       ptr_ = cb_->ptr();
     }

@@ -5,6 +5,7 @@
 #include <catch2/catch.hpp>
 #include <new>
 #include <stdexcept>
+#include <utility>
 
 using namespace isocpp_p0201;
 
@@ -94,14 +95,14 @@ TEST_CASE("Value constructor", "[polymorphic_value.constructors]")
 {
   DerivedType d(7);
 
-  polymorphic_value<BaseType> i(d);
+  polymorphic_value<BaseType> i(std::in_place_type<DerivedType>, d);
 
   REQUIRE(i->value() == 7);
 }
 
 TEST_CASE("Value constructor rvalue", "[polymorphic_value.constructors]")
 {
-  polymorphic_value<BaseType> i(DerivedType(7));
+  polymorphic_value<BaseType> i(std::in_place_type<DerivedType>, 7);
 
   REQUIRE(i->value() == 7);
 }
@@ -110,7 +111,7 @@ TEST_CASE("Value move-constructor", "[polymorphic_value.constructors]")
 {
   DerivedType d(7);
 
-  polymorphic_value<BaseType> i(std::move(d));
+  polymorphic_value<BaseType> i(std::in_place_type<DerivedType>, std::move(d));
 
   REQUIRE(i->value() == 7);
 }
@@ -854,7 +855,7 @@ TEST_CASE("Exception safety: throw in copier",
 
 TEST_CASE("polymorphic_value<const T>", "[polymorphic_value.compatible_types]")
 {
-  polymorphic_value<const DerivedType> p(DerivedType(7));
+  polymorphic_value<const DerivedType> p(std::in_place_type<DerivedType>, 7);
   REQUIRE(p->value() == 7);
   // Will not compile as p is polymorphic_value<const DerivedType> not
   // polymorphic_value<DerivedType>
@@ -925,7 +926,7 @@ TEST_CASE("Dangling reference in forwarding constructor",
 {
   auto d = DerivedType(7);
   auto& rd = d;
-  polymorphic_value<DerivedType> p(rd);
+  polymorphic_value<DerivedType> p(std::in_place_type<DerivedType>, rd);
 
   d.set_value(6);
   CHECK(p->value() == 7);
