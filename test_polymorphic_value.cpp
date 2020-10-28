@@ -6,50 +6,60 @@
 #include <new>
 #include <stdexcept>
 
-using namespace jbcoe;
+using namespace isocpp_p0201;
 
-struct BaseType
+namespace
 {
-  virtual int value() const = 0;
-  virtual void set_value(int) = 0;
-  virtual ~BaseType() = default;
-};
-
-struct DerivedType : BaseType
-{
-  int value_ = 0;
-
-  DerivedType()
+  struct BaseType
   {
-    ++object_count;
-  }
+    virtual int value() const = 0;
+    virtual void set_value(int) = 0;
+    virtual ~BaseType() = default;
+  };
 
-  DerivedType(const DerivedType& d)
+  struct DerivedType : BaseType
   {
-    value_ = d.value_;
-    ++object_count;
-  }
+    int value_ = 0;
 
-  DerivedType(int v) : value_(v)
-  {
-    ++object_count;
-  }
+    DerivedType()
+    {
+      ++object_count;
+    }
 
-  ~DerivedType()
-  {
-    --object_count;
-  }
+    DerivedType(const DerivedType& d)
+    {
+      value_ = d.value_;
+      ++object_count;
+    }
 
-  int value() const override { return value_; }
+    DerivedType(int v) : value_(v)
+    {
+      ++object_count;
+    }
 
-  void set_value(int i) override { value_ = i; }
+    ~DerivedType()
+    {
+      --object_count;
+    }
 
-  static size_t object_count;
-};
+    int value() const override
+    {
+      return value_;
+    }
 
-size_t DerivedType::object_count = 0;
+    void set_value(int i) override
+    {
+      value_ = i;
+    }
 
-TEST_CASE("Support for incomplete types","[polymorphic_value.class]")
+    static size_t object_count;
+  };
+
+  size_t DerivedType::object_count = 0;
+
+} // namespace
+
+TEST_CASE("Support for incomplete types", "[polymorphic_value.class]")
 {
   class Incomplete;
   polymorphic_value<Incomplete> p;
@@ -57,7 +67,7 @@ TEST_CASE("Support for incomplete types","[polymorphic_value.class]")
   REQUIRE_FALSE(bool(p));
 }
 
-TEST_CASE("Default constructor","[polymorphic_value.constructors]")
+TEST_CASE("Default constructor", "[polymorphic_value.constructors]")
 {
   GIVEN("A default constructed polymorphic_value to BaseType")
   {
@@ -105,7 +115,7 @@ TEST_CASE("Value move-constructor", "[polymorphic_value.constructors]")
   REQUIRE(i->value() == 7);
 }
 
-TEST_CASE("Pointer constructor","[polymorphic_value.constructors]")
+TEST_CASE("Pointer constructor", "[polymorphic_value.constructors]")
 {
   GIVEN("A pointer-constructed polymorphic_value")
   {
@@ -137,7 +147,8 @@ TEST_CASE("Pointer constructor","[polymorphic_value.constructors]")
       REQUIRE((bool)ccptr == true);
     }
   }
-  GIVEN("Ensure nullptr pointer-constructed const polymorphic_value construct to be default initialised")
+  GIVEN("Ensure nullptr pointer-constructed const polymorphic_value construct "
+        "to be default initialised")
   {
     DerivedType* null_derived_ptr = nullptr;
     const polymorphic_value<BaseType> ccptr(null_derived_ptr);
@@ -153,40 +164,53 @@ struct BaseCloneSelf
 {
   BaseCloneSelf() = default;
   virtual ~BaseCloneSelf() = default;
-  BaseCloneSelf(const BaseCloneSelf &) = delete;
+  BaseCloneSelf(const BaseCloneSelf&) = delete;
   virtual std::unique_ptr<BaseCloneSelf> clone() const = 0;
 };
 
 struct DerivedCloneSelf : BaseCloneSelf
 {
   static size_t object_count;
-  std::unique_ptr<BaseCloneSelf> clone() const { return std::make_unique<DerivedCloneSelf>(); }
-  DerivedCloneSelf() { ++object_count; }
-  ~DerivedCloneSelf(){ --object_count; }
+  std::unique_ptr<BaseCloneSelf> clone() const
+  {
+    return std::make_unique<DerivedCloneSelf>();
+  }
+  DerivedCloneSelf()
+  {
+    ++object_count;
+  }
+  ~DerivedCloneSelf()
+  {
+    --object_count;
+  }
 };
 
 size_t DerivedCloneSelf::object_count = 0;
 
 struct invoke_clone_member
 {
-  template <typename T> T *operator()(const T &t) const {
-    return static_cast<T *>(t.clone().release());
+  template <typename T>
+  T* operator()(const T& t) const
+  {
+    return static_cast<T*>(t.clone().release());
   }
 };
 
 TEST_CASE("polymorphic_value constructed with copier and deleter",
-          "[polymorphic_value.constructor]") {
+          "[polymorphic_value.constructor]")
+{
   size_t copy_count = 0;
   size_t deletion_count = 0;
-  auto cp = polymorphic_value<DerivedType>(new DerivedType(),
-                                    [&](const DerivedType &d) {
-                                      ++copy_count;
-                                      return new DerivedType(d);
-                                    },
-                                    [&](const DerivedType *d) {
-                                      ++deletion_count;
-                                      delete d;
-                                    });
+  auto cp = polymorphic_value<DerivedType>(
+      new DerivedType(),
+      [&](const DerivedType& d) {
+        ++copy_count;
+        return new DerivedType(d);
+      },
+      [&](const DerivedType* d) {
+        ++deletion_count;
+        delete d;
+      });
   {
     auto cp2 = cp;
     REQUIRE(copy_count == 1);
@@ -194,13 +218,14 @@ TEST_CASE("polymorphic_value constructed with copier and deleter",
   REQUIRE(deletion_count == 1);
 }
 
-TEST_CASE("polymorphic_value destructor","[polymorphic_value.destructor]")
+TEST_CASE("polymorphic_value destructor", "[polymorphic_value.destructor]")
 {
   GIVEN("No derived objects")
   {
     REQUIRE(DerivedType::object_count == 0);
 
-    THEN("Object count is increased on construction and decreased on destruction")
+    THEN("Object count is increased on construction and decreased on "
+         "destruction")
     {
       // begin and end scope to force destruction
       {
@@ -212,9 +237,11 @@ TEST_CASE("polymorphic_value destructor","[polymorphic_value.destructor]")
   }
 }
 
-TEST_CASE("polymorphic_value copy constructor","[polymorphic_value.constructors]")
+TEST_CASE("polymorphic_value copy constructor",
+          "[polymorphic_value.constructors]")
 {
-  GIVEN("A polymorphic_value copied from a default-constructed polymorphic_value")
+  GIVEN(
+      "A polymorphic_value copied from a default-constructed polymorphic_value")
   {
     polymorphic_value<BaseType> original_cptr;
     polymorphic_value<BaseType> cptr(original_cptr);
@@ -225,7 +252,8 @@ TEST_CASE("polymorphic_value copy constructor","[polymorphic_value.constructors]
     }
   }
 
-  GIVEN("A polymorphic_value copied from a pointer-constructed polymorphic_value")
+  GIVEN(
+      "A polymorphic_value copied from a pointer-constructed polymorphic_value")
   {
     REQUIRE(DerivedType::object_count == 0);
 
@@ -267,9 +295,11 @@ TEST_CASE("polymorphic_value copy constructor","[polymorphic_value.constructors]
   }
 }
 
-TEST_CASE("polymorphic_value move constructor","[polymorphic_value.constructors]")
+TEST_CASE("polymorphic_value move constructor",
+          "[polymorphic_value.constructors]")
 {
-  GIVEN("A polymorphic_value move-constructed from a default-constructed polymorphic_value")
+  GIVEN("A polymorphic_value move-constructed from a default-constructed "
+        "polymorphic_value")
   {
     polymorphic_value<BaseType> original_cptr;
     polymorphic_value<BaseType> cptr(std::move(original_cptr));
@@ -285,7 +315,8 @@ TEST_CASE("polymorphic_value move constructor","[polymorphic_value.constructors]
     }
   }
 
-  GIVEN("A polymorphic_value move-constructed from a default-constructed polymorphic_value")
+  GIVEN("A polymorphic_value move-constructed from a default-constructed "
+        "polymorphic_value")
   {
     int v = 7;
     polymorphic_value<BaseType> original_cptr(new DerivedType(v));
@@ -302,8 +333,8 @@ TEST_CASE("polymorphic_value move constructor","[polymorphic_value.constructors]
 
     THEN("The move-constructed pointer is the original pointer")
     {
-      REQUIRE(cptr.operator->()==original_pointer);
-      REQUIRE(cptr.operator->()==original_pointer);
+      REQUIRE(cptr.operator->() == original_pointer);
+      REQUIRE(cptr.operator->() == original_pointer);
       REQUIRE((bool)cptr);
     }
 
@@ -314,9 +345,10 @@ TEST_CASE("polymorphic_value move constructor","[polymorphic_value.constructors]
   }
 }
 
-TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
+TEST_CASE("polymorphic_value assignment", "[polymorphic_value.assignment]")
 {
-  GIVEN("A default-constructed polymorphic_value assigned-to a default-constructed polymorphic_value")
+  GIVEN("A default-constructed polymorphic_value assigned-to a "
+        "default-constructed polymorphic_value")
   {
     polymorphic_value<BaseType> cptr1;
     const polymorphic_value<BaseType> cptr2;
@@ -333,7 +365,8 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
     }
   }
 
-  GIVEN("A default-constructed polymorphic_value assigned to a pointer-constructed polymorphic_value")
+  GIVEN("A default-constructed polymorphic_value assigned to a "
+        "pointer-constructed polymorphic_value")
   {
     int v1 = 7;
 
@@ -352,7 +385,8 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed polymorphic_value assigned to a default-constructed polymorphic_value")
+  GIVEN("A pointer-constructed polymorphic_value assigned to a "
+        "default-constructed polymorphic_value")
   {
     int v1 = 7;
 
@@ -381,14 +415,15 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
       REQUIRE(cptr1->value() == cptr2->value());
     }
 
-    THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
+    THEN("The assigned-from object pointer and the assigned-to object pointer "
+         "are distinct")
     {
       REQUIRE(cptr1.operator->() != cptr2.operator->());
     }
-
   }
 
-  GIVEN("A pointer-constructed polymorphic_value assigned to a pointer-constructed polymorphic_value")
+  GIVEN("A pointer-constructed polymorphic_value assigned to a "
+        "pointer-constructed polymorphic_value")
   {
     int v1 = 7;
     int v2 = 87;
@@ -418,7 +453,8 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
       REQUIRE(cptr1->value() == cptr2->value());
     }
 
-    THEN("The assigned-from object pointer and the assigned-to object pointer are distinct")
+    THEN("The assigned-from object pointer and the assigned-to object pointer "
+         "are distinct")
     {
       REQUIRE(cptr1.operator->() != cptr2.operator->());
     }
@@ -444,9 +480,10 @@ TEST_CASE("polymorphic_value assignment","[polymorphic_value.assignment]")
   }
 }
 
-TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
+TEST_CASE("polymorphic_value move-assignment", "[polymorphic_value.assignment]")
 {
-  GIVEN("A default-constructed polymorphic_value move-assigned-to a default-constructed polymorphic_value")
+  GIVEN("A default-constructed polymorphic_value move-assigned-to a "
+        "default-constructed polymorphic_value")
   {
     polymorphic_value<BaseType> cptr1;
     polymorphic_value<BaseType> cptr2;
@@ -468,7 +505,8 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
     }
   }
 
-  GIVEN("A default-constructed polymorphic_value move-assigned to a pointer-constructed polymorphic_value")
+  GIVEN("A default-constructed polymorphic_value move-assigned to a "
+        "pointer-constructed polymorphic_value")
   {
     int v1 = 7;
 
@@ -492,7 +530,8 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
     }
   }
 
-  GIVEN("A pointer-constructed polymorphic_value move-assigned to a default-constructed polymorphic_value")
+  GIVEN("A pointer-constructed polymorphic_value move-assigned to a "
+        "default-constructed polymorphic_value")
   {
     int v1 = 7;
 
@@ -511,13 +550,15 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
       REQUIRE(!cptr2);
     }
 
-    THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
+    THEN(
+        "The move-assigned-to object pointer is the move-assigned-from pointer")
     {
       REQUIRE(cptr1.operator->() == p);
     }
   }
 
-  GIVEN("A pointer-constructed polymorphic_value move-assigned to a pointer-constructed polymorphic_value")
+  GIVEN("A pointer-constructed polymorphic_value move-assigned to a "
+        "pointer-constructed polymorphic_value")
   {
     int v1 = 7;
     int v2 = 87;
@@ -537,13 +578,15 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
       REQUIRE(!cptr2);
     }
 
-    THEN("The move-assigned-to object pointer is the move-assigned-from pointer")
+    THEN(
+        "The move-assigned-to object pointer is the move-assigned-from pointer")
     {
       REQUIRE(cptr1.operator->() == p);
     }
   }
 
-  GIVEN("Guard against self-assignment during move-assigned to a pointer-constructed polymorphic_value")
+  GIVEN("Guard against self-assignment during move-assigned to a "
+        "pointer-constructed polymorphic_value")
   {
     int v1 = 7;
 
@@ -552,8 +595,9 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
     REQUIRE(DerivedType::object_count == 1);
 
     // Manually move to avoid issues caused by flags "-Wself-move":
-    //      explicitly moving variable of type 'polymorphic_value<BaseType>' to itself
-    cptr1 = static_cast<jbcoe::polymorphic_value<BaseType>&&>(cptr1);
+    //      explicitly moving variable of type 'polymorphic_value<BaseType>' to
+    //      itself
+    cptr1 = static_cast<polymorphic_value<BaseType>&&>(cptr1);
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -564,23 +608,28 @@ TEST_CASE("polymorphic_value move-assignment","[polymorphic_value.assignment]")
   }
 }
 
-TEST_CASE("make_polymorphic_value with single template argument","[polymorphic_value.make_polymorphic_value.single]")
+TEST_CASE("make_polymorphic_value with single template argument",
+          "[polymorphic_value.make_polymorphic_value.single]")
 {
   auto pv = make_polymorphic_value<DerivedType>(7);
-  static_assert(std::is_same<decltype(pv), polymorphic_value<DerivedType>>::value, "");
+  static_assert(
+      std::is_same<decltype(pv), polymorphic_value<DerivedType>>::value, "");
   REQUIRE(pv->value() == 7);
 }
 
-TEST_CASE("make_polymorphic_value with two template arguments","[polymorphic_value.make_polymorphic_value.double]")
+TEST_CASE("make_polymorphic_value with two template arguments",
+          "[polymorphic_value.make_polymorphic_value.double]")
 {
   auto pv = make_polymorphic_value<BaseType, DerivedType>(7);
-  static_assert(std::is_same<decltype(pv), polymorphic_value<BaseType>>::value, "");
+  static_assert(std::is_same<decltype(pv), polymorphic_value<BaseType>>::value,
+                "");
   REQUIRE(pv->value() == 7);
 }
 
 TEST_CASE("Derived types", "[polymorphic_value.derived_types]")
 {
-  GIVEN("A polymorphic_value<BaseType> constructed from make_polymorphic_value<DerivedType>")
+  GIVEN("A polymorphic_value<BaseType> constructed from "
+        "make_polymorphic_value<DerivedType>")
   {
     int v = 7;
     auto cptr = make_polymorphic_value<DerivedType>(v);
@@ -617,26 +666,43 @@ TEST_CASE("Derived types", "[polymorphic_value.derived_types]")
   }
 }
 
-struct Base { int v_ = 42; virtual ~Base() = default; };
-struct IntermediateBaseA : virtual Base { int a_ = 3; };
-struct IntermediateBaseB : virtual Base { int b_ = 101; };
-struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB { int value_ = 0; MultiplyDerived(int value) : value_(value) {}; };
+struct Base
+{
+  int v_ = 42;
+  virtual ~Base() = default;
+};
+struct IntermediateBaseA : virtual Base
+{
+  int a_ = 3;
+};
+struct IntermediateBaseB : virtual Base
+{
+  int b_ = 101;
+};
+struct MultiplyDerived : IntermediateBaseA, IntermediateBaseB
+{
+  int value_ = 0;
+  MultiplyDerived(int value) : value_(value){};
+};
 
-TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes", "[polymorphic_value.constructors]")
+TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes",
+          "[polymorphic_value.constructors]")
 {
   GIVEN("A value-constructed multiply-derived-class polymorphic_value")
   {
     int v = 7;
     polymorphic_value<MultiplyDerived> cptr(new MultiplyDerived(v));
 
-    THEN("When copied to a polymorphic_value to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a polymorphic_value to an intermediate base type, "
+         "data is accessible as expected")
     {
       auto cptr_IA = polymorphic_value<IntermediateBaseA>(cptr);
       REQUIRE(cptr_IA->a_ == 3);
       REQUIRE(cptr_IA->v_ == 42);
     }
 
-    THEN("When copied to a polymorphic_value to an intermediate base type, data is accessible as expected")
+    THEN("When copied to a polymorphic_value to an intermediate base type, "
+         "data is accessible as expected")
     {
       auto cptr_IB = polymorphic_value<IntermediateBaseB>(cptr);
       REQUIRE(cptr_IB->b_ == 101);
@@ -658,12 +724,32 @@ struct Tracked
     assignment_count_ = 0;
   }
 
-  Tracked() { ++ctor_count_; }
-  ~Tracked() { ++dtor_count_; }
-  Tracked(const Tracked&) { ++ctor_count_; }
-  Tracked(Tracked&&) { ++ctor_count_; }
-  Tracked& operator=(const Tracked&) { ++assignment_count_; return *this; }
-  Tracked& operator=(Tracked&&) { ++assignment_count_; return *this; }
+  Tracked()
+  {
+    ++ctor_count_;
+  }
+  ~Tracked()
+  {
+    ++dtor_count_;
+  }
+  Tracked(const Tracked&)
+  {
+    ++ctor_count_;
+  }
+  Tracked(Tracked&&)
+  {
+    ++ctor_count_;
+  }
+  Tracked& operator=(const Tracked&)
+  {
+    ++assignment_count_;
+    return *this;
+  }
+  Tracked& operator=(Tracked&&)
+  {
+    ++assignment_count_;
+    return *this;
+  }
 };
 
 int Tracked::ctor_count_ = 0;
@@ -676,7 +762,9 @@ struct ThrowsOnCopy : Tracked
 
   ThrowsOnCopy() = default;
 
-  explicit ThrowsOnCopy(const int v) : value_(v) {}
+  explicit ThrowsOnCopy(const int v) : value_(v)
+  {
+  }
 
   ThrowsOnCopy(const ThrowsOnCopy&)
   {
@@ -686,14 +774,16 @@ struct ThrowsOnCopy : Tracked
   ThrowsOnCopy& operator=(const ThrowsOnCopy& rhs) = default;
 };
 
-TEST_CASE("Exception safety: throw in copy constructor", "[polymorphic_value.exception_safety.copy]")
+TEST_CASE("Exception safety: throw in copy constructor",
+          "[polymorphic_value.exception_safety.copy]")
 {
   GIVEN("A value-constructed polymorphic_value to a ThrowsOnCopy")
   {
     const int v = 7;
     polymorphic_value<ThrowsOnCopy> cptr(new ThrowsOnCopy(v));
 
-    THEN("When copying to another polymorphic_value, after an exception, the source remains valid")
+    THEN("When copying to another polymorphic_value, after an exception, the "
+         "source remains valid")
     {
       Tracked::reset_counts();
       polymorphic_value<ThrowsOnCopy> another;
@@ -702,7 +792,8 @@ TEST_CASE("Exception safety: throw in copy constructor", "[polymorphic_value.exc
       REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
     }
 
-    THEN("When copying to another polymorphic_value, after an exception, the destination is not changed")
+    THEN("When copying to another polymorphic_value, after an exception, the "
+         "destination is not changed")
     {
       const int v2 = 5;
       polymorphic_value<ThrowsOnCopy> another(new ThrowsOnCopy(v2));
@@ -726,15 +817,19 @@ struct throwing_copier
 struct TrackedValue : Tracked
 {
   int value_ = 0;
-  explicit TrackedValue(const int v) : value_(v) {}
+  explicit TrackedValue(const int v) : value_(v)
+  {
+  }
 };
 
-TEST_CASE("Exception safety: throw in copier", "[polymorphic_value.exception_safety.copier]")
+TEST_CASE("Exception safety: throw in copier",
+          "[polymorphic_value.exception_safety.copier]")
 {
   GIVEN("A value-constructed polymorphic_value")
   {
     const int v = 7;
-    polymorphic_value<TrackedValue> cptr(new TrackedValue(v), throwing_copier<TrackedValue>{});
+    polymorphic_value<TrackedValue> cptr(new TrackedValue(v),
+                                         throwing_copier<TrackedValue>{});
 
     THEN("When an exception occurs in the copier, the source is unchanged")
     {
@@ -769,9 +864,10 @@ TEST_CASE("polymorphic_value<const T>", "[polymorphic_value.compatible_types]")
 TEST_CASE("Check exception object construction",
           "[polymorphic_value.construction.exception]")
 {
-    bad_polymorphic_value_construction exception;
-    // Should find an error message referencing polymorphic_value.
-    CHECK(std::string(exception.what()).find("polymorphic_value") != std::string::npos);
+  bad_polymorphic_value_construction exception;
+  // Should find an error message referencing polymorphic_value.
+  CHECK(std::string(exception.what()).find("polymorphic_value") !=
+        std::string::npos);
 }
 
 class DeeplyDerivedType : public DerivedType
@@ -790,7 +886,8 @@ TEST_CASE("polymorphic_value dynamic and static type mismatch",
 
   CHECK(typeid(*p) != typeid(DerivedType));
 
-  CHECK_THROWS_AS([p] { return polymorphic_value<BaseType>(p); }(), bad_polymorphic_value_construction);
+  CHECK_THROWS_AS([p] { return polymorphic_value<BaseType>(p); }(),
+                  bad_polymorphic_value_construction);
 }
 
 struct fake_copy
@@ -823,13 +920,13 @@ TEST_CASE("polymorphic_value dynamic and static type mismatch is not a problem "
   }());
 }
 
-TEST_CASE("Dangling reference in forwarding constructor", "[polymorphic_value.constructors]")
+TEST_CASE("Dangling reference in forwarding constructor",
+          "[polymorphic_value.constructors]")
 {
   auto d = DerivedType(7);
   auto& rd = d;
   polymorphic_value<DerivedType> p(rd);
-  
+
   d.set_value(6);
   CHECK(p->value() == 7);
 }
-

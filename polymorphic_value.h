@@ -21,8 +21,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
 
-#ifndef JBCOE_POLYMORPHIC_VALUE_H_INCLUDED
-#define JBCOE_POLYMORPHIC_VALUE_H_INCLUDED
+#ifndef ISOCPP_P0201_POLYMORPHIC_VALUE_H_INCLUDED
+#define ISOCPP_P0201_POLYMORPHIC_VALUE_H_INCLUDED
 
 #include <cassert>
 #include <exception>
@@ -30,7 +30,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <type_traits>
 #include <typeinfo>
 
-namespace jbcoe
+namespace isocpp_p0201
 {
 
   namespace detail
@@ -219,7 +219,7 @@ namespace jbcoe
         return;
       }
 
-#ifndef POLYMORPHIC_VALUE_NO_RTTI
+#ifndef ISOCPP_P0201_POLYMORPHIC_VALUE_NO_RTTI
       if (std::is_same<D, detail::default_delete<U>>::value &&
           std::is_same<C, detail::default_copy<U>>::value &&
           typeid(*u) != typeid(U))
@@ -362,7 +362,7 @@ namespace jbcoe
 
     explicit operator bool() const
     {
-      return bool (cb_);
+      return bool(cb_);
     }
 
     const T* operator->() const
@@ -421,6 +421,6 @@ namespace jbcoe
     t.swap(u);
   }
 
-} // end namespace jbcoe
+} // namespace isocpp_p0201
 
-#endif
+#endif // ISOCPP_P0201_POLYMORPHIC_VALUE_H_INCLUDED
