@@ -38,7 +38,7 @@ target_sources(polymorphic_value
 
 target_compile_features(polymorphic_value
     INTERFACE
-        cxx_std_14
+        cxx_std_17
 )
 
 # namespaced alias for users depending on polymorphic_value as a sub-project.
@@ -50,6 +50,7 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
         FetchContent_Declare(
             catch2
             GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+            GIT_TAG v2.x
         )
 
         FetchContent_GetProperties(catch2)
