@@ -72,7 +72,7 @@ Polymorphic value is shipped as a single header file, [`polymorphic_value.h`](ht
 ## CMake
 To include in your CMake build then add a dependency upon the interface target, `polymorphic_value::polymorphic_value`.  This provides the necessary include paths and C++ features required to include `polymorphic_value` into your project.
 
-### Extenal
+### External
 To include `polymorphic_value` you will need use find package to locate the provided namespace imported targets from the generated package configuration.  The package configuration file, *polymorphic_value-config.cmake* can be included from the install location or directly out of the build tree.
 ```cmake
 # CMakeLists.txt
