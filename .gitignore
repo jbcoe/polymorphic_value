@@ -1,3 +1,5 @@
+.idea
+.vscode
 build
 *.pyc
 talks/.ipynb_checkpoints

@@ -6,13 +6,13 @@
 [![license][badge.license]][license]
 [![issues][badge.issues]][issues]
 
-[badge.conan]: https://img.shields.io/github/workflow/status/jbcoe/polymorphic_value/Conan/master?label=Conan
+[badge.conan]: https://img.shields.io/github/workflow/status/jbcoe/polymorphic_value/Conan/main?label=Conan
 [badge.language]: https://img.shields.io/badge/language-C%2B%2B14-yellow.svg
 [badge.codecov]: https://img.shields.io/codecov/c/github/jbcoe/polymorphic_value/master.svg?logo=codecov
 [badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
 [badge.issues]: https://img.shields.io/github/issues/jbcoe/polymorphic_value.svg
 
-[conan]: https://github.com/jbcoe/polymorphic_value/actions?query=workflow%3A%22Conan%22+branch%3Amaster
+[conan]: https://github.com/jbcoe/polymorphic_value/actions?query=workflow%3A%22Conan%22+branch%3Amain
 [codecov]: https://codecov.io/gh/jbcoe/polymorphic_value
 [language]: https://en.wikipedia.org/wiki/C%2B%2B14
 [license]: https://en.wikipedia.org/wiki/MIT_License
