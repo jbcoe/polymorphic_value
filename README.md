@@ -121,29 +121,3 @@ cd build
 cmake -G <generator> <configuration options> -DCMAKE_INSTALL_PREFIX=<install dir> ../
 cmake --install ../
 ```
-
-# Packaging
-
-## Conan
-To add the polymorphic_value library to your project as a dependency, you need to add a remote to Conan to point the
-location of the library:
-```bash
-cd <project root>
-pip install conan
-conan remote add polymorphic_value https://api.bintray.com/conan/twonington/public-conan
-```
-Once this is set you can add the polymorphic_value dependency to you project via the following signature:
-```bash
-polymorphic_value/0.0.1@public-conan/testing
-```
-Available versions of the Polymorphic Value  package can be search via Conan:
-```bash
-conan search polymorphic_value
-```
-
-### Building Conan Packages
-
-```bash
-cd <project root>
-conan create ./ polymorphic_value/1.0@conan/stable -tf .conan/test_package
-```
