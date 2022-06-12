@@ -1,5 +1,8 @@
 ---
 marp: true
+theme: default
+paginate: true
+footer: 'Vocabulary types for composite class design: https://github.com/jbcoe/polymorphic_value/pull/105'
 ---
 
 # Vocabulary types for composite class design
@@ -95,6 +98,18 @@ Implementing `indirect_value<T>`
 ---
 
 Implementing `polymorphic_value<T>`
+
+---
+
+Using `indirect_value<T>` in your code
+
+---
+
+Using `polymorphic_value<T>` in your code
+
+---
+
+Standardisation efforts for addition to the C++ standard library
 
 ---
 
