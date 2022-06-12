@@ -15,9 +15,9 @@ Jonathan B. Coe & Antony Peacock
 
 ---
 
-* We recommend the use of two new class templates, `indirect_value<T>` and `polymorphic_value<T>` to make designing composite classes simple and correct.
+* We recommend the use of two new class templates, `indirect_value<T>` and `polymorphic_value<T>` to make the design of composite classes simple and correct.
 
-* We'll look into some of the challenges of composite class design and see what problems are unsolved by current vocabulary types.
+* We'll look into some of the challenges of composite class design and see which problems are unsolved by current vocabulary types.
 
 * We'll run through our reference implementations of the two proposed new types.
 
@@ -111,4 +111,4 @@ Jonathan B. Coe & Antony Peacock
 
 ---
 
-Acknowledgements
+# Acknowledgements
