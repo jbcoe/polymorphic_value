@@ -1,5 +1,5 @@
 .idea
-.vscode
+.vscode/*
 build
 *.pyc
 talks/.ipynb_checkpoints

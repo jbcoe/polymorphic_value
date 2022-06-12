@@ -15,101 +15,99 @@ Jonathan B. Coe & Antony Peacock
 
 ---
 
-* We propose the addition of two new class templates, `indirect_value<T>` and `polymorphic_value<T>` to make designing composite classes simple and correct.
-
+* We recommend the use of two new class templates, `indirect_value<T>` and `polymorphic_value<T>` to make designing composite classes simple and correct.
 
 * We'll look into some of the challenges of composite class design and see what problems are unsolved by current vocabulary types.
 
-
-* We'll then run through our reference implementations of the proposed new types.
-
----
-
-Encapsulation with classes (and structs)
+* We'll run through our reference implementations of the two proposed new types.
 
 ---
 
-The need for incomplete types
+# Encapsulation with classes (and structs)
 
 ---
 
-The need for polymorphism
+# The need for incomplete types
+
+---
+
+# The need for polymorphism
 
 --- 
 
-Closed and open-set polymorphism
+# Closed and open-set polymorphism
 
 ---
 
-Compiler generated functions
+# Compiler generated functions
 
 ---
 
-`const` in C++
+# Reference and value types
 
 ---
 
-Reference and value types
+# `const` in C++
 
 ---
 
-`const` propagation and reference types
+# `const` propagation and reference types
 
 ---
 
-class-instance members
+# class-instance members
 
 ---
 
-template-type-instance members
+# template-type-instance members
 
 ---
 
-`std::variant<Ts...>` members
+# `std::variant<Ts...>` members
 
 ---
 
-pointer (and reference) members
+# pointer (and reference) members
 
 ---
 
-`std::unique_ptr<T>` members
+# `std::unique_ptr<T>` members
 
 ---
 
-`std::shared_ptr<T>` members
+# `std::shared_ptr<T>` members
 
 ---
 
-`std::experimental<propagate_const<T>` members
+# `std::experimental::propagate_const<T>`
 
 ---
 
-`indirect_value<T>` members
+# `indirect_value<T>` members
 
 ---
 
-`polymorphic_value<T>` members
+# `polymorphic_value<T>` members
 
 ---
 
-Implementing `indirect_value<T>`
+# Implementing `indirect_value<T>`
 
 ---
 
-Implementing `polymorphic_value<T>`
+# Implementing `polymorphic_value<T>`
 
 ---
 
-Using `indirect_value<T>` in your code
+# Using `indirect_value<T>` in your code
 
 ---
 
-Using `polymorphic_value<T>` in your code
+# Using `polymorphic_value<T>` in your code
 
 ---
 
-Standardisation efforts for addition to the C++ standard library
+# Standardisation efforts
 
 ---
 
