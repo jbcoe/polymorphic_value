@@ -2,7 +2,7 @@
 marp: true
 theme: default
 paginate: true
-footer: 'Vocabulary types for composite class design: https://github.com/jbcoe/polymorphic_value/pull/105'
+#footer: 'Vocabulary types for composite class design: https://github.com/jbcoe/polymorphic_value/pull/105'
 ---
 
 # Vocabulary types for composite class design
@@ -341,7 +341,206 @@ TODO
 
 # Implementing `polymorphic_value<T>`
 
-TODO
+```cpp
+template <class T> class polymorphic_value {
+  std::unique_ptr<control_block<T>> cb_;
+  T* ptr_ = nullptr;
+
+ public:
+  polymorphic_value() = default;
+
+  polymorphic_value(const polymorphic_value& p) : cb_(p.cb_->clone()) {
+    ptr_ = cb_->ptr();
+  }
+
+  T* operator->() { return ptr_; }
+  const T* operator->() const { return ptr_; }
+
+  T& operator*() { return *ptr_; }
+  const T& operator*() const { return *ptr_; }
+};
+```
+
+All of the real work is done by the control block.
+
+---
+
+## Implementing the control block
+
+Control blocks will inherit from a base-class:
+
+```cpp
+template <class T>
+struct control_block
+{
+  virtual ~control_block() = default;
+  virtual T* ptr() = 0;
+  virtual std::unique_ptr<control_block> clone() const = 0;
+};
+```
+
+---
+
+
+## Construction from a value
+We can support constructors of the form:
+
+```cpp
+template<class U> // restrictions apply
+polymorphic_value(const U& u);
+```
+
+---
+
+with a suitable control block:
+
+```
+template <class T, class U>
+class direct_control_block : public control_block<T> {
+  U u_;
+ public:
+  direct_control_block(const U& u) : u_(u) {}
+
+  T* ptr() override { return &u_; }
+
+  std::unique_ptr<control_block<T>> clone() const override {
+    return std::make_unique<direct_control_block>(*this);
+  }
+};
+```
+
+The control block knows how to copy and delete the object it owns.
+
+---
+
+```cpp
+template<class U,
+         class = std::enable_if_t<
+           std::is_convertible<U*, T*>::value>>
+polymorphic_value(const U& u) :
+  cb_(std::make_unique<direct_control_block<T,U>>(u))
+{
+  ptr_ = cb_->ptr();
+}
+```
+
+---
+
+## Copying from another polymorphic value
+
+We can support constructors of the form:
+
+```cpp
+template <class U> // restrictions apply
+polymorphic_value(const polymorphic_value<U>& p);
+```
+
+---
+
+with a suitable control block:
+
+```cpp
+template <class T, class U>
+class delegating_control_block : public control_block<T> {
+  std::unique_ptr<control_block<U>> delegate_;
+
+public:
+  explicit delegating_control_block(
+    std::unique_ptr<control_block<U>> b) :
+      delegate_(std::move(b)) {}
+
+  std::unique_ptr<control_block<T>> clone() const override {
+    return std::make_unique<delegating_control_block>(
+      delegate_->clone());
+  }
+
+  T* ptr() override {
+    return delegate_->ptr();
+  }
+};
+```
+
+---
+
+```cpp
+template <class U,
+          class = std::enable_if_t<
+            std::is_convertible<U*, T*>::value>>
+polymorphic_value(const polymorphic_value<U>& p)
+{
+  polymorphic_value<U> tmp(p);
+
+  ptr_ = tmp.ptr_;
+  cb_ = std::make_unique<delegating_control_block<T, U>>(
+    std::move(tmp.cb_));
+}
+```
+
+---
+
+## Construction from a pointer
+
+We can support constructors of the form:
+
+```cpp
+template <class U,
+          class C = default_copy<U>,
+          class D = default_delete<U>> // restrictions apply
+explicit polymorphic_value(U* u,
+                           C copier = C{},
+                           D deleter = D{});
+```
+
+---
+
+with a suitable control block:
+
+```cpp
+template <class U,
+          class C = default_copy<U>,
+          class D = default_delete<U>>
+class pointer_control_block : public control_block<T> {
+  std::unique_ptr<U, D> p_;
+  C c_;
+
+public:
+  explicit pointer_control_block(U* u, C c = C{}, D d = D{})
+      : c_(std::move(c)), p_(u, std::move(d)) {
+  }
+
+  std::unique_ptr<control_block<T>> clone() const override {
+    assert(p_);
+    return std::make_unique<pointer_control_block>(
+      c_(*p_), c_, p_.get_deleter());
+  }
+
+  T* ptr() override {
+    return p_.get();
+  }
+};
+```
+
+---
+
+```cpp
+template <class U,
+          class C = default_copy<U>,
+          class D = default_delete<U>,
+          class = std::enable_if_t<
+            std::is_convertible<U*, T*>::value>>
+explicit polymorphic_value(U* u,
+                           C copier = C{},
+                           D deleter = D{})
+{
+  if (!u) return;
+
+  assert(typeid(*u) == typeid(U)); // Here be dragons!
+
+  cb_ = std::make_unique<pointer_control_block<T, U, C, D>>(
+      u, std::move(copier), std::move(deleter));
+  ptr_ = u;
+}
+```
 
 ---
 
