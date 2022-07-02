@@ -33,11 +33,9 @@ class Circle {
     double radius_;
     std::string colour_;
 
-    ...
 public:
     std::string_view colour() const; 
     double area() const;
-    ...
 };
 ```
 
@@ -56,7 +54,6 @@ class Circle {
     Point position_;
     double radius_;
     std::string colour_;
-    ...
 };
 ```
 
@@ -162,12 +159,13 @@ struct A {
     void bar();
 };
 ```
- When an object is accessed through a const-access-path then only `const` qualified member functions can be called:
+ When an object is accessed through a const-access-path then only const-qualified member functions can be called:
 
 ```
-    const A a;
-    a.bar();
-
+const A a;
+a.bar();
+```
+```~shell
 error: passing 'const A' as 'this' argument discards qualifiers
 ```
 
@@ -193,82 +191,215 @@ Note that references are always `const` - they cannot be made to refer to a diff
 
 # `const` propagation
 
+An objects member data becomes const-qualified when the object is accessed through a const-access-path:
+
+```~cpp
+class A {
+  public:
+    void foo(); // non-const
+};
+
+class B {
+    A a_;
+  public:
+    void bar() const { a_.foo(); }
+};
+```
+
+```~shell
+error: passing 'const A' as 'this' argument discards qualifiers
+```
+
 ---
 
 # `const` propagation and reference types
 
----
-
-# Reference and value types
-
----
-
-# The need for incomplete types
-
----
-
-# The need for polymorphism
-
---- 
-
-# Closed and open-set polymorphism
+TODO
 
 ---
 
 # class-instance members
 
----
-
-# template-type-instance members
+TODO
 
 ---
 
-# `std::variant<Ts...>` members
+# Repeated member data
+
+We might have cause to store a variable number of objects as part of our class
+
+```~cpp
+class Audience {
+    Person speaker_;
+    std::vector<Person> audience_;
+}
+```
+
+The standard library has us covered. Container-like class-templates like `vector`, `map`, `unordered_map`, `set`, `unordered_set` support a variable number
+of objects and have well-defined special member functions that will copy/move/
+delete the contents of the container.
+
+---
+
+# Incomplete types
+
+TODO
+
+---
+
+# Polymorphism
+
+TODO
+
+--- 
+
+# Closed-set polymorphism
+
+Closed-set polymorphism gives users of a class a choices for member data from a known set of types. We can use sum-types like `optional` and `variant` to
+represent this.
+
+```~cpp
+class Taco {
+    std::optional<Avocado> avocado_;
+    std::variant<Chicken, Pork, Beef> meat_;
+    std::variant<Chipotle, GhostPepper, Hot> sauce_;
+};
+```
+
+Storing a closed-set polymorphic member directly is possible as `variant` and `optional` reserve enough memory for the largest possible type.
+
+--- 
+
+# Open-set polymorphism
+
+Open-set polymorphism allows users of a class represent member data with types
+that were not known when the class was defined.
+
+```
+struct SimulationObject {
+    virtual ~SimulationObject();
+    virtual void update() = 0;
+};
+
+class Simulation {
+    ???? simulation_objects_;
+};
+```
+
+Storing open-set polymorphic objects is challenging. We've no idea how much memory
+any of the objects might take so direct storage of the data is not possible.
 
 ---
 
 # pointer (and reference) members
 
+TODO
+
+---
+
+# Generated special-member functions for pointers
+
+TODO
+
 ---
 
 # `std::unique_ptr<T>` members
+
+TODO
 
 ---
 
 # `std::shared_ptr<T>` members
 
+TODO
+
+---
+
+# `std::shared_ptr<const T>` members
+
+TODO
+
 ---
 
 # `std::experimental::propagate_const<T>`
 
----
-
-# `indirect_value<T>` members
+TODO
 
 ---
 
 # `polymorphic_value<T>` members
 
+TODO
+
 ---
 
-# Implementing `indirect_value<T>`
+# `indirect_value<T>` members
+
+TODO
 
 ---
 
 # Implementing `polymorphic_value<T>`
 
+TODO
+
 ---
 
-# Using `indirect_value<T>` in your code
+# Implementing `indirect_value<T>`
+
+TODO
 
 ---
 
 # Using `polymorphic_value<T>` in your code
 
+`polymorphic_value` is a single-file-, header-only-library and can be included in your C++ project by using the header file from our reference implementation
+
+https://github.com/jbcoe/polymorphic_value
+
+```
+jbcoe/polymorphic_value is licensed under the
+
+MIT License
+
+A short and simple permissive license with conditions only 
+requiring preservation of copyright and license notices.
+Licensed works, modifications, and larger works may be 
+distributed under different terms and without source code.
+```
+---
+
+# Using `indirect_value<T>` in your code
+
+`indirect_value` is a single-file-, header-only-library and can be included in your C++ project by using the header file from our reference implementation
+
+https://github.com/jbcoe/indirect_value
+
+```
+jbcoe/indirect_value is licensed under the
+
+MIT License
+
+A short and simple permissive license with conditions only 
+requiring preservation of copyright and license notices.
+Licensed works, modifications, and larger works may be 
+distributed under different terms and without source code.
+```
 ---
 
 # Standardisation efforts
 
+There are two papers in flight to add `polymorphic_value` and `indirect_value` 
+to a future version of the C++ standard.
+
+* Polymorphic Value https://wg21.link/p0201r5
+
+* Indirect Value https://wg21.link/p1950r0
+
+Now that travel restrictions are lifted, we hope to resume our work on standardisation.
+
 ---
 
 # Acknowledgements
+
+TODO
