@@ -2,10 +2,11 @@
 marp: true
 theme: default
 paginate: true
-#footer: 'Vocabulary types for composite class design: https://github.com/jbcoe/polymorphic_value/pull/105'
 ---
 
-# Vocabulary types for composite class design
+![# Vocabulary types for composite class design](CppOnSeaCoverSlide.png)
+
+---
 
 Jonathan B. Coe & Antony Peacock
 
@@ -267,15 +268,29 @@ Compiler generated special member functions will be correct.
 We might have cause to store a variable number of objects as part of our class
 
 ```~cpp
-class Audience {
+class Talk {
     Person speaker_;
     std::vector<Person> audience_;
 }
 ```
 
-The standard library has us covered. Container-like class-templates like `vector`, `map`, `unordered_map`, `set`, `unordered_set` support a variable number
-of objects and have well-defined special member functions that will copy/move/
-delete the contents of the container.
+Standard library containers like `vector` and `map` support a variable number
+of objects and have special member functions that will handle the contents of the container.
+
+---
+
+# Indirect storage
+
+We may have member data that is too big to be sensibly stored directly in the class.
+
+If member data is accessed infrequently we might want it stored elsewhere to keep cache lines hot.
+
+```~cpp
+class A {
+    Data data_;
+    BigData big_data_; // We want this stored elsewhere.
+}
+```
 
 ---
 
@@ -289,20 +304,6 @@ This can come about it node-like structures:
 class Node {
     int data_;
     Node next_; // won't compile as `Node` is not yet defined.
-}
-```
----
-
-# Indirect storage
-
-We may have member data that is too big to be sensibly stored directly in the class.
-
-If member data is accessed infrequently we might want it stored elsewhere to keep cache lines hot.
-
-```~cpp
-class A {
-    Data data_;
-    BigData big_data_; // We want this stored elsewhere.
 }
 ```
 ---
@@ -481,9 +482,9 @@ class A {
 
 This is an improvement over raw-pointer members.
 
- We now have a correct compiler-generated destructor, move-constructor and move-assignment operator.
+We now have a correct compiler-generated destructor, move-constructor and move-assignment operator.
 
-`std::unique_ptr` is non-copyable though so the compiler won't generate a copy constructor or assignement operator for us.
+`std::unique_ptr` is non-copyable, so the compiler won't generate a copy constructor or assignement operator for us.
 
 `std::unique_ptr` does not propagate `const` so we'll have to check our implementations of const-qualified member functions ourselves.
 
