@@ -199,10 +199,10 @@ We get a const-access-path by directly accessing a const-qualified object or acc
 Pointers can be const-qualifed and can point to const-qualified objects
 
 ```~cpp
-const A*;        // pointer to a const-qualified A.
-const A* const;  // const pointer to a const-qualified A.
-const A* const;  // const pointer to a non-const-qualified A.
-A*;              // pointer to a non-const-qualified A.
+A*;              // non-const pointer to a non-const A.
+A* const;        // const pointer to a non-const A.
+const A*;        // non-const pointer to a const A.
+const A* const;  // const pointer to a const A.
 ```
 
 Note that references are always `const` - they cannot be made to refer to a different object although they can refer to a const-qualified or non-const-qualified object.
@@ -289,6 +289,20 @@ This can come about it node-like structures:
 class Node {
     int data_;
     Node next_; // won't compile as `Node` is not yet defined.
+}
+```
+---
+
+# Indirect storage
+
+We may have member data that is too big to be sensibly stored directly in the class.
+
+If member data is accessed infrequently we might want it stored elsewhere to keep cache lines hot.
+
+```~cpp
+class A {
+    Data data_;
+    BigData big_data_; // We want this stored elsewhere.
 }
 ```
 ---
@@ -443,45 +457,183 @@ Let's see if we can do better.
 
 ---
 
+# Smart pointers
+
+Smart pointers have different semantics to raw pointers and can be used to express intent to the compiler.
+
+* Ownership can be transferred.
+
+* Resources can be freed on destruction.
+
+C++98 had std::auto_ptr. With the introduction of move semantics, we have improved smart pointers in C++11.
+
+[C++11 deprecated std::auto_ptr. C++17 removed it.]
+
+---
+
 # `std::unique_ptr<T>` members
 
-TODO
+```~cpp
+class A {
+    std::unique_ptr<B> b_;
+};
+```
+
+This is an improvement over raw-pointer members.
+
+ We now have a correct compiler-generated destructor, move-constructor and move-assignment operator.
+
+`std::unique_ptr` is non-copyable though so the compiler won't generate a copy constructor or assignement operator for us.
+
+`std::unique_ptr` does not propagate `const` so we'll have to check our implementations of const-qualified member functions ourselves.
 
 ---
 
 # `std::shared_ptr<T>` members
 
-TODO
+```~cpp
+class A {
+    std::shared_ptr<B> b_;
+};
+```
+
+With `shared_ptr` members, the compiler can generate all special member functions for us. 
+
+Sadly this is not much of an improvement as the copy constructor and assignment operator will not copy the `B` object that we point to, only add references to it.
+
+We now have mutable shared state and still no const-propagation.
 
 ---
 
 # `std::shared_ptr<const T>` members
 
-TODO
+```~cpp
+class A {
+    std::shared_ptr<const B> b_;
+};
+```
 
----
+Again, the compiler can generate all special member functions for us. 
 
-# `polymorphic_value<T>`
+Copy and assignement will add references to the same `B` object but seeing as it's immutable that could be ok (so long as it's not mutable by another route).
 
-TODO
-
----
-
-# `indirect_value<T>`
-
-TODO
+We've lost the ability to call any mutation method of the B object though as any access to it is through a const-access-path.
 
 ---
 
 # `polymorphic_value<T>` members
 
-TODO
+```~cpp
+class A {
+    std::polymorphic_value<B> b_;
+};
+```
+
+A `polymorphic_value` member allows the compiler to generate special member functions correctly and propagates `const` so that const-qualified member functions can be verified by the compiler.
+
+`B` is allowed to be a base class and `b_` can store an instance of a derived type.
+Copying and deleting derived types works correctly as polymorphic_value is implemented using type-erasure.
 
 ---
 
 # `indirect_value<T>` members
 
-TODO
+```~cpp
+class A {
+    std::indirect_value<B> b_;
+};
+```
+
+An `indirect_value` member allows the compiler to generate special member functions correctly and propagates `const` so that const-qualified member functions can be verified by the compiler.
+
+`B` can be an incomplete type. `b_` can only store an instance of `B`. Copying
+and deleting the owned object works without virtual dispatch.
+
+---
+
+# New proposed classes
+
+We've suggested the use of two new class templates
+
+* `polymorphic_value`
+
+* `indirect_value`
+
+We'll take a look into their APIs and implementations.
+
+---
+
+# Design of `polymorphic_value`
+
+`polymorphic_value` is a class template taking a single template argument - the base class of the types that we want to store.
+
+```cpp
+template <class T>
+class polymorphic_value;
+```
+---
+
+## Constructors
+
+```cpp
+polymorphic_value() noexcept;
+
+template <class U, class... Ts> // restrictions apply
+explicit polymorphic_value(std::in_place_type_t<U>, Ts&&... ts);
+
+template <class U, class C=default_copy<U>, class D=default_delete<U>>
+explicit polymorphic_value(U* p, C c=C{}, D d=D{});  // restrictions apply
+```
+
+---
+
+## Move and copy
+
+```~cpp
+polymorphic_value(const polymorphic_value& p);
+polymorphic_value(polymorphic_value&& p) noexcept;
+
+template <class U> // restrictions apply
+polymorphic_value(const polymorphic_value<U>& p);
+
+template <class U> // restrictions apply
+polymorphic_value(polymorphic_value<U>&& p);
+
+```
+
+---
+
+## Assignment
+
+```cpp
+polymorphic_value& operator=(const polymorphic_value& p);
+
+polymorphic_value& operator=(polymorphic_value &&p) noexcept;
+
+```
+
+---
+
+## Modifiers and observers
+```cpp
+void swap(polymorphic_value<T>& p) noexcept;
+
+explicit operator bool() const noexcept;
+
+T& operator*();
+T* operator->();
+
+const T& operator*() const;
+const T* operator->() const;
+```
+
+---
+
+## Creation
+```cpp
+template <class T, class ...Ts>
+polymorphic_value<T> make_polymorphic_value(Ts&& ...ts);
+```
 
 ---
 
@@ -532,8 +684,8 @@ struct control_block
 We can support constructors of the form:
 
 ```cpp
-template<class U> // restrictions apply
-polymorphic_value(const U& u);
+template<class U, class ...Ts> // restrictions apply
+polymorphic_value(std::in_place_type<U>, Ts...ts);
 ```
 
 ---
@@ -545,7 +697,9 @@ template <class T, class U>
 class direct_control_block : public control_block<T> {
   U u_;
  public:
-  direct_control_block(const U& u) : u_(u) {}
+  template <class... Ts>
+  explicit direct_control_block(Ts&&... ts) : 
+    u_(U(std::forward<Ts>(ts)...)) {}
 
   T* ptr() override { return &u_; }
 
@@ -689,12 +843,6 @@ explicit polymorphic_value(U* u,
 
 ---
 
-# Implementing `indirect_value<T>`
-
-TODO
-
----
-
 # Using `polymorphic_value<T>` in your code
 
 `polymorphic_value` is a single-file-, header-only-library and can be included in your C++ project by using the header file from our reference implementation
@@ -711,6 +859,103 @@ requiring preservation of copyright and license notices.
 Licensed works, modifications, and larger works may be 
 distributed under different terms and without source code.
 ```
+
+---
+
+# Design of `indirect_value`
+
+`indirect_value` is a class template taking three template argument - the type we want to store, a copier and a deleter.
+
+Only the first template argument is mandatory, `default_copy` and `default_delete`
+will be used if later template arguments are not supplied.
+
+```cpp
+template <class T, class C=std::default_copy<T>, class D=std::default_delete<D>>
+class indirect_value;
+```
+
+---
+
+## Constructors
+
+```cpp
+indirect_value() noexcept;
+
+template <class U, class... Ts>
+explicit indirect_value(std::in_place_t, Ts&&... ts);
+
+template <class U, class C=default_copy<U>, class D=default_delete<U>>
+explicit indirect_value(U* p, C c=C{}, D d=D{});  // restrictions apply
+```
+
+---
+
+## Move and Copy
+
+```~cpp
+indirect_value(const indirect_value& i);
+indirect_value(indirect_value&& i) noexcept;
+```
+
+## Assignment
+```~cpp
+indirect_value& operator=(const indirect_value& i);
+indirect_value& operator=(indirect_value&& i) noexcept;
+```
+
+---
+
+## Modifiers and observers
+
+```cpp
+void swap(polymorphic_value<T>& p) noexcept;
+
+explicit operator bool() const noexcept;
+
+T& operator*();
+T* operator->();
+
+const T& operator*() const;
+const T* operator->() const;
+```
+
+---
+
+## Three way comparison and hash
+
+`indirect_value` specializes `std::hash` when the stored type specializes `std::hash`.
+
+`indirect_value` supports binary comparsion operations in cases where the stored type supports  binary comparsion operations.
+
+`indirect_value` supports three-way-comparison (operator `<=>`) in cases where the stored type supports three-way-comparison.
+
+As `indirect_value` can be empty it supports hash and comparison operations in the same way as `std::optional`.
+
+---
+
+# Implementing `indirect_value<T>`
+
+`indirect_value` could be naively implemented with a raw pointer:
+
+```~cpp
+template <class T, class C = default_copy<T>, class D = std::default_delete<T>>
+class indirect_value {
+    T* ptr_;
+    C c_;
+    D d_;
+  public:
+    // Constructors elided 
+
+    T* operator->() noexcept { return ptr_; }
+    const T* operator->() const noexcept { return ptr_; }
+    T& operator*() & noexcept { return *ptr_; }
+    const T& operator*() const& noexcept { return *ptr_; }
+};
+```
+
+We'd like to avoid allocating storage for the copier and deleter where possible.
+Our reference implementation uses the empty base class optimisation to do this.
+
 ---
 
 # Using `indirect_value<T>` in your code
@@ -746,4 +991,7 @@ Now that travel restrictions are lifted, we hope to resume our work on standardi
 
 # Acknowledgements
 
-TODO
+Many thanks to Sean Parent and to the Library Evolution Working group from the C++ Standards committee for interesting early discussion in the design
+of `polymorphic_value`.
+
+Thanks to our GitHub contributors who've made worked with us to improve our reference implementations.
