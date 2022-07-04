@@ -148,6 +148,27 @@ do_something(B):
 
 ---
 
+# Compiler generated functions with pointer members
+
+When a class contains pointer members, the compiler generated special
+member functions will copy/move/delete the pointer but not the pointee:
+
+```~cpp
+struct A {
+    A(...);
+    B* b;
+};
+
+A a(...);
+A a2(a);
+assert(a.b == a2.b);
+
+```
+
+This might require us to write our own versions of the special member functions, something we'd sorely like to avoid having to do.
+
+---
+
 # `const` in C++
 
 Member functions in C++ can be const-qualified:
@@ -191,7 +212,7 @@ Note that references are always `const` - they cannot be made to refer to a diff
 
 # `const` propagation
 
-An objects member data becomes const-qualified when the object is accessed through a const-access-path:
+An object's member data becomes const-qualified when the object is accessed through a const-access-path:
 
 ```~cpp
 class A {
@@ -214,13 +235,30 @@ error: passing 'const A' as 'this' argument discards qualifiers
 
 # `const` propagation and reference types
 
-TODO
+Pointer or reference member data becomes const-qualified when accessed through a const-access-path, but the const-ness does not propagate through to the pointee.
+
+Since references cannot be modified, this const-qualification makes no difference to references. 
+
+Pointers can't be made to point at different objects when accessed through a const-access-path but the object they point to can be accessed in a non-const manner.
+
+const-propagation must be borne in mind when designing composite classes for const-correctness.
 
 ---
 
 # class-instance members
 
-TODO
+Class-instance members are often a good option for member data.
+
+```~cpp
+class A {
+  B b_;
+  C c_;
+};
+```
+
+Class-instance members ensure const-correctness.
+
+Compiler generated special member functions will be correct.
 
 ---
 
@@ -243,13 +281,52 @@ delete the contents of the container.
 
 # Incomplete types
 
-TODO
+If the definition of a member is not available when a class is defined then we'll need to store the member as an incomplete type.
+
+This can come about it node-like structures:
+
+```~cpp
+class Node {
+    int data_;
+    Node next_; // won't compile as `Node` is not yet defined.
+}
+```
+---
+
+# The Pointer To Implementation Pattern
+
+The PIMPL pattern can be used to reduce compile times and keep ABI stable.
+We store an incomplete type which defines the implementation detail of our class.
+
+This can come about it node-like structures:
+
+```~cpp
+class A {
+  public:
+    int foo();
+    double bar();
+  private:
+    Impl implementation_; // won't compile as `Impl` is not yet defined.
+}
+```
+
+Where `A` is defined in a header file we want to define `Impl` in the associated `cc` source file.
 
 ---
 
 # Polymorphism
 
-TODO
+We might require a member of our composite class to be one of a number of types.
+
+* A Zoo could contain a list of Animals of different types.
+
+* A code_checker could contain different checking_tools.
+
+* A Game could contain different GameEntities.
+
+* A Portfolio could contain different kinds of FinancialInstrument.
+
+Our class will need to reserve storage for our polymorphic data member.
 
 --- 
 
@@ -293,13 +370,76 @@ any of the objects might take so direct storage of the data is not possible.
 
 # pointer (and reference) members
 
-TODO
+We can support polymorphism and incomplete types by storing a pointer as a member.
+
+The pointer can be an incomplete type:
+
+```~cpp
+class A {
+    class B* b_;
+    class A* next_;
+}
+```
+
+or the base type in a class heirarchy:
+
+```
+struct Shape { 
+    virtual void Draw() const = 0;
+};
+
+class Picture {
+    Shape* shape_;
+}
+```
 
 ---
 
-# Generated special-member functions for pointers
+We can store multiple pointers to objects in our class in standard library collections:
 
-TODO
+```~cpp
+struct Animal {
+    const char* MakeNoise() const = 0;
+};
+
+class Zoo {
+    std::vector<Animal*> animals_;
+};
+
+class SafeZoo {
+    std::map<std::string, std::vector<Animal*>> animals_;
+};
+```
+
+---
+
+# Issues with pointer members
+
+* Compiler generated special members functions handle only the pointer, not the pointee.
+
+* `const` will not propagate to pointees
+
+* If we want to model ownership in our composite then we'll have to do work:
+
+    * Manually maintain special member functions.
+    * Check const-qualified member functions for const correctness.
+
+---
+
+# Improving on pointer members
+
+C++'s handling of pointers is not wrong, but in the examples above, we've failed to communicate what we mean to the compiler.
+
+There are instances where pointer members perfectly model what we want to express but such instances are not composites:
+
+```~cpp
+class Worker {
+    std::string name_;
+    Manager* manager_;
+};
+```
+
+Let's see if we can do better.
 
 ---
 
@@ -321,7 +461,13 @@ TODO
 
 ---
 
-# `std::experimental::propagate_const<T>`
+# `polymorphic_value<T>`
+
+TODO
+
+---
+
+# `indirect_value<T>`
 
 TODO
 
@@ -505,8 +651,7 @@ class pointer_control_block : public control_block<T> {
 
 public:
   explicit pointer_control_block(U* u, C c = C{}, D d = D{})
-      : c_(std::move(c)), p_(u, std::move(d)) {
-  }
+      : c_(std::move(c)), p_(u, std::move(d)) {}
 
   std::unique_ptr<control_block<T>> clone() const override {
     assert(p_);
