@@ -115,7 +115,7 @@ int do_something(B b) {
 
 # Compiler generated functions III
 
-X86 assembly generated from https://godbolt.org/
+X86 assembly generated from https://godbolt.org/ with `-O3 -fno-exceptions`
 
 ```~assembly
 do_something(B):
@@ -952,10 +952,54 @@ class indirect_value {
     const T& operator*() const& noexcept { return *ptr_; }
 };
 ```
+---
+
+## Copying `indirect_value<T>`
+
+ `indirect_value<T>` does not need type erasure or virtual dispatch to create copies. The type of the owned object is know at compile time - if present, it must be a `T`. 
+ 
+ If an object is present, the copy constructor of of `indirect_value<T>` calls `c_(*ptr_)` to get a new object.
+
+ ---
+
+## Deleting `indirect_value<T>`
+
+ `indirect_value<T>` does not need type erasure or virtual dispatch to create copies. The type of the owned object is know at compile time - if present, it must be a `T`. 
+ 
+ The destructor of of `indirect_value<T>` calls `d_(ptr_)` to destroy an owned object.
+
+ ---
+
+## Avoiding unnecessary storage
 
 We'd like to avoid allocating storage for the copier and deleter where possible.
-Our reference implementation uses the empty base class optimisation to do this.
 
+If the objects have no member data then they don't need to reserve space.
+
+Our reference implementation uses the empty base class optimisation to eliminate storage for empty copiers and deleters:
+
+```~cpp
+template <class T, class C = default_copy<T>, class D = std::default_delete<T>>
+class ISOCPP_P1950_EMPTY_BASES indirect_value
+    : private indirect_value_copy_base<C>,
+      private indirect_value_delete_base<D> {
+```
+
+ ---
+
+## Avoiding unnecessary storage II
+
+One could employ `[[no_unique_address]]` from C++20 to avoid allocating storage for empty copiers and deleters.
+
+```~cpp
+template <class T, class C = default_copy<T>, class D = std::default_delete<T>>
+class indirect_value {
+    T* ptr_;
+    [[no_unique_address]] C c_;
+    [[no_unique_address]] D d_;
+     ...
+};
+```
 ---
 
 # Using `indirect_value<T>` in your code
@@ -974,6 +1018,20 @@ requiring preservation of copyright and license notices.
 Licensed works, modifications, and larger works may be 
 distributed under different terms and without source code.
 ```
+---
+
+# Values not references
+
+The two class templates we've proposed are value types and treat the objects they own as values:
+
+* They delete their owned objects upon destruction.
+
+* They copy their owned objects (correctly) when copied.
+
+Value types are the right choice for the design of composite classes (unless we want to do a bunch of extra work).
+
+Both classes can be default constructed in an empty state, this makes them regular types and means that they will interact well with existing collections like `std::vector` and `std::map`.
+
 ---
 
 # Standardisation efforts
