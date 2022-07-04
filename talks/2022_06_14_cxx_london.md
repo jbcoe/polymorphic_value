@@ -19,7 +19,7 @@ Jonathan B. Coe & Antony Peacock
 
 * We'll look into some of the challenges of composite class design and see which problems are unsolved by current vocabulary types.
 
-* We'll run through our reference implementations of the two proposed new types.
+* We'll look at implementations of the two proposed new types.
 
 ---
 
