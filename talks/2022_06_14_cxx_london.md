@@ -29,7 +29,7 @@ Jonathan B. Coe & Antony Peacock
 
 Classes (and structs) let us group together logically associated data and functions that operate on that data:
 
-```~cpp
+```cpp
 class Circle {
     std::pair<double, double> position_;
     double radius_;
@@ -47,7 +47,7 @@ public:
 
 User-defined types can be used for member data:
 
-```~cpp
+```cpp
 struct Point {
     double x, y;
 };
@@ -65,7 +65,7 @@ class Circle {
 
 We can define special member functions to create, copy, move or destroy instances of our class:
 
-```~cpp
+```cpp
 class Circle {
     Circle(std::string_view colour, double radius, Point position);
     
@@ -93,7 +93,7 @@ class Circle {
 
 # Compiler generated functions II
 
-```~cpp
+```cpp
 class A {
   public:
     A();  
@@ -155,7 +155,7 @@ do_something(B):
 When a class contains pointer members, the compiler generated special
 member functions will copy/move/delete the pointer but not the pointee:
 
-```~cpp
+```cpp
 struct A {
     A(...);
     B* b;
@@ -175,7 +175,7 @@ This might require us to write our own versions of the special member functions,
 
 Member functions in C++ can be const-qualified:
 
-```~cpp
+```cpp
 struct A {
     void foo() const;
     void foo(); 
@@ -200,7 +200,7 @@ We get a const-access-path by directly accessing a const-qualified object or acc
 
 Pointers can be const-qualifed and can point to const-qualified objects
 
-```~cpp
+```cpp
 A*;              // non-const pointer to a non-const A.
 A* const;        // const pointer to a non-const A.
 const A*;        // non-const pointer to a const A.
@@ -216,7 +216,7 @@ Note that references cannot be made to refer to a different object although they
 
 An object's member data becomes const-qualified when the object is accessed through a const-access-path:
 
-```~cpp
+```cpp
 class A {
   public:
     void foo(); // non-const
@@ -249,7 +249,7 @@ error: passing 'const A' as 'this' argument discards qualifiers
 
 Class-instance members are often a good option for member data.
 
-```~cpp
+```cpp
 class A {
   B b_;
   C c_;
@@ -266,7 +266,7 @@ Compiler generated special member functions will be correct.
 
 We might have cause to store a variable number of objects as part of our class
 
-```~cpp
+```cpp
 class Talk {
     Person speaker_;
     std::vector<Person> audience_;
@@ -284,7 +284,7 @@ We may have member data that is too big to be sensibly stored directly in the cl
 
 If member data is accessed infrequently we might want it stored elsewhere to keep cache lines hot.
 
-```~cpp
+```cpp
 class A {
     Data data_;
     BigData big_data_; // We want this stored elsewhere.
@@ -299,7 +299,7 @@ If the definition of a member is not available when a class is defined then we'l
 
 This can come about it node-like structures:
 
-```~cpp
+```cpp
 class Node {
     int data_;
     Node next_; // won't compile as `Node` is not yet defined.
@@ -314,7 +314,7 @@ We store an incomplete type which defines the implementation detail of our class
 
 This can come about it node-like structures:
 
-```~cpp
+```cpp
 class A {
   public:
     int foo();
@@ -349,7 +349,7 @@ Our class will need to reserve storage for our polymorphic data member.
 Closed-set polymorphism gives users of a class a choices for member data from a known set of types. We can use sum-types like `optional` and `variant` to
 represent this.
 
-```~cpp
+```cpp
 class Taco {
     std::optional<Avocado> avocado_;
     std::variant<Chicken, Pork, Beef> meat_;
@@ -388,7 +388,7 @@ We can support polymorphism and incomplete types by storing a pointer as a membe
 
 The pointer can be an incomplete type:
 
-```~cpp
+```cpp
 class A {
     class B* b_;
     class A* next_;
@@ -409,9 +409,11 @@ class Picture {
 
 ---
 
+# Collections of pointers as members
+
 We can store multiple pointers to objects in our class in standard library collections:
 
-```~cpp
+```cpp
 struct Animal {
     const char* MakeNoise() const = 0;
 };
@@ -446,7 +448,7 @@ C++'s handling of pointers is not wrong, but in the examples above, we've failed
 
 There are instances where pointer members perfectly model what we want to express but such instances are not composites:
 
-```~cpp
+```cpp
 class Worker {
     std::string name_;
     Manager* manager_;
@@ -473,7 +475,7 @@ C++98 had std::auto_ptr. With the introduction of move semantics, we have improv
 
 # `std::unique_ptr<T>` members
 
-```~cpp
+```cpp
 class A {
     std::unique_ptr<B> b_;
 };
@@ -491,7 +493,7 @@ We now have a correct compiler-generated destructor, move-constructor and move-a
 
 # `std::shared_ptr<T>` members
 
-```~cpp
+```cpp
 class A {
     std::shared_ptr<B> b_;
 };
@@ -507,7 +509,7 @@ We now have mutable shared state and still no const-propagation.
 
 # `std::shared_ptr<const T>` members
 
-```~cpp
+```cpp
 class A {
     std::shared_ptr<const B> b_;
 };
@@ -521,11 +523,21 @@ We've lost the ability to call any mutation method of the B object though as any
 
 ---
 
+# New proposed classes
+
+We propose the addition of two new class templates
+
+* `polymorphic_value`
+
+* `indirect_value`
+
+---
+
 # `polymorphic_value<T>` members
 
-```~cpp
+```cpp
 class A {
-    std::polymorphic_value<B> b_;
+    polymorphic_value<B> b_; // proposed addition to the standard
 };
 ```
 
@@ -533,33 +545,6 @@ A `polymorphic_value` member allows the compiler to generate special member func
 
 `B` is allowed to be a base class and `b_` can store an instance of a derived type.
 Copying and deleting derived types works correctly as polymorphic_value is implemented using type-erasure.
-
----
-
-# `indirect_value<T>` members
-
-```~cpp
-class A {
-    std::indirect_value<B> b_;
-};
-```
-
-An `indirect_value` member allows the compiler to generate special member functions correctly and propagates `const` so that const-qualified member functions can be verified by the compiler.
-
-`B` can be an incomplete type. `b_` can only store an instance of `B`. Copying
-and deleting the owned object works without virtual dispatch.
-
----
-
-# New proposed classes
-
-We've suggested the use of two new class templates
-
-* `polymorphic_value`
-
-* `indirect_value`
-
-We'll take a look into their APIs and implementations.
 
 ---
 
@@ -589,7 +574,7 @@ explicit polymorphic_value(U* p, C c=C{}, D d=D{});  // restrictions apply
 
 ## Move and copy
 
-```~cpp
+```cpp
 polymorphic_value(const polymorphic_value& p);
 polymorphic_value(polymorphic_value&& p) noexcept;
 
@@ -862,6 +847,21 @@ distributed under different terms and without source code.
 
 ---
 
+# `indirect_value<T>` members
+
+```cpp
+class A {
+    indirect_value<B> b_; // proposed addition to the standard
+};
+```
+
+An `indirect_value` member allows the compiler to generate special member functions correctly and propagates `const` so that const-qualified member functions can be verified by the compiler.
+
+`B` can be an incomplete type. `b_` can only store an instance of `B`. Copying
+and deleting the owned object works without virtual dispatch.
+
+---
+
 # Design of `indirect_value`
 
 `indirect_value` is a class template taking three template argument - the type we want to store, a copier and a deleter.
@@ -892,13 +892,14 @@ explicit indirect_value(U* p, C c=C{}, D d=D{});  // restrictions apply
 
 ## Move and Copy
 
-```~cpp
+```cpp
 indirect_value(const indirect_value& i);
 indirect_value(indirect_value&& i) noexcept;
 ```
 
 ## Assignment
-```~cpp
+
+```cpp
 indirect_value& operator=(const indirect_value& i);
 indirect_value& operator=(indirect_value&& i) noexcept;
 ```
@@ -908,7 +909,7 @@ indirect_value& operator=(indirect_value&& i) noexcept;
 ## Modifiers and observers
 
 ```cpp
-void swap(polymorphic_value<T>& p) noexcept;
+void swap(indirect_value<T>& p) noexcept;
 
 explicit operator bool() const noexcept;
 
@@ -937,7 +938,7 @@ As `indirect_value` can be empty it supports hash and comparison operations in t
 
 `indirect_value` could be naively implemented with a raw pointer:
 
-```~cpp
+```cpp
 template <class T, class C = default_copy<T>, class D = std::default_delete<T>>
 class indirect_value {
     T* ptr_;
@@ -978,7 +979,7 @@ If the objects have no member data then they don't need to reserve space.
 
 Our reference implementation uses the empty base class optimisation to eliminate storage for empty copiers and deleters:
 
-```~cpp
+```cpp
 template <class T, class C = default_copy<T>, class D = std::default_delete<T>>
 class ISOCPP_P1950_EMPTY_BASES indirect_value
     : private indirect_value_copy_base<C>,
@@ -991,7 +992,7 @@ class ISOCPP_P1950_EMPTY_BASES indirect_value
 
 One could employ `[[no_unique_address]]` from C++20 to avoid allocating storage for empty copiers and deleters.
 
-```~cpp
+```cpp
 template <class T, class C = default_copy<T>, class D = std::default_delete<T>>
 class indirect_value {
     T* ptr_;
