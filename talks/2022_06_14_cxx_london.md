@@ -2,9 +2,10 @@
 marp: true
 theme: default
 paginate: true
+size: 16:9
 ---
 
-![# Vocabulary types for composite class design](CppOnSeaCoverSlide.png)
+![](CppOnSeaCoverSlide.png)
 
 ---
 
@@ -206,7 +207,7 @@ const A*;        // non-const pointer to a const A.
 const A* const;  // const pointer to a const A.
 ```
 
-Note that references are always `const` - they cannot be made to refer to a different object although they can refer to a const-qualified or non-const-qualified object.
+Note that references cannot be made to refer to a different object although they can refer to a const-qualified or non-const-qualified object.
 
 
 ---
@@ -236,13 +237,11 @@ error: passing 'const A' as 'this' argument discards qualifiers
 
 # `const` propagation and reference types
 
-Pointer or reference member data becomes const-qualified when accessed through a const-access-path, but the const-ness does not propagate through to the pointee.
+* Pointer (or reference) member data becomes const-qualified when accessed through a const-access-path, but the const-ness does not propagate through to the pointee.
 
-Since references cannot be modified, this const-qualification makes no difference to references. 
+* Pointers can't be made to point at different objects when accessed through a const-access-path but the object they point to can be accessed in a non-const manner.
 
-Pointers can't be made to point at different objects when accessed through a const-access-path but the object they point to can be accessed in a non-const manner.
-
-const-propagation must be borne in mind when designing composite classes for const-correctness.
+* const-propagation must be borne in mind when designing composite classes for const-correctness.
 
 ---
 
