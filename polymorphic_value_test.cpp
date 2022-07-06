@@ -799,3 +799,23 @@ TEST_CASE("Allocator used to construct control block") {
   CHECK(allocs == 1);
   CHECK(deallocs == 2);
 }
+
+TEST_CASE("Copying object with allocator allocates") {
+  unsigned allocs = 0;
+  unsigned deallocs = 0;
+
+  tracking_allocator<DerivedType> alloc(&allocs, &deallocs);
+  std::allocator<DerivedType> default_allocator{};
+  auto mem = default_allocator.allocate(1);
+  const unsigned value = 42;
+  new (mem) DerivedType(value);
+
+  {
+    polymorphic_value<DerivedType> p(mem, std::allocator_arg_t{}, alloc);
+    polymorphic_value<DerivedType> p2(p);
+    CHECK(allocs == 3);
+    CHECK(deallocs == 0);
+  }
+  CHECK(allocs == 3);
+  CHECK(deallocs == 4);
+}
