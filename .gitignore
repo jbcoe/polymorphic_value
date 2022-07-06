@@ -1,6 +1,6 @@
 .idea
 .vscode/*
-build
+_build/*
 *.pyc
 talks/.ipynb_checkpoints
 doc/bin/*

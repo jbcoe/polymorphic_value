@@ -1,11 +1,11 @@
-#define CATCH_CONFIG_MAIN
+#include "polymorphic_value.h"
 
-#include <catch2/catch.hpp>
 #include <new>
 #include <stdexcept>
 #include <utility>
 
-#include "polymorphic_value.h"
+#define CATCH_CONFIG_MAIN
+#include "catch2/catch.hpp"
 
 using namespace isocpp_p0201;
 
