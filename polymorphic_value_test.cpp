@@ -833,3 +833,20 @@ TEST_CASE("Copying object with allocator allocates") {
   CHECK(allocs == 3);
   CHECK(deallocs == 4);
 }
+
+TEST_CASE("Allocator used to construct with make_polymorphic") {
+  unsigned allocs = 0;
+  unsigned deallocs = 0;
+
+  tracking_allocator<DerivedType> alloc(&allocs, &deallocs);
+
+  {
+    unsigned const value = 99;
+    polymorphic_value<DerivedType> p = make_polymorphic_value<DerivedType>(
+        std::allocator_arg_t{}, alloc, value);
+    CHECK(allocs == 2);
+    CHECK(deallocs == 0);
+  }
+  CHECK(allocs == 2);
+  CHECK(deallocs == 2);
+}

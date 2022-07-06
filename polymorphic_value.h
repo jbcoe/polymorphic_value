@@ -235,6 +235,10 @@ class polymorphic_value {
   template <class T_, class U, class... Ts>
   friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
 
+  template <class T_, class U, class A, class... Ts>
+  friend polymorphic_value<T_> make_polymorphic_value(std::allocator_arg_t,
+                                                      A& a, Ts&&... ts);
+
   T* ptr_ = nullptr;
   std::unique_ptr<detail::control_block<T>, detail::control_block_deleter> cb_;
 
@@ -439,6 +443,24 @@ polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
   p.cb_ = std::unique_ptr<detail::direct_control_block<T, U>,
                           detail::control_block_deleter>(
       new detail::direct_control_block<T, U>(std::forward<Ts>(ts)...));
+  p.ptr_ = p.cb_->ptr();
+  return p;
+}
+
+template <class T, class U = T, class A = std::allocator<U>, class... Ts>
+polymorphic_value<T> make_polymorphic_value(std::allocator_arg_t, A& a,
+                                            Ts&&... ts) {
+  polymorphic_value<T> p;
+  auto* u = detail::allocate_object<U>(a, std::forward<Ts>(ts)...);
+  try {
+    p.cb_ = std::unique_ptr<detail::allocated_pointer_control_block<T, U, A>,
+                            detail::control_block_deleter>(
+        detail::allocate_object<
+            detail::allocated_pointer_control_block<T, U, A>>(a, u, a));
+  } catch (...) {
+    detail::deallocate_object(a, u);
+    throw;
+  }
   p.ptr_ = p.cb_->ptr();
   return p;
 }
