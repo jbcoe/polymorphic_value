@@ -501,6 +501,20 @@ TEST_CASE("make_polymorphic_value with two template arguments",
   REQUIRE(pv->value() == 7);
 }
 
+struct B;
+struct A {
+  A(B);
+  A() = default;
+};
+struct B : A {};
+
+TEST_CASE("make_polymorphic_value ambiguity",
+          "[polymorphic_value.make_polymorphic_value.ambiguity]") {
+  B b;
+  // This was ambiguous with two make_polymorphic_value functions.
+  auto pv = make_polymorphic_value<A, B>(b);
+}
+
 TEST_CASE("Derived types", "[polymorphic_value.derived_types]") {
   GIVEN(
       "A polymorphic_value<BaseType> constructed from "
