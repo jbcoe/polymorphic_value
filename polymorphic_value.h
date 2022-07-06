@@ -145,8 +145,6 @@ class polymorphic_value {
 
   template <class T_, class U, class... Ts>
   friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
-  template <class T_, class... Ts>
-  friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
 
   T* ptr_ = nullptr;
   std::unique_ptr<detail::control_block<T>> cb_;
@@ -323,15 +321,7 @@ class polymorphic_value {
 //
 // polymorphic_value creation
 //
-template <class T, class... Ts>
-polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
-  polymorphic_value<T> p;
-  p.cb_ = std::make_unique<detail::direct_control_block<T, T>>(
-      std::forward<Ts>(ts)...);
-  p.ptr_ = p.cb_->ptr();
-  return p;
-}
-template <class T, class U, class... Ts>
+template <class T, class U = T, class... Ts>
 polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
   polymorphic_value<T> p;
   p.cb_ = std::make_unique<detail::direct_control_block<T, U>>(
