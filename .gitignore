@@ -1,5 +1,5 @@
 .idea
-.vscode
+.vscode/*
 build
 *.pyc
 talks/.ipynb_checkpoints
@@ -7,3 +7,4 @@ doc/bin/*
 doc/html/*
 doc/polymorphic_value_reference.xml
 draft.pdf
+.DS_Store
