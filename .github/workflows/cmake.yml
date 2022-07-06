@@ -1,0 +1,108 @@
+name: CMake
+
+on: [push]
+
+jobs:
+  build:
+    name: ${{ matrix.settings.name }} ${{ matrix.configuration }}
+    runs-on: ${{ matrix.settings.os }}
+    strategy:
+      matrix:
+        configuration: [ "Release", "Debug" ]
+        settings:
+        - {
+            name: "Ubuntu GCC-8",
+            os: ubuntu-20.04,
+            compiler: { type: GCC, version: 10, cc: "gcc-8", cxx: "g++-8", std: 17 },
+            lib: "libstdc++11"
+          }
+        - {
+            name: "Ubuntu GCC-9",
+            os: ubuntu-20.04,
+            compiler: { type: GCC, version: 10, cc: "gcc-9", cxx: "g++-9", std: 17 },
+            lib: "libstdc++11"
+          }
+        - {
+            name: "Ubuntu GCC-10",
+            os: ubuntu-20.04,
+            compiler: { type: GCC, version: 10, cc: "gcc-10", cxx: "g++-10", std: 20 },
+            lib: "libstdc++11"
+          }
+        - {
+            name: "Ubuntu GCC-11",
+            os: ubuntu-20.04,
+            compiler: { type: GCC, version: 11, cc: "gcc-11", cxx: "g++-11" },
+            lib: "libstdc++11"
+          }
+        - {
+            name: "Ubuntu Clang-10 + libc++",
+            os: ubuntu-20.04,
+            compiler: { type: CLANG, version: 10, cc: "clang-10", cxx: "clang++-10", std: 20 },
+            lib: "libc++"
+          }
+        - {
+            name: "Ubuntu Clang-11 + libc++",
+            os: ubuntu-20.04,
+            compiler: { type: CLANG, version: 11, cc: "clang-11", cxx: "clang++-11", std: 20 },
+            lib: "libc++"
+          }
+        - {
+            name: "Ubuntu Clang-12 + libc++",
+            os: ubuntu-20.04,
+            compiler: { type: CLANG, version: 12, cc: "clang-12", cxx: "clang++-12", std: 20 },
+            lib: "libc++"
+          }
+        - {
+            name: "Ubuntu Clang-13 + libc++",
+            os: ubuntu-20.04,
+            compiler: { type: CLANG, version: 13, cc: "clang-13", cxx: "clang++-13", std: 20 },
+            lib: "libc++"
+          }
+        - {
+            name: "Visual Studio 2019",
+            os: windows-latest,
+            compiler: { type: VISUAL, version: 16, cc: "cl", cxx: "cl" }
+          }
+        - {
+            name: "MacOS Apple Clang 13",
+            os: macos-11,
+            compiler: { type: APPLE_CLANG, version: "13.0", cc: "clang", cxx: "clang++", std: 20 }
+          }
+    steps:
+      - uses: actions/checkout@v2
+      - name: Add msbuild to PATH
+        if: matrix.settings.os == 'windows-latest'
+        uses: microsoft/setup-msbuild@v1.0.2
+        with:
+          vs-version: "16.5"
+      - name: Install Latest GCC 
+        if: matrix.settings.compiler.type == 'GCC'
+        uses: egor-tensin/setup-gcc@v1
+        with:
+          version: ${{ matrix.settings.compiler.version }}
+          platform: x64
+      - name: Install Clang
+        if: matrix.settings.compiler.type == 'CLANG'
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: ${{ matrix.settings.compiler.version }}
+          platform: x64
+      - name: Select Xcode 13.0
+        if: matrix.config.compiler.type == 'APPLE_CLANG' && matrix.config.compiler.version == '13.0'
+        shell: bash
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_13.0.app"
+      - name: Configure CMake
+        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+
+      - name: Build
+        # Build your program with the given configuration
+        run: cmake --build ${{github.workspace}}/build --config ${{ matrix.configuration }}
+
+      - name: Test
+        working-directory: ${{github.workspace}}/build
+        # Execute tests defined by the CMake configuration.  
+        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+        run: ctest -C ${{ matrix.configuration }}

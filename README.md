@@ -1,21 +1,18 @@
 # A polymorphic value-type for C++
 
-[![travis][badge.travis]][travis]
-[![appveyor][badge.appveyor]][appveyor]
+[![ConanCenter Package][badge.conan]][conan]
 [![codecov][badge.codecov]][codecov]
 [![language][badge.language]][language]
 [![license][badge.license]][license]
 [![issues][badge.issues]][issues]
 
-[badge.travis]: https://img.shields.io/travis/jbcoe/polymorphic_value/master.svg?logo=travis
-[badge.appveyor]: https://img.shields.io/appveyor/ci/jbcoe/polymorphic-value/master.svg?logo=appveyor
+[badge.conan]: https://repology.org/badge/version-for-repo/conancenter/polymorphic_value.svg
 [badge.language]: https://img.shields.io/badge/language-C%2B%2B14-yellow.svg
 [badge.codecov]: https://img.shields.io/codecov/c/github/jbcoe/polymorphic_value/master.svg?logo=codecov
 [badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
 [badge.issues]: https://img.shields.io/github/issues/jbcoe/polymorphic_value.svg
 
-[travis]: https://travis-ci.org/jbcoe/polymorphic_value
-[appveyor]: https://ci.appveyor.com/project/jbcoe/polymorphic-value
+[conan]: https://conan.io/center/polymorphic_value
 [codecov]: https://codecov.io/gh/jbcoe/polymorphic_value
 [language]: https://en.wikipedia.org/wiki/C%2B%2B14
 [license]: https://en.wikipedia.org/wiki/MIT_License
@@ -61,9 +58,10 @@ The draft in this repository is more up to date than the paper linked above, in 
   - [CMake](#cmake)
     - [External](#external)
 - [Building](#building)
+  - [Building Manually Via CMake](#building-manually-via-cmake)
+  - [Installing Via CMake](#installing-via-cmake)
 - [Packaging](#packaging)
   - [Conan](#conan)
-    - [Building Conan Packages](#building-conan-packages)
 - [License](#license)
 
 # Integration
@@ -127,26 +125,12 @@ cmake --install ../
 
 # Packaging
 
+The Polymorphic Value library is available for integration into your own project via our favorite package manager: [Conan](https://docs.conan.io/en/latest/).
+
 ## Conan
-To add the polymorphic_value library to your project as a dependency, you need to add a remote to Conan to point the
-location of the library:
-```bash
-cd <project root>
-pip install conan
-conan remote add polymorphic_value https://api.bintray.com/conan/twonington/public-conan
-```
-Once this is set you can add the polymorphic_value dependency to you project via the following signature:
-```bash
-polymorphic_value/0.0.1@public-conan/testing
-```
-Available versions of the Polymorphic Value  package can be search via Conan:
-```bash
-conan search polymorphic_value
-```
 
-### Building Conan Packages
+Polymorphic Value is now available on the Conan Center Index: https://conan.io/center/polymorphic_value.  Just include the following dependency in your `conanfile.txt` or `conanfile.py` within your project, install via Conan and build using build system of choice.
 
 ```bash
-cd <project root>
-conan create ./ polymorphic_value/1.0@conan/stable -tf .conan/test_package
+polymorphic_value/1.3.0
 ```
