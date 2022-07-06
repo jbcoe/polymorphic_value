@@ -131,6 +131,74 @@ class delegating_control_block : public control_block<T> {
   T* ptr() override { return delegate_->ptr(); }
 };
 
+template <typename A>
+struct allocator_wrapper : A {
+  allocator_wrapper(A& a) : A(a) {}
+
+  const A& get_allocator() const { return static_cast<const A&>(*this); }
+};
+
+template <typename T, typename A, typename... Args>
+T* allocate_object(A& a, Args&&... args) {
+  using t_allocator =
+      typename std::allocator_traits<A>::template rebind_alloc<T>;
+  using t_traits = std::allocator_traits<t_allocator>;
+  t_allocator t_alloc(a);
+  T* mem = t_traits::allocate(t_alloc, 1);
+  try {
+    t_traits::construct(t_alloc, mem, std::forward<Args>(args)...);
+    return mem;
+  } catch (...) {
+    t_traits::deallocate(t_alloc, mem, 1);
+    throw;
+  }
+}
+
+template <typename T, typename A>
+void deallocate_object(A& a, T* p) {
+  using t_allocator =
+      typename std::allocator_traits<A>::template rebind_alloc<T>;
+  using t_traits = std::allocator_traits<t_allocator>;
+  t_allocator t_alloc(a);
+  t_traits::destroy(t_alloc, p);
+  t_traits::deallocate(t_alloc, p, 1);
+}
+
+template <class T, class U, class A>
+class allocated_pointer_control_block : public control_block<T>,
+                                        allocator_wrapper<A> {
+  U* p_;
+
+ public:
+  explicit allocated_pointer_control_block(U* u, A a)
+      : allocator_wrapper<A>(a), p_(u) {}
+
+  ~allocated_pointer_control_block() {
+    detail::deallocate_object(this->get_allocator(), p_);
+  }
+
+  std::unique_ptr<control_block<T>, control_block_deleter> clone()
+      const override {
+    assert(p_);
+
+    auto* cloned_ptr = detail::allocate_object<U>(this->get_allocator(), *p_);
+    try {
+      auto* new_cb = detail::allocate_object<allocated_pointer_control_block>(
+          this->get_allocator(), cloned_ptr, this->get_allocator());
+      return std::unique_ptr<control_block<T>, control_block_deleter>(new_cb);
+    } catch (...) {
+      detail::deallocate_object(this->get_allocator(), cloned_ptr);
+      throw;
+    }
+  }
+
+  T* ptr() override { return p_; }
+
+  void destroy() noexcept override {
+    detail::deallocate_object(this->get_allocator(), this);
+  }
+};
+
 }  // end namespace detail
 
 class bad_polymorphic_value_construction : public std::exception {
@@ -208,27 +276,21 @@ class polymorphic_value {
     ptr_ = u;
   }
 
-  template <class U, class A, class C = detail::default_copy<U>,
-            class D = detail::default_delete<U>,
+  template <class U, class A,
             class V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
-  explicit polymorphic_value(U* u, std::allocator_arg_t, const A& alloc,
-                             C copier = C{}, D deleter = D{}) {
+  explicit polymorphic_value(U* u, std::allocator_arg_t, const A& alloc) {
     if (!u) {
       return;
     }
 
 #ifndef ISOCPP_P0201_POLYMORPHIC_VALUE_NO_RTTI
-    if (std::is_same<D, detail::default_delete<U>>::value &&
-        std::is_same<C, detail::default_copy<U>>::value &&
-        typeid(*u) != typeid(U))
-      throw bad_polymorphic_value_construction();
+    if (typeid(*u) != typeid(U)) throw bad_polymorphic_value_construction();
 #endif
-    std::unique_ptr<U, D> p(u, std::move(deleter));
 
-    cb_ = std::unique_ptr<detail::pointer_control_block<T, U, C, D>,
+    cb_ = std::unique_ptr<detail::allocated_pointer_control_block<T, U, A>,
                           detail::control_block_deleter>(
-        new detail::pointer_control_block<T, U, C, D>(std::move(p),
-                                                      std::move(copier)));
+        detail::allocate_object<
+            detail::allocated_pointer_control_block<T, U, A>>(alloc, u, alloc));
     ptr_ = u;
   }
 

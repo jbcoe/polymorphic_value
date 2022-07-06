@@ -746,3 +746,56 @@ TEST_CASE("Dangling reference in forwarding constructor",
   d.set_value(6);
   CHECK(p->value() == 7);
 }
+
+namespace {
+template <typename T>
+struct tracking_allocator {
+  unsigned* alloc_counter;
+  unsigned* dealloc_counter;
+
+  explicit tracking_allocator(unsigned* a, unsigned* d) noexcept
+      : alloc_counter(a), dealloc_counter(d) {}
+
+  template <typename U>
+  tracking_allocator(const tracking_allocator<U>& other)
+      : alloc_counter(other.alloc_counter),
+        dealloc_counter(other.dealloc_counter) {}
+
+  using value_type = T;
+
+  template <typename Other>
+  struct rebind {
+    using other = tracking_allocator<Other>;
+  };
+
+  constexpr T* allocate(std::size_t n) {
+    ++*alloc_counter;
+    std::allocator<T> default_allocator{};
+    return default_allocator.allocate(n);
+  }
+  constexpr void deallocate(T* p, std::size_t n) {
+    ++*dealloc_counter;
+    std::allocator<T> default_allocator{};
+    default_allocator.deallocate(p, n);
+  }
+};
+}  // namespace
+
+TEST_CASE("Allocator used to construct control block") {
+  unsigned allocs = 0;
+  unsigned deallocs = 0;
+
+  tracking_allocator<DerivedType> alloc(&allocs, &deallocs);
+  std::allocator<DerivedType> default_allocator{};
+  auto mem = default_allocator.allocate(1);
+  const unsigned value = 42;
+  new (mem) DerivedType(value);
+
+  {
+    polymorphic_value<DerivedType> p(mem, std::allocator_arg_t{}, alloc);
+    CHECK(allocs == 1);
+    CHECK(deallocs == 0);
+  }
+  CHECK(allocs == 1);
+  CHECK(deallocs == 2);
+}
