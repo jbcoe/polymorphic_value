@@ -59,20 +59,20 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
             add_subdirectory(${catch2_SOURCE_DIR} ${catch2_BINARY_DIR})
         endif()
 
-        add_executable(test_polymorphic_value test_polymorphic_value.cpp)
-        target_link_libraries(test_polymorphic_value
+        add_executable(polymorphic_value_test polymorphic_value_test.cpp)
+        target_link_libraries(polymorphic_value_test
             PRIVATE
                 polymorphic_value::polymorphic_value
                 Catch2::Catch2
         )
 
-        target_compile_options(test_polymorphic_value
+        target_compile_options(polymorphic_value_test
             PRIVATE
                 $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
                 $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Werror;-Wall;-Wno-self-assign-overloaded;-Wno-unknown-warning-option>
         )
 
-        set_target_properties(test_polymorphic_value PROPERTIES
+        set_target_properties(polymorphic_value_test PROPERTIES
             CXX_STANDARD 14
             CXX_STANDARD_REQUIRED YES
             CXX_EXTENSIONS NO
@@ -92,7 +92,7 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
                     INTERFACE_COMPILE_OPTIONS "${SANITIZER_FLAGS_ASAN}"
                     INTERFACE_LINK_OPTIONS "${SANITIZER_FLAGS_ASAN}"
                 )
-                target_link_libraries(test_polymorphic_value
+                target_link_libraries(polymorphic_value_test
                     PRIVATE
                          asan
                 )
@@ -104,7 +104,7 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
                     INTERFACE_COMPILE_OPTIONS "${SANITIZER_FLAGS_UBSAN}"
                     INTERFACE_LINK_OPTIONS "${SANITIZER_FLAGS_UBSAN}"
                 )
-                target_link_libraries(test_polymorphic_value
+                target_link_libraries(polymorphic_value_test
                     PRIVATE
                          ubsan
                 )
@@ -113,14 +113,14 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
 
         enable_testing()
         add_test(
-            NAME test_polymorphic_value
-            COMMAND test_polymorphic_value
+            NAME polymorphic_value_test
+            COMMAND polymorphic_value_test
             WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
         )
 
         list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/contrib)
         include(Catch)
-        catch_discover_tests(test_polymorphic_value)
+        catch_discover_tests(polymorphic_value_test)
     endif(${BUILD_TESTING})
 
     if (APPLE)
@@ -142,7 +142,7 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
 
         set(ENABLE_COVERAGE ON CACHE BOOL "Enable coverage build." FORCE)
         find_package(codecov)
-        add_coverage(test_polymorphic_value)
+        add_coverage(polymorphic_value_test)
         list(APPEND LCOV_REMOVE_PATTERNS "'/usr/*'")
         coverage_evaluate()
     endif()

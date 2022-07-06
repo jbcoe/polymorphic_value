@@ -33,7 +33,7 @@ def main():
         "-o",
         "--output",
         help="output dir (relative to source dir)",
-        default="build",
+        default="_build",
         dest="out_dir",
     )
     parser.add_argument(
