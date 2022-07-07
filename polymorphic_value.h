@@ -49,13 +49,26 @@ struct default_delete {
   void operator()(const T* t) const { delete t; }
 };
 
+class control_block_deleter {
+ public:
+  template <class T>
+  void operator()(T* t) const noexcept {
+    if (t != nullptr) {
+      t->destroy();
+    }
+  }
+};
+
 template <class T>
 struct control_block {
   virtual ~control_block() = default;
 
-  virtual std::unique_ptr<control_block> clone() const = 0;
+  virtual std::unique_ptr<control_block, control_block_deleter> clone()
+      const = 0;
 
   virtual T* ptr() = 0;
+
+  virtual void destroy() noexcept { delete this; }
 };
 
 template <class T, class U = T>
@@ -67,8 +80,10 @@ class direct_control_block : public control_block<T> {
   template <class... Ts>
   explicit direct_control_block(Ts&&... ts) : u_(U(std::forward<Ts>(ts)...)) {}
 
-  std::unique_ptr<control_block<T>> clone() const override {
-    return std::make_unique<direct_control_block>(*this);
+  std::unique_ptr<control_block<T>, control_block_deleter> clone()
+      const override {
+    return std::unique_ptr<direct_control_block, control_block_deleter>(
+        new direct_control_block(*this));
   }
 
   T* ptr() override { return std::addressof(u_); }
@@ -86,10 +101,13 @@ class pointer_control_block : public control_block<T>, public C {
   explicit pointer_control_block(std::unique_ptr<U, D> p, C c = C{})
       : C(std::move(c)), p_(std::move(p)) {}
 
-  std::unique_ptr<control_block<T>> clone() const override {
+  std::unique_ptr<control_block<T>, control_block_deleter> clone()
+      const override {
     assert(p_);
-    return std::make_unique<pointer_control_block>(
-        C::operator()(*p_), static_cast<const C&>(*this), p_.get_deleter());
+    return std::unique_ptr<pointer_control_block, control_block_deleter>(
+        new pointer_control_block(C::operator()(*p_),
+                                  static_cast<const C&>(*this),
+                                  p_.get_deleter()));
   }
 
   T* ptr() override { return p_.get(); }
@@ -97,17 +115,88 @@ class pointer_control_block : public control_block<T>, public C {
 
 template <class T, class U>
 class delegating_control_block : public control_block<T> {
-  std::unique_ptr<control_block<U>> delegate_;
+  std::unique_ptr<control_block<U>, control_block_deleter> delegate_;
 
  public:
-  explicit delegating_control_block(std::unique_ptr<control_block<U>> b)
+  explicit delegating_control_block(
+      std::unique_ptr<control_block<U>, control_block_deleter> b)
       : delegate_(std::move(b)) {}
 
-  std::unique_ptr<control_block<T>> clone() const override {
-    return std::make_unique<delegating_control_block>(delegate_->clone());
+  std::unique_ptr<control_block<T>, control_block_deleter> clone()
+      const override {
+    return std::unique_ptr<delegating_control_block, control_block_deleter>(
+        new delegating_control_block(delegate_->clone()));
   }
 
   T* ptr() override { return delegate_->ptr(); }
+};
+
+template <typename A>
+struct allocator_wrapper : A {
+  allocator_wrapper(A& a) : A(a) {}
+
+  const A& get_allocator() const { return static_cast<const A&>(*this); }
+};
+
+template <typename T, typename A, typename... Args>
+T* allocate_object(A& a, Args&&... args) {
+  using t_allocator =
+      typename std::allocator_traits<A>::template rebind_alloc<T>;
+  using t_traits = std::allocator_traits<t_allocator>;
+  t_allocator t_alloc(a);
+  T* mem = t_traits::allocate(t_alloc, 1);
+  try {
+    t_traits::construct(t_alloc, mem, std::forward<Args>(args)...);
+    return mem;
+  } catch (...) {
+    t_traits::deallocate(t_alloc, mem, 1);
+    throw;
+  }
+}
+
+template <typename T, typename A>
+void deallocate_object(A& a, T* p) {
+  using t_allocator =
+      typename std::allocator_traits<A>::template rebind_alloc<T>;
+  using t_traits = std::allocator_traits<t_allocator>;
+  t_allocator t_alloc(a);
+  t_traits::destroy(t_alloc, p);
+  t_traits::deallocate(t_alloc, p, 1);
+}
+
+template <class T, class U, class A>
+class allocated_pointer_control_block : public control_block<T>,
+                                        allocator_wrapper<A> {
+  U* p_;
+
+ public:
+  explicit allocated_pointer_control_block(U* u, A a)
+      : allocator_wrapper<A>(a), p_(u) {}
+
+  ~allocated_pointer_control_block() {
+    detail::deallocate_object(this->get_allocator(), p_);
+  }
+
+  std::unique_ptr<control_block<T>, control_block_deleter> clone()
+      const override {
+    assert(p_);
+
+    auto* cloned_ptr = detail::allocate_object<U>(this->get_allocator(), *p_);
+    try {
+      auto* new_cb = detail::allocate_object<allocated_pointer_control_block>(
+          this->get_allocator(), cloned_ptr, this->get_allocator());
+      return std::unique_ptr<control_block<T>, control_block_deleter>(new_cb);
+    } catch (...) {
+      detail::deallocate_object(this->get_allocator(), cloned_ptr);
+      throw;
+    }
+  }
+
+  T* ptr() override { return p_; }
+
+  void destroy() noexcept override {
+    detail::deallocate_object(this->get_allocator(), this);
+  }
 };
 
 }  // end namespace detail
@@ -146,8 +235,12 @@ class polymorphic_value {
   template <class T_, class U, class... Ts>
   friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
 
+  template <class T_, class U, class A, class... Ts>
+  friend polymorphic_value<T_> make_polymorphic_value(std::allocator_arg_t,
+                                                      A& a, Ts&&... ts);
+
   T* ptr_ = nullptr;
-  std::unique_ptr<detail::control_block<T>> cb_;
+  std::unique_ptr<detail::control_block<T>, detail::control_block_deleter> cb_;
 
  public:
   //
@@ -178,8 +271,28 @@ class polymorphic_value {
 #endif
     std::unique_ptr<U, D> p(u, std::move(deleter));
 
-    cb_ = std::make_unique<detail::pointer_control_block<T, U, C, D>>(
-        std::move(p), std::move(copier));
+    cb_ = std::unique_ptr<detail::pointer_control_block<T, U, C, D>,
+                          detail::control_block_deleter>(
+        new detail::pointer_control_block<T, U, C, D>(std::move(p),
+                                                      std::move(copier)));
+    ptr_ = u;
+  }
+
+  template <class U, class A,
+            class V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
+  explicit polymorphic_value(U* u, std::allocator_arg_t, const A& alloc) {
+    if (!u) {
+      return;
+    }
+
+#ifndef ISOCPP_P0201_POLYMORPHIC_VALUE_NO_RTTI
+    if (typeid(*u) != typeid(U)) throw bad_polymorphic_value_construction();
+#endif
+
+    cb_ = std::unique_ptr<detail::allocated_pointer_control_block<T, U, A>,
+                          detail::control_block_deleter>(
+        detail::allocate_object<
+            detail::allocated_pointer_control_block<T, U, A>>(alloc, u, alloc));
     ptr_ = u;
   }
 
@@ -216,8 +329,9 @@ class polymorphic_value {
   explicit polymorphic_value(const polymorphic_value<U>& p) {
     polymorphic_value<U> tmp(p);
     ptr_ = tmp.ptr_;
-    cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
-        std::move(tmp.cb_));
+    cb_ = std::unique_ptr<detail::delegating_control_block<T, U>,
+                          detail::control_block_deleter>(
+        new detail::delegating_control_block<T, U>(std::move(tmp.cb_)));
   }
 
   template <class U,
@@ -225,8 +339,9 @@ class polymorphic_value {
                                        std::is_convertible<U*, T*>::value>>
   explicit polymorphic_value(polymorphic_value<U>&& p) {
     ptr_ = p.ptr_;
-    cb_ = std::make_unique<detail::delegating_control_block<T, U>>(
-        std::move(p.cb_));
+    cb_ = std::unique_ptr<detail::delegating_control_block<T, U>,
+                          detail::control_block_deleter>(
+        new detail::delegating_control_block<T, U>(std::move(p.cb_)));
     p.ptr_ = nullptr;
   }
 
@@ -240,8 +355,9 @@ class polymorphic_value {
                 !is_polymorphic_value<std::decay_t<U>>::value>,
             class... Ts>
   explicit polymorphic_value(std::in_place_type_t<U>, Ts&&... ts)
-      : cb_(std::make_unique<detail::direct_control_block<T, U>>(
-            std::forward<Ts>(ts)...)) {
+      : cb_(std::unique_ptr<detail::direct_control_block<T, U>,
+                            detail::control_block_deleter>(
+            new detail::direct_control_block<T, U>(std::forward<Ts>(ts)...))) {
     ptr_ = cb_->ptr();
   }
 
@@ -324,8 +440,27 @@ class polymorphic_value {
 template <class T, class U = T, class... Ts>
 polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
   polymorphic_value<T> p;
-  p.cb_ = std::make_unique<detail::direct_control_block<T, U>>(
-      std::forward<Ts>(ts)...);
+  p.cb_ = std::unique_ptr<detail::direct_control_block<T, U>,
+                          detail::control_block_deleter>(
+      new detail::direct_control_block<T, U>(std::forward<Ts>(ts)...));
+  p.ptr_ = p.cb_->ptr();
+  return p;
+}
+
+template <class T, class U = T, class A = std::allocator<U>, class... Ts>
+polymorphic_value<T> make_polymorphic_value(std::allocator_arg_t, A& a,
+                                            Ts&&... ts) {
+  polymorphic_value<T> p;
+  auto* u = detail::allocate_object<U>(a, std::forward<Ts>(ts)...);
+  try {
+    p.cb_ = std::unique_ptr<detail::allocated_pointer_control_block<T, U, A>,
+                            detail::control_block_deleter>(
+        detail::allocate_object<
+            detail::allocated_pointer_control_block<T, U, A>>(a, u, a));
+  } catch (...) {
+    detail::deallocate_object(a, u);
+    throw;
+  }
   p.ptr_ = p.cb_->ptr();
   return p;
 }
