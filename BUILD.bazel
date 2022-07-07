@@ -10,7 +10,6 @@ cc_test(
         "polymorphic_value_test.cpp",
     ],
     copts = ["-Iexternal/polymorphic_value/"],
-    defines = ["CATCH_CONFIG_MAIN"],
     deps = [
         ":polymorphic_value",
         "@catch2",
