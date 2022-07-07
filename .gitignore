@@ -8,3 +8,4 @@ doc/html/*
 doc/polymorphic_value_reference.xml
 draft.pdf
 .DS_Store
+bazel-*
