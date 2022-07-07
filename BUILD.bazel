@@ -1,0 +1,17 @@
+cc_library(
+    name = "polymorphic_value",
+    hdrs = ["polymorphic_value.h"],
+    copts = ["-Iexternal/polymorphic_value/"],
+)
+
+cc_test(
+    name = "polymorphic_value_test",
+    srcs = [
+        "polymorphic_value_test.cpp",
+    ],
+    copts = ["-Iexternal/polymorphic_value/"],
+    deps = [
+        ":polymorphic_value",
+        "@catch2",
+    ],
+)
