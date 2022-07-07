@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
+cmake_policy(SET CMP0127 NEW)
 
 if(NOT DEFINED PROJECT_NAME)
   set(POLYMORPHIC_IS_NOT_SUBPROJECT ON)
