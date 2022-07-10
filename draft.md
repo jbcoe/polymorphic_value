@@ -460,11 +460,26 @@ Add the following entry to [tab:support.ft]
 |:-:|:-:|:-:|
 |`__cpp_lib_polymorphic_value`|`xxxxxxL`|`<memory>`|
 
+## X.W Class template `copier_traits` [copier.traits]
+```
+namespace std {
+  template <class T>
+  struct copier_traits {
+    using deleter_type = *see below*;
+  };
+}
+```
+<code>using deleter_type = *see below*;</code>
+* Type: <code>T::deleter_type</code> if the *qualified-id* <code>T::deleter_type</code> is valid and denotes a type;
+    otherwise, <code>void (\*)(U\*)</code> if <code>T</code> is of the form <code>U\* (\*)(V)</code> for types <code>U</code> and <code>V</code>;
+    otherwise, there is no member <code>deleter_type</code>.
+
 ## X.X Class template `default_copy` [default.copy]
 
 ```cpp
 namespace std {
 template <class T> struct default_copy {
+  using deleter_type = default_delete<T>;
   constexpr default_copy() noexcept = default;
   T* operator()(const T& t) const;
 };
@@ -542,7 +557,8 @@ template <class T> class polymorphic_value {
 
   template <class U> explicit polymorphic_value(U&& u);
 
-  template <class U, class C=default_copy<U>, class D=default_delete<U>>
+  template <class U, class C=default_copy<U>,
+            class D=typename copier_traits<C>::deleter_type>
     explicit polymorphic_value(U* p, C c=C{}, D d=D{});
 
   polymorphic_value(const polymorphic_value& p);
@@ -613,12 +629,16 @@ Let `V` be `remove_cvref_t<U>`.
   `bad_alloc` if required storage cannot be obtained.
 
 ```cpp
-template <class U, class C=default_copy<U>, class D=default_delete<U>>
+template <class U, class C=default_copy<U>,
+          class D=typename copier_traits<C>::deleter_type>
   explicit polymorphic_value(U* p, C c=C{}, D d=D{});
 ```
 
-* _Constraints_: `U*` is convertible to `T*`. 
-  
+* _Constraints_: `U*` is convertible to `T*`.
+
+  If the arguments `c` and/or `d` are not supplied, then `C` and/or `D`
+  respectively are default constructible types that are not pointer types.
+
 * _Expects_: `C` and `D` meet the `Cpp17CopyConstructible` 
   and `Cpp17Destructible` requirements.
   
