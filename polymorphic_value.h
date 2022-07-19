@@ -36,14 +36,17 @@ namespace detail {
 // Implementation detail classes
 ////////////////////////////////////////////////////////////////////////////
 
-template <class T>
-struct default_copy {
-  T* operator()(const T& t) const { return new T(t); }
-};
+template <class T, class = void>
+struct copier_traits_deleter_base {};
 
 template <class T>
-struct default_delete {
-  void operator()(const T* t) const { delete t; }
+struct copier_traits_deleter_base<T, std::void_t<typename T::deleter_type>> {
+  using deleter_type = typename T::deleter_type;
+};
+
+template <class U, class V>
+struct copier_traits_deleter_base<U* (*)(V)> {
+  using deleter_type = void (*)(U*);
 };
 
 class control_block_deleter {
@@ -86,16 +89,15 @@ class direct_control_block : public control_block<T> {
   T* ptr() override { return std::addressof(u_); }
 };
 
-template <class T, class U, class C = default_copy<U>,
-          class D = default_delete<U>>
+template <class T, class U, class C, class D>
 class pointer_control_block : public control_block<T>, public C {
   std::unique_ptr<U, D> p_;
 
  public:
-  explicit pointer_control_block(U* u, C c = C{}, D d = D{})
+  explicit pointer_control_block(U* u, C c, D d)
       : C(std::move(c)), p_(u, std::move(d)) {}
 
-  explicit pointer_control_block(std::unique_ptr<U, D> p, C c = C{})
+  explicit pointer_control_block(std::unique_ptr<U, D> p, C c)
       : C(std::move(c)), p_(std::move(p)) {}
 
   std::unique_ptr<control_block<T>, control_block_deleter> clone()
@@ -198,6 +200,16 @@ class allocated_pointer_control_block : public control_block<T>,
 
 }  // end namespace detail
 
+template <class T>
+struct default_copy {
+  using deleter_type = std::default_delete<T>;
+  T* operator()(const T& t) const { return new T(t); }
+};
+
+template <class T>
+struct copier_traits : detail::copier_traits_deleter_base<T, void> {
+};
+
 class bad_polymorphic_value_construction : public std::exception {
  public:
   bad_polymorphic_value_construction() noexcept = default;
@@ -252,17 +264,16 @@ class polymorphic_value {
 
   polymorphic_value() {}
 
-  template <class U, class C = detail::default_copy<U>,
-            class D = detail::default_delete<U>,
-            class V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
-  explicit polymorphic_value(U* u, C copier = C{}, D deleter = D{}) {
+  template <class U, class C, class D,
+            class V = std::enable_if_t<std::is_convertible_v<U*, T*>>>
+  explicit polymorphic_value(U* u, C copier, D deleter) {
     if (!u) {
       return;
     }
 
 #ifndef ISOCPP_P0201_POLYMORPHIC_VALUE_NO_RTTI
-    if (std::is_same<D, detail::default_delete<U>>::value &&
-        std::is_same<C, detail::default_copy<U>>::value &&
+    if (std::is_same<D, std::default_delete<U>>::value &&
+        std::is_same<C, default_copy<U>>::value &&
         typeid(*u) != typeid(U))
       throw bad_polymorphic_value_construction();
 #endif
@@ -275,8 +286,24 @@ class polymorphic_value {
     ptr_ = u;
   }
 
+  template <class U, class C,
+            class D = typename copier_traits<C>::deleter_type,
+            class V = std::enable_if_t<std::is_convertible_v<U*, T*> &&
+                                       std::is_default_constructible_v<D> &&
+                                       !std::is_pointer_v<D>>>
+  explicit polymorphic_value(U* u, C copier)
+      : polymorphic_value(u, std::move(copier), D{}) {}
+
+  template <class U, class C = default_copy<U>,
+            class D = typename copier_traits<C>::deleter_type,
+            class V = std::enable_if_t<std::is_convertible_v<U*, T*> &&
+                                       std::is_default_constructible_v<C> &&
+                                       std::is_default_constructible_v<D> &&
+                                       !std::is_pointer_v<D>>>
+  explicit polymorphic_value(U* u) : polymorphic_value(u, C{}, D{}) {}
+
   template <class U, class A,
-            class V = std::enable_if_t<std::is_convertible<U*, T*>::value>>
+            class V = std::enable_if_t<std::is_convertible_v<U*, T*>>>
   explicit polymorphic_value(U* u, std::allocator_arg_t, const A& alloc) {
     if (!u) {
       return;
