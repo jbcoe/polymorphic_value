@@ -1,0 +1,9 @@
+_build
+.*
+*.bazel
+bazel-*
+Dockerfile
+draft.*
+talks
+install_hooks.sh
+polymorphic_value.natvis
