@@ -61,27 +61,6 @@ size_t DerivedType::object_count = 0;
 
 }  // namespace
 
-TEST_CASE("Support for incomplete types", "[polymorphic_value.class]") {
-  class Incomplete;
-  polymorphic_value<Incomplete> p;
-
-  REQUIRE_FALSE(bool(p));
-}
-
-TEST_CASE("Default constructor", "[polymorphic_value.constructors]") {
-  GIVEN("A default constructed polymorphic_value to BaseType") {
-    polymorphic_value<BaseType> cptr;
-
-    THEN("operator bool returns false") { REQUIRE((bool)cptr == false); }
-  }
-
-  GIVEN("A default constructed const polymorphic_value to BaseType") {
-    const polymorphic_value<BaseType> ccptr;
-
-    THEN("operator bool returns false") { REQUIRE((bool)ccptr == false); }
-  }
-}
-
 TEST_CASE("Value constructor", "[polymorphic_value.constructors]") {
   DerivedType d(7);
 
@@ -110,8 +89,6 @@ TEST_CASE("Pointer constructor", "[polymorphic_value.constructors]") {
     polymorphic_value<BaseType> cptr(new DerivedType(v));
 
     THEN("Operator-> calls the pointee method") { REQUIRE(cptr->value() == v); }
-
-    THEN("operator bool returns true") { REQUIRE((bool)cptr == true); }
   }
   GIVEN("A pointer-constructed const polymorphic_value") {
     int v = 7;
@@ -120,16 +97,6 @@ TEST_CASE("Pointer constructor", "[polymorphic_value.constructors]") {
     THEN("Operator-> calls the pointee method") {
       REQUIRE(ccptr->value() == v);
     }
-
-    THEN("operator bool returns true") { REQUIRE((bool)ccptr == true); }
-  }
-  GIVEN(
-      "Ensure nullptr pointer-constructed const polymorphic_value construct "
-      "to be default initialised") {
-    DerivedType* null_derived_ptr = nullptr;
-    const polymorphic_value<BaseType> ccptr(null_derived_ptr);
-
-    THEN("operator bool returns true") { REQUIRE((bool)ccptr == false); }
   }
 }
 
@@ -199,15 +166,6 @@ TEST_CASE("polymorphic_value destructor", "[polymorphic_value.destructor]") {
 TEST_CASE("polymorphic_value copy constructor",
           "[polymorphic_value.constructors]") {
   GIVEN(
-      "A polymorphic_value copied from a default-constructed "
-      "polymorphic_value") {
-    polymorphic_value<BaseType> original_cptr;
-    polymorphic_value<BaseType> cptr(original_cptr);
-
-    THEN("operator bool returns false") { REQUIRE((bool)cptr == false); }
-  }
-
-  GIVEN(
       "A polymorphic_value copied from a pointer-constructed "
       "polymorphic_value") {
     REQUIRE(DerivedType::object_count == 0);
@@ -221,8 +179,6 @@ TEST_CASE("polymorphic_value copy constructor",
     }
 
     THEN("Operator-> calls the pointee method") { REQUIRE(cptr->value() == v); }
-
-    THEN("operator bool returns true") { REQUIRE((bool)cptr == true); }
 
     THEN("object count is two") { REQUIRE(DerivedType::object_count == 2); }
 
@@ -243,21 +199,6 @@ TEST_CASE("polymorphic_value move constructor",
   GIVEN(
       "A polymorphic_value move-constructed from a default-constructed "
       "polymorphic_value") {
-    polymorphic_value<BaseType> original_cptr;
-    polymorphic_value<BaseType> cptr(std::move(original_cptr));
-
-    THEN("The original polymorphic_value is empty") {
-      REQUIRE(!(bool)original_cptr);
-    }
-
-    THEN("The move-constructed polymorphic_value is empty") {
-      REQUIRE(!(bool)cptr);
-    }
-  }
-
-  GIVEN(
-      "A polymorphic_value move-constructed from a default-constructed "
-      "polymorphic_value") {
     int v = 7;
     polymorphic_value<BaseType> original_cptr(new DerivedType(v));
     auto original_pointer = original_cptr.operator->();
@@ -267,13 +208,12 @@ TEST_CASE("polymorphic_value move constructor",
     CHECK(DerivedType::object_count == 1);
 
     THEN("The original polymorphic_value is empty") {
-      REQUIRE(!(bool)original_cptr);
+      REQUIRE(original_cptr.valueless_after_move());
     }
 
     THEN("The move-constructed pointer is the original pointer") {
       REQUIRE(cptr.operator->() == original_pointer);
       REQUIRE(cptr.operator->() == original_pointer);
-      REQUIRE((bool)cptr);
     }
 
     THEN("The move-constructed pointer value is the constructed value") {
@@ -283,70 +223,6 @@ TEST_CASE("polymorphic_value move constructor",
 }
 
 TEST_CASE("polymorphic_value assignment", "[polymorphic_value.assignment]") {
-  GIVEN(
-      "A default-constructed polymorphic_value assigned-to a "
-      "default-constructed polymorphic_value") {
-    polymorphic_value<BaseType> cptr1;
-    const polymorphic_value<BaseType> cptr2;
-
-    REQUIRE(DerivedType::object_count == 0);
-
-    cptr1 = cptr2;
-
-    REQUIRE(DerivedType::object_count == 0);
-
-    THEN("The assigned-to object is empty") { REQUIRE(!cptr1); }
-  }
-
-  GIVEN(
-      "A default-constructed polymorphic_value assigned to a "
-      "pointer-constructed polymorphic_value") {
-    int v1 = 7;
-
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
-    const polymorphic_value<BaseType> cptr2;
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    cptr1 = cptr2;
-
-    REQUIRE(DerivedType::object_count == 0);
-
-    THEN("The assigned-to object is empty") { REQUIRE(!cptr1); }
-  }
-
-  GIVEN(
-      "A pointer-constructed polymorphic_value assigned to a "
-      "default-constructed polymorphic_value") {
-    int v1 = 7;
-
-    polymorphic_value<BaseType> cptr1;
-    const polymorphic_value<BaseType> cptr2(new DerivedType(v1));
-    const auto p = cptr2.operator->();
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    cptr1 = cptr2;
-
-    REQUIRE(DerivedType::object_count == 2);
-
-    THEN("The assigned-from object is unchanged") {
-      REQUIRE(cptr2.operator->() == p);
-    }
-
-    THEN("The assigned-to object is non-empty") { REQUIRE((bool)cptr1); }
-
-    THEN("The assigned-from object 'value' is the assigned-to object value") {
-      REQUIRE(cptr1->value() == cptr2->value());
-    }
-
-    THEN(
-        "The assigned-from object pointer and the assigned-to object pointer "
-        "are distinct") {
-      REQUIRE(cptr1.operator->() != cptr2.operator->());
-    }
-  }
-
   GIVEN(
       "A pointer-constructed polymorphic_value assigned to a "
       "pointer-constructed polymorphic_value") {
@@ -366,8 +242,6 @@ TEST_CASE("polymorphic_value assignment", "[polymorphic_value.assignment]") {
     THEN("The assigned-from object is unchanged") {
       REQUIRE(cptr2.operator->() == p);
     }
-
-    THEN("The assigned-to object is non-empty") { REQUIRE((bool)cptr1); }
 
     THEN("The assigned-from object 'value' is the assigned-to object value") {
       REQUIRE(cptr1->value() == cptr2->value());
@@ -401,66 +275,6 @@ TEST_CASE("polymorphic_value assignment", "[polymorphic_value.assignment]") {
 TEST_CASE("polymorphic_value move-assignment",
           "[polymorphic_value.assignment]") {
   GIVEN(
-      "A default-constructed polymorphic_value move-assigned-to a "
-      "default-constructed polymorphic_value") {
-    polymorphic_value<BaseType> cptr1;
-    polymorphic_value<BaseType> cptr2;
-
-    REQUIRE(DerivedType::object_count == 0);
-
-    cptr1 = std::move(cptr2);
-
-    REQUIRE(DerivedType::object_count == 0);
-
-    THEN("The move-assigned-from object is empty") { REQUIRE(!cptr2); }
-
-    THEN("The move-assigned-to object is empty") { REQUIRE(!cptr1); }
-  }
-
-  GIVEN(
-      "A default-constructed polymorphic_value move-assigned to a "
-      "pointer-constructed polymorphic_value") {
-    int v1 = 7;
-
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
-    polymorphic_value<BaseType> cptr2;
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    cptr1 = std::move(cptr2);
-
-    REQUIRE(DerivedType::object_count == 0);
-
-    THEN("The move-assigned-from object is empty") { REQUIRE(!cptr2); }
-
-    THEN("The move-assigned-to object is empty") { REQUIRE(!cptr1); }
-  }
-
-  GIVEN(
-      "A pointer-constructed polymorphic_value move-assigned to a "
-      "default-constructed polymorphic_value") {
-    int v1 = 7;
-
-    polymorphic_value<BaseType> cptr1;
-    polymorphic_value<BaseType> cptr2(new DerivedType(v1));
-    const auto p = cptr2.operator->();
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    cptr1 = std::move(cptr2);
-
-    REQUIRE(DerivedType::object_count == 1);
-
-    THEN("The move-assigned-from object is empty") { REQUIRE(!cptr2); }
-
-    THEN(
-        "The move-assigned-to object pointer is the move-assigned-from "
-        "pointer") {
-      REQUIRE(cptr1.operator->() == p);
-    }
-  }
-
-  GIVEN(
       "A pointer-constructed polymorphic_value move-assigned to a "
       "pointer-constructed polymorphic_value") {
     int v1 = 7;
@@ -476,7 +290,9 @@ TEST_CASE("polymorphic_value move-assignment",
 
     REQUIRE(DerivedType::object_count == 1);
 
-    THEN("The move-assigned-from object is empty") { REQUIRE(!cptr2); }
+    THEN("The move-assigned-from object is empty") {
+      REQUIRE(cptr2.valueless_after_move());
+    }
 
     THEN(
         "The move-assigned-to object pointer is the move-assigned-from "
@@ -501,7 +317,9 @@ TEST_CASE("polymorphic_value move-assignment",
 
     REQUIRE(DerivedType::object_count == 1);
 
-    THEN("The move-assigned-to object is valid") { REQUIRE((bool)cptr1); }
+    THEN("The move-assigned-to object is valid") {
+      REQUIRE(!cptr1.valueless_after_move());
+    }
   }
 }
 
@@ -548,8 +366,6 @@ TEST_CASE("Derived types", "[polymorphic_value.derived_types]") {
       THEN("Operator-> calls the pointee method") {
         REQUIRE(bptr->value() == v);
       }
-
-      THEN("operator bool returns true") { REQUIRE((bool)bptr == true); }
     }
 
     WHEN("A polymorphic_value<BaseType> is move-constructed") {
@@ -558,8 +374,6 @@ TEST_CASE("Derived types", "[polymorphic_value.derived_types]") {
       THEN("Operator-> calls the pointee method") {
         REQUIRE(bptr->value() == v);
       }
-
-      THEN("operator bool returns true") { REQUIRE((bool)bptr == true); }
     }
   }
 }
@@ -655,8 +469,8 @@ TEST_CASE("Exception safety: throw in copy constructor",
     THEN(
         "When copying to another polymorphic_value, after an exception, the "
         "source remains valid") {
+      polymorphic_value<ThrowsOnCopy> another(new ThrowsOnCopy(0));
       Tracked::reset_counts();
-      polymorphic_value<ThrowsOnCopy> another;
       REQUIRE_THROWS_AS(another = cptr, std::runtime_error);
       REQUIRE(cptr->value_ == v);
       REQUIRE(Tracked::ctor_count_ - Tracked::dtor_count_ == 0);
@@ -694,7 +508,7 @@ TEST_CASE("Exception safety: throw in copier",
                                          throwing_copier<TrackedValue>{});
 
     THEN("When an exception occurs in the copier, the source is unchanged") {
-      polymorphic_value<TrackedValue> another;
+      polymorphic_value<TrackedValue> another(new TrackedValue(0));
       Tracked::reset_counts();
       REQUIRE_THROWS_AS(another = cptr, std::bad_alloc);
       REQUIRE(cptr->value_ == v);

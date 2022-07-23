@@ -207,8 +207,7 @@ struct default_copy {
 };
 
 template <class T>
-struct copier_traits : detail::copier_traits_deleter_base<T, void> {
-};
+struct copier_traits : detail::copier_traits_deleter_base<T, void> {};
 
 class bad_polymorphic_value_construction : public std::exception {
  public:
@@ -251,6 +250,8 @@ class polymorphic_value {
   T* ptr_ = nullptr;
   std::unique_ptr<detail::control_block<T>, detail::control_block_deleter> cb_;
 
+  polymorphic_value() = default;
+
  public:
   //
   // Destructor
@@ -262,19 +263,14 @@ class polymorphic_value {
   // Constructors
   //
 
-  polymorphic_value() {}
-
   template <class U, class C, class D,
             class V = std::enable_if_t<std::is_convertible_v<U*, T*>>>
   explicit polymorphic_value(U* u, C copier, D deleter) {
-    if (!u) {
-      return;
-    }
+    assert(u != nullptr);
 
 #ifndef ISOCPP_P0201_POLYMORPHIC_VALUE_NO_RTTI
     if (std::is_same<D, std::default_delete<U>>::value &&
-        std::is_same<C, default_copy<U>>::value &&
-        typeid(*u) != typeid(U))
+        std::is_same<C, default_copy<U>>::value && typeid(*u) != typeid(U))
       throw bad_polymorphic_value_construction();
 #endif
     std::unique_ptr<U, D> p(u, std::move(deleter));
@@ -286,28 +282,25 @@ class polymorphic_value {
     ptr_ = u;
   }
 
-  template <class U, class C,
-            class D = typename copier_traits<C>::deleter_type,
+  template <class U, class C, class D = typename copier_traits<C>::deleter_type,
             class V = std::enable_if_t<std::is_convertible_v<U*, T*> &&
                                        std::is_default_constructible_v<D> &&
                                        !std::is_pointer_v<D>>>
   explicit polymorphic_value(U* u, C copier)
       : polymorphic_value(u, std::move(copier), D{}) {}
 
-  template <class U, class C = default_copy<U>,
-            class D = typename copier_traits<C>::deleter_type,
-            class V = std::enable_if_t<std::is_convertible_v<U*, T*> &&
-                                       std::is_default_constructible_v<C> &&
-                                       std::is_default_constructible_v<D> &&
-                                       !std::is_pointer_v<D>>>
+  template <
+      class U, class C = default_copy<U>,
+      class D = typename copier_traits<C>::deleter_type,
+      class V = std::enable_if_t<
+          std::is_convertible_v<U*, T*> && std::is_default_constructible_v<C> &&
+          std::is_default_constructible_v<D> && !std::is_pointer_v<D>>>
   explicit polymorphic_value(U* u) : polymorphic_value(u, C{}, D{}) {}
 
   template <class U, class A,
             class V = std::enable_if_t<std::is_convertible_v<U*, T*>>>
   explicit polymorphic_value(U* u, std::allocator_arg_t, const A& alloc) {
-    if (!u) {
-      return;
-    }
+    assert(u != nullptr);
 
 #ifndef ISOCPP_P0201_POLYMORPHIC_VALUE_NO_RTTI
     if (typeid(*u) != typeid(U)) throw bad_polymorphic_value_construction();
@@ -325,9 +318,8 @@ class polymorphic_value {
   //
 
   polymorphic_value(const polymorphic_value& p) {
-    if (!p) {
-      return;
-    }
+    assert(!p.valueless_after_move());
+
     auto tmp_cb = p.cb_->clone();
     ptr_ = tmp_cb->ptr();
     cb_ = std::move(tmp_cb);
@@ -338,6 +330,8 @@ class polymorphic_value {
   //
 
   polymorphic_value(polymorphic_value&& p) noexcept {
+    assert(!p.valueless_after_move());
+
     ptr_ = p.ptr_;
     cb_ = std::move(p.cb_);
     p.ptr_ = nullptr;
@@ -351,6 +345,8 @@ class polymorphic_value {
             class V = std::enable_if_t<!std::is_same<T, U>::value &&
                                        std::is_convertible<U*, T*>::value>>
   explicit polymorphic_value(const polymorphic_value<U>& p) {
+    assert(!p.valueless_after_move());
+
     polymorphic_value<U> tmp(p);
     ptr_ = tmp.ptr_;
     cb_ = std::unique_ptr<detail::delegating_control_block<T, U>,
@@ -394,7 +390,7 @@ class polymorphic_value {
       return *this;
     }
 
-    if (!p) {
+    if (p.valueless_after_move()) {
       cb_.reset();
       ptr_ = nullptr;
       return *this;
@@ -435,7 +431,7 @@ class polymorphic_value {
   // Observers
   //
 
-  explicit operator bool() const { return bool(cb_); }
+  bool valueless_after_move() const { return !bool(cb_); }
 
   const T* operator->() const {
     assert(ptr_);
@@ -443,17 +439,17 @@ class polymorphic_value {
   }
 
   const T& operator*() const {
-    assert(*this);
+    assert(ptr_ != nullptr);
     return *ptr_;
   }
 
   T* operator->() {
-    assert(*this);
+    assert(ptr_ != nullptr);
     return ptr_;
   }
 
   T& operator*() {
-    assert(*this);
+    assert(ptr_ != nullptr);
     return *ptr_;
   }
 };
