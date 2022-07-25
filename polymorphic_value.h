@@ -207,8 +207,7 @@ struct default_copy {
 };
 
 template <class T>
-struct copier_traits : detail::copier_traits_deleter_base<T, void> {
-};
+struct copier_traits : detail::copier_traits_deleter_base<T, void> {};
 
 class bad_polymorphic_value_construction : public std::exception {
  public:
@@ -273,8 +272,7 @@ class polymorphic_value {
 
 #ifndef ISOCPP_P0201_POLYMORPHIC_VALUE_NO_RTTI
     if (std::is_same<D, std::default_delete<U>>::value &&
-        std::is_same<C, default_copy<U>>::value &&
-        typeid(*u) != typeid(U))
+        std::is_same<C, default_copy<U>>::value && typeid(*u) != typeid(U))
       throw bad_polymorphic_value_construction();
 #endif
     std::unique_ptr<U, D> p(u, std::move(deleter));
@@ -286,20 +284,19 @@ class polymorphic_value {
     ptr_ = u;
   }
 
-  template <class U, class C,
-            class D = typename copier_traits<C>::deleter_type,
+  template <class U, class C, class D = typename copier_traits<C>::deleter_type,
             class V = std::enable_if_t<std::is_convertible_v<U*, T*> &&
                                        std::is_default_constructible_v<D> &&
                                        !std::is_pointer_v<D>>>
   explicit polymorphic_value(U* u, C copier)
       : polymorphic_value(u, std::move(copier), D{}) {}
 
-  template <class U, class C = default_copy<U>,
-            class D = typename copier_traits<C>::deleter_type,
-            class V = std::enable_if_t<std::is_convertible_v<U*, T*> &&
-                                       std::is_default_constructible_v<C> &&
-                                       std::is_default_constructible_v<D> &&
-                                       !std::is_pointer_v<D>>>
+  template <
+      class U, class C = default_copy<U>,
+      class D = typename copier_traits<C>::deleter_type,
+      class V = std::enable_if_t<
+          std::is_convertible_v<U*, T*> && std::is_default_constructible_v<C> &&
+          std::is_default_constructible_v<D> && !std::is_pointer_v<D>>>
   explicit polymorphic_value(U* u) : polymorphic_value(u, C{}, D{}) {}
 
   template <class U, class A,
