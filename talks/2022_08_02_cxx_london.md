@@ -5,7 +5,7 @@ paginate: true
 size: 16:9
 ---
 
-![](CppOnSeaCoverSlide.png)
+![](cxx-london-cover-slide.png)
 
 ---
 
@@ -622,6 +622,16 @@ polymorphic_value<T> make_polymorphic_value(Ts&& ...ts);
 
 ---
 
+## Creation With Allocator Support
+```cpp
+template <class T, class U = T, class A = std::allocator<U>, class... Ts>
+polymorphic_value<T> make_polymorphic_value(std::allocator_arg_t, A& a, Ts&&... ts)
+```
+
+**[A big thank you to Anthony William for help implementing this!]**
+
+---
+
 # Implementing `polymorphic_value<T>`
 
 ```cpp
@@ -658,7 +668,8 @@ struct control_block
 {
   virtual ~control_block() = default;
   virtual T* ptr() = 0;
-  virtual std::unique_ptr<control_block> clone() const = 0;
+  virtual std::unique_ptr<control_block, control_block_deleter> clone() const = 0;
+  virtual void destroy() noexcept { delete this; }
 };
 ```
 
@@ -677,7 +688,7 @@ polymorphic_value(std::in_place_type<U>, Ts...ts);
 
 with a suitable control block:
 
-```
+```cpp
 template <class T, class U>
 class direct_control_block : public control_block<T> {
   U u_;
@@ -688,8 +699,8 @@ class direct_control_block : public control_block<T> {
 
   T* ptr() override { return &u_; }
 
-  std::unique_ptr<control_block<T>> clone() const override {
-    return std::make_unique<direct_control_block>(*this);
+  std::unique_ptr<control_block<T>, control_block_deleter> clone() const override {
+    return std::make_unique<direct_control_block, control_block_deleter>(*this);
   }
 };
 ```
@@ -698,15 +709,108 @@ The control block knows how to copy and delete the object it owns.
 
 ---
 
+The control block deleter enables releasing the control blocks through a customisation point, `destory()`. 
+
+```cpp
+class control_block_deleter {
+ public:
+  template <class T>
+  void operator()(T* t) const noexcept {
+    if (t != nullptr) {
+      t->destroy();
+    }
+  }
+};
+```
+
+---
+
 ```cpp
 template<class U,
          class = std::enable_if_t<
            std::is_convertible<U*, T*>::value>>
 polymorphic_value(const U& u) :
-  cb_(std::make_unique<direct_control_block<T,U>>(u))
+  cb_(std::make_unique<direct_control_block<T,U>, control_block_deleter>(u))
 {
   ptr_ = cb_->ptr();
 }
+```
+
+---
+
+# Allocators
+
+Allocator are supported by providing a customisation of `control_block<T>`
+
+```cpp
+template <class T, class U, class A>
+class allocated_pointer_control_block : public control_block<T>
+```
+
+---
+
+Allocators are held by `allocated_pointer_control_block` via the empty base class optimisation to avoid unnecessary storage for empty allocators.
+
+```cpp
+template <typename A>
+struct allocator_wrapper : A {
+  allocator_wrapper(A& a) : A(a) {}
+
+  const A& get_allocator() const { return static_cast<const A&>(*this); }
+};
+
+template <class T, class U, class A>
+class allocated_pointer_control_block : public control_block<T>, allocator_wrapper<A> 
+```
+
+One could employ `[[no_unique_address]]` from C++20 were backward compatibility not a concern.
+
+---
+
+Allocating cloned objects and allocator control blocks now happens via the allocator.
+
+```cpp
+template <class T, class U, class A>
+class allocated_pointer_control_block : public control_block<T>, allocator_wrapper<A> {
+
+  U* p_;
+
+ public:
+ 
+  std::unique_ptr<control_block<T>, control_block_deleter> clone() const override
+  {
+    auto* cloned_ptr = detail::allocate_object<U>(this->get_allocator(), *p_);
+    try {
+      auto* new_cb = detail::allocate_object<allocated_pointer_control_block>(
+          this->get_allocator(), cloned_ptr, this->get_allocator());
+      return std::unique_ptr<control_block<T>, control_block_deleter>(new_cb);
+    } catch (...) {
+      detail::deallocate_object(this->get_allocator(), cloned_ptr);
+      throw;
+    }
+  }
+
+};
+```
+
+---
+
+Now the `destory()` customisation point is used to deallocate object via the allocator.  
+
+The control block is also deallocated via the allocator.
+
+```cpp
+template <class T, class U, class A>
+class allocated_pointer_control_block : public control_block<T>, allocator_wrapper<A> {
+
+  U* p_;
+
+ public:
+
+  ~allocated_pointer_control_block() { detail::deallocate_object(this->get_allocator(), p_); }
+
+  void destroy() noexcept override { detail::deallocate_object(this->get_allocator(), this); }
+};
 ```
 
 ---
@@ -727,15 +831,15 @@ with a suitable control block:
 ```cpp
 template <class T, class U>
 class delegating_control_block : public control_block<T> {
-  std::unique_ptr<control_block<U>> delegate_;
+  std::unique_ptr<control_block<U>, control_block_deleter> delegate_;
 
 public:
   explicit delegating_control_block(
-    std::unique_ptr<control_block<U>> b) :
+    std::unique_ptr<control_block<U>, control_block_deleter> b) :
       delegate_(std::move(b)) {}
 
   std::unique_ptr<control_block<T>> clone() const override {
-    return std::make_unique<delegating_control_block>(
+    return std::make_unique<delegating_control_block, control_block_deleter>(
       delegate_->clone());
   }
 
@@ -756,7 +860,7 @@ polymorphic_value(const polymorphic_value<U>& p)
   polymorphic_value<U> tmp(p);
 
   ptr_ = tmp.ptr_;
-  cb_ = std::make_unique<delegating_control_block<T, U>>(
+  cb_ = std::make_unique<delegating_control_block<T, U>, control_block_deleter>(
     std::move(tmp.cb_));
 }
 ```
@@ -792,9 +896,9 @@ public:
   explicit pointer_control_block(U* u, C c = C{}, D d = D{})
       : c_(std::move(c)), p_(u, std::move(d)) {}
 
-  std::unique_ptr<control_block<T>> clone() const override {
+  std::unique_ptr<control_block<T>, control_block_deleter> clone() const override {
     assert(p_);
-    return std::make_unique<pointer_control_block>(
+    return std::make_unique<pointer_control_block, control_block_deleter>(
       c_(*p_), c_, p_.get_deleter());
   }
 
@@ -820,7 +924,7 @@ explicit polymorphic_value(U* u,
 
   assert(typeid(*u) == typeid(U)); // Here be dragons!
 
-  cb_ = std::make_unique<pointer_control_block<T, U, C, D>>(
+  cb_ = std::make_unique<pointer_control_block<T, U, C, D>, control_block_deleter>(
       u, std::move(copier), std::move(deleter));
   ptr_ = u;
 }
@@ -993,7 +1097,7 @@ class ISOCPP_P1950_EMPTY_BASES indirect_value
 One could employ `[[no_unique_address]]` from C++20 to avoid allocating storage for empty copiers and deleters.
 
 ```cpp
-template <class T, class C = default_copy<T>, class D = std::default_delete<T>>
+template <class T, class C = default_copy<T>, class D = typename copier_traits<C>::deleter_type>
 class indirect_value {
     T* ptr_;
     [[no_unique_address]] C c_;
@@ -1041,11 +1145,16 @@ The previous direction of development favoured a null-state.
 
 We are now exploring the idea of no null-state.  This is more consistent with the idea of value sementics.  If an object was successfully created then no future checks for a valid state are required.
 
-# `std::optional<polymorphic_value<T>>` & `std::optional<indirect_value<T>>`
+---
 
-If null-state is required then this should be modelled by a `std::optional` of `polymorphic_value` or `indirect_value`.
+# Vocabulary for Null-State
 
-Library implementors can provide a specialisation of `std::optional` which avoids extra state usually required for tracking the null-state. This is a quality-of-implementation detail.
+If null-state is required then this should be modelled by via `std::optional`.
+
+* `std::optional<std::polymorphic_value<T>>` 
+* `std::optional<std::indirect_value<T>>`
+
+Library implementors can provide a specialisation of `std::optional` which avoids extra state usually required for tracking the null-state. 
 
 ---
 
@@ -1068,3 +1177,11 @@ Many thanks to Sean Parent and to the Library Evolution Working group from the C
 of `polymorphic_value`.
 
 Thanks to our GitHub contributors who've made worked with us to improve our reference implementations.
+* Anthony Williams
+* Andrew Bennieston
+* Benjamin Beichler
+* Ed Catmur
+* Kilian Henneberger
+* Malcolm Parsons
+* Tristan Brindle
+* Stephen Kelly
