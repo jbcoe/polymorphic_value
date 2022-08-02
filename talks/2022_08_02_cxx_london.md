@@ -767,6 +767,34 @@ One could employ `[[no_unique_address]]` from C++20 were backward compatibility 
 
 ---
 
+Allocating cloned objects and allocator control blocks now happens via the allocator.
+
+```cpp
+template <class T, class U, class A>
+class allocated_pointer_control_block : public control_block<T>, allocator_wrapper<A> {
+
+  U* p_;
+
+ public:
+ 
+  std::unique_ptr<control_block<T>, control_block_deleter> clone() const override
+  {
+    auto* cloned_ptr = detail::allocate_object<U>(this->get_allocator(), *p_);
+    try {
+      auto* new_cb = detail::allocate_object<allocated_pointer_control_block>(
+          this->get_allocator(), cloned_ptr, this->get_allocator());
+      return std::unique_ptr<control_block<T>, control_block_deleter>(new_cb);
+    } catch (...) {
+      detail::deallocate_object(this->get_allocator(), cloned_ptr);
+      throw;
+    }
+  }
+
+};
+```
+
+---
+
 Now the `destory()` customisation point is used to deallocate object via the allocator.  
 
 The control block is also deallocated via the allocator.
@@ -782,30 +810,6 @@ class allocated_pointer_control_block : public control_block<T>, allocator_wrapp
   ~allocated_pointer_control_block() { detail::deallocate_object(this->get_allocator(), p_); }
 
   void destroy() noexcept override { detail::deallocate_object(this->get_allocator(), this); }
-};
-```
-
----
-
-Naturally, as one would expect, allocating cloned objects and allocator control blocks now happens via the allocator.
-
-```cpp
-template <class T, class U, class A>
-class allocated_pointer_control_block : public control_block<T>, allocator_wrapper<A> {
-
-  std::unique_ptr<control_block<T>, control_block_deleter> clone() const override
-  {
-    auto* cloned_ptr = detail::allocate_object<U>(this->get_allocator(), *p_);
-    try {
-      auto* new_cb = detail::allocate_object<allocated_pointer_control_block>(
-          this->get_allocator(), cloned_ptr, this->get_allocator());
-      return std::unique_ptr<control_block<T>, control_block_deleter>(new_cb);
-    } catch (...) {
-      detail::deallocate_object(this->get_allocator(), cloned_ptr);
-      throw;
-    }
-  }
-
 };
 ```
 
