@@ -669,6 +669,7 @@ struct control_block
   virtual ~control_block() = default;
   virtual T* ptr() = 0;
   virtual std::unique_ptr<control_block, control_block_deleter> clone() const = 0;
+  virtual void destroy() noexcept { delete this; }
 };
 ```
 
@@ -706,7 +707,21 @@ class direct_control_block : public control_block<T> {
 
 The control block knows how to copy and delete the object it owns.
 
-The control block deleter knows how to release allocations in the presence of allocator support.
+---
+
+The control block deleter release control block through a customisation point, `destory()`.  This is specialised to support allocators in an allocator aware control block `allocated_pointer_control_block `.
+
+```cpp
+class control_block_deleter {
+ public:
+  template <class T>
+  void operator()(T* t) const noexcept {
+    if (t != nullptr) {
+      t->destroy();
+    }
+  }
+};
+```
 
 ---
 
