@@ -709,7 +709,7 @@ The control block knows how to copy and delete the object it owns.
 
 ---
 
-The control block deleter release control block through a customisation point, `destory()`.  This is specialised to support allocators in an allocator aware control block `allocated_pointer_control_block `.
+The control block deleter release control blocks through a customisation point, `destory()`.  This is specialised to support allocators in an allocator aware control block `allocated_pointer_control_block `.
 
 ```cpp
 class control_block_deleter {
