@@ -709,7 +709,7 @@ The control block knows how to copy and delete the object it owns.
 
 ---
 
-The control block deleter releases the control blocks through a customisation point, `destory()`. 
+The control block deleter enables releasing the control blocks through a customisation point, `destory()`. 
 
 ```cpp
 class control_block_deleter {
@@ -744,7 +744,7 @@ Allocator are supported by providing a customisation of `control_block<T>`
 
 ```cpp
 template <class T, class U, class A>
-class allocated_pointer_control_block  public control_block<T>
+class allocated_pointer_control_block : public control_block<T>
 ```
 
 ---
@@ -758,6 +758,9 @@ struct allocator_wrapper : A {
 
   const A& get_allocator() const { return static_cast<const A&>(*this); }
 };
+
+template <class T, class U, class A>
+class allocated_pointer_control_block : public control_block<T>, allocator_wrapper<A> 
 ```
 
 One could employ `[[no_unique_address]]` from C++20 were backward compatibility not a concern.
@@ -776,30 +779,34 @@ class allocated_pointer_control_block : public control_block<T>, allocator_wrapp
 
  public:
 
-  explicit allocated_pointer_control_block(U* u, A a);
-  T* ptr() override;
-  std::unique_ptr<control_block<T>, control_block_deleter> clone() const override;
-
   ~allocated_pointer_control_block() { detail::deallocate_object(this->get_allocator(), p_); }
+
   void destroy() noexcept override { detail::deallocate_object(this->get_allocator(), this); }
 };
 ```
 
---- 
-# allocated_pointer_control_block::clone()
+---
 
-Naturally, as one would expect, allocating cloned objects and allocator control blocks happens via the allocator.
+Naturally, as one would expect, allocating cloned objects and allocator control blocks now happens via the allocator.
 
 ```cpp
-  auto* cloned_ptr = detail::allocate_object<U>(this->get_allocator(), *p_);
-  try {
-    auto* new_cb = detail::allocate_object<allocated_pointer_control_block>(
-        this->get_allocator(), cloned_ptr, this->get_allocator());
-    return std::unique_ptr<control_block<T>, control_block_deleter>(new_cb);
-  } catch (...) {
-    detail::deallocate_object(this->get_allocator(), cloned_ptr);
-    throw;
+template <class T, class U, class A>
+class allocated_pointer_control_block : public control_block<T>, allocator_wrapper<A> {
+
+  std::unique_ptr<control_block<T>, control_block_deleter> clone() const override
+  {
+    auto* cloned_ptr = detail::allocate_object<U>(this->get_allocator(), *p_);
+    try {
+      auto* new_cb = detail::allocate_object<allocated_pointer_control_block>(
+          this->get_allocator(), cloned_ptr, this->get_allocator());
+      return std::unique_ptr<control_block<T>, control_block_deleter>(new_cb);
+    } catch (...) {
+      detail::deallocate_object(this->get_allocator(), cloned_ptr);
+      throw;
+    }
   }
+
+};
 ```
 
 ---
