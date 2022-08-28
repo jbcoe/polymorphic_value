@@ -264,7 +264,7 @@ class polymorphic_value {
   polymorphic_value() {}
 
   template <class U, class C, class D,
-            class V = std::enable_if_t<std::is_convertible_v<U*, T*>>>
+            class = std::enable_if_t<std::is_convertible_v<U*, T*>>>
   explicit polymorphic_value(U* u, C copier, D deleter) {
     if (!u) {
       return;
@@ -294,13 +294,13 @@ class polymorphic_value {
   template <
       class U, class C = default_copy<U>,
       class D = typename copier_traits<C>::deleter_type,
-      class V = std::enable_if_t<
+      class = std::enable_if_t<
           std::is_convertible_v<U*, T*> && std::is_default_constructible_v<C> &&
           std::is_default_constructible_v<D> && !std::is_pointer_v<D>>>
   explicit polymorphic_value(U* u) : polymorphic_value(u, C{}, D{}) {}
 
   template <class U, class A,
-            class V = std::enable_if_t<std::is_convertible_v<U*, T*>>>
+            class = std::enable_if_t<std::is_convertible_v<U*, T*>>>
   explicit polymorphic_value(U* u, std::allocator_arg_t, const A& alloc) {
     if (!u) {
       return;
