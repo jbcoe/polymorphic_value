@@ -667,7 +667,7 @@ template <class U, class C=default_copy<U>,
   Move-initialization of objects of type `C` and `D` does not exit 
   via an exception.
 
-  If `p` is non-null then the expression `c(*p)` has type `U*`. 
+  If `p` is non-null `invoke_result_t<c, remove_pointer_t<p>>` has type `U*`. 
   The expression `d(p)` is well formed, has well-defined behavior, and
   does not throw exceptions.
   Where `q=c(*p)`, the expression `d(q)` is well-defined and does 
