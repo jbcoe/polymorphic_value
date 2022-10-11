@@ -170,7 +170,7 @@ double-deletion of the components `c1_` and `c2_`. We also need to write a move
 constructor and move assignment operator.
 
 Using `unique_ptr` makes ownership clear and saves us writing or deleting
-compiler generated methods:
+compiler generated functions:
 
 ```cpp
 
@@ -217,7 +217,7 @@ class CompositeObject_4 {
 
 `CompositeObject_4` has polymorphism and compiler-generated destructor, copy,
 move and assignment operators. As long as the components are not mutated, this
-design is good. If non-const methods of components are used then this won't
+design is good. If non-const functions of components are used then this won't
 compile.
 
 Using `polymorphic_value` a copyable composite object with polymorphic
@@ -294,8 +294,8 @@ incorrectly synthesized copiers and deleters, potentially resulting in slicing
 when copying and incomplete deletion during destruction.
 
 ```cpp
-class Base { /* methods and members */ };
-class Derived : public Base { /* methods and members */ };
+class Base { /* functions and members */ };
+class Derived : public Base { /* functions and members */ };
 
 Derived* d = new Derived();
 Base* p = d; // static type and dynamic type differ
@@ -311,7 +311,7 @@ While this is potentially error prone, we have elected to trust users with the
 tools they are given. `shared_ptr` and `unique_ptr` have similar constructors
 and issues.  There are more constructors for `polymorphic_value` of a less
 expert-friendly nature that do not present such dangers including a factory
-method `make_polymorphic_value`.
+function `make_polymorphic_value`.
 
 Static analysis tools can be written to find cases where static and dynamic
 types for pointers passed in to `polymorphic_value` constructors are not
@@ -322,7 +322,7 @@ If the user has not supplied a custom copier or deleter, an exception
 the dynamic and static types of the pointer argument do not agree.
 In cases where the user has supplied a custom copier and deleter it is assumed
 that they will do so to avoid slicing and incomplete destruction: a class
-heirarchy with a custom `Clone` method and virtual destructor would make use
+heirarchy with a custom `Clone` function and virtual destructor would make use
 of `Clone` in a user-supplied copier.
 
 ## Empty state
