@@ -1,3 +1,21 @@
+<pre class='metadata'>
+Title:  <code>indirect_value</code>: A Free-Store-Allocated Value Type For C++
+Shortname: P1950
+URL: https://wg21.link/P1950
+Revision: 1
+Audience: LEWG
+Status: P
+Group: WG21
+Issue Tracking: GitHub https://github.com/jbcoe/indirect_value/issues
+!Source: <a href="https://github.com/jbcoe/indirect_value/documentation/p1950.md">github.com/jbcoe/indirect_value/documentation/p1950.md</a>
+No Abstract: yes
+Markup Shorthands: markdown yes
+Markup Shorthands: biblio yes
+Editor: Jonathan B. Coe, jonathanbcoe@gmail.com
+Editor: Antony Peacock, ant.peacock@gmail.com
+</pre>
+
+
 # A polymorphic value-type for `C++`
 
 ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
@@ -19,6 +37,8 @@ _Sean Parent \<sparent@adobe.com\>_
 Changes in P0201R6
 
 * Further clarifications to formal wording.
+
+* Allocator support.
 
 Changes in P0201R5
 
@@ -610,7 +630,7 @@ constexpr polymorphic_value(nullptr_t) noexcept;
 
 ```
 
-* _Ensures_: `*this` is empty.
+* _Postconditions_: `*this` is empty.
 
 ```cpp
 
@@ -622,7 +642,7 @@ Let `V` be `remove_cvref_t<U>`.
 
 * _Constraints_: `V*` is convertible to `T*`. `is_constructible_v<V, U>` is true.
 
-* _Expects_: `V` meets the `Cpp17CopyConstructible` requirements.
+* _Preconditions_: `V` meets the `Cpp17CopyConstructible` requirements.
 
 * _Effects_: Constructs a `polymorphic_value` which owns an object of type `V`,
   direct-non-list-initialized with `std::forward<U>(u)`.
@@ -641,7 +661,7 @@ template <class U, class C=default_copy<U>,
   If the arguments `c` and/or `d` are not supplied, then `C` and/or `D`
   respectively are default constructible types that are not pointer types.
 
-* _Expects_: `C` and `D` meet the `Cpp17CopyConstructible` 
+* _Preconditions_: `C` and `D` meet the `Cpp17CopyConstructible` 
   and `Cpp17Destructible` requirements.
   
   Move-initialization of objects of type `C` and `D` does not exit 
@@ -663,7 +683,7 @@ template <class U, class C=default_copy<U>,
   default_copy<U>>`, `is_same_v<D, default_delete<U>>` and
   `typeid(*p)!=typeid(U)` are all `true`.
 
-* _Ensures_: If `p` is null, the empty object created has no copier and no deleter.
+* _Postconditions_: If `p` is null, the empty object created has no copier and no deleter.
   Otherwise the object created owns the object `*p` and has a copier and a deleter 
   present, initialized from `std::move(c)` and `std::move(d)` respectively.
 
@@ -682,7 +702,7 @@ template <class U> explicit polymorphic_value(const polymorphic_value<U>& pv);
   in `pv` then the copier and deleter of the object constructed 
   are copied from those in `pv`.
 
-* _Ensures_:  `bool(*this) == bool(pv)`.
+* _Postconditions_:  `bool(*this) == bool(pv)`.
 
 * _Throws_: Any exception thrown by invocation of the copier, copying the 
   copier and deleter, or `bad_alloc` if required storage cannot be obtained.
@@ -699,7 +719,7 @@ template <class U> explicit polymorphic_value(polymorphic_value<U>&& pv);
   are present in `pv` then the copier and deleter are transferred to the 
   constructed object.
 
-* _Ensures_:  `*this` owns the object previously owned by `pv` (if any). 
+* _Postconditions_:  `*this` owns the object previously owned by `pv` (if any). 
   `pv` is empty.
 
 [Note: This constructor can allow an implementation to avoid the need for
@@ -729,7 +749,7 @@ polymorphic_value& operator=(const polymorphic_value& pv);
 
 * _Returns_: `*this`.
 
-* _Ensures_:  The state of `*this` is as if copy constructed from `pv`.
+* _Postconditions_:  The state of `*this` is as if copy constructed from `pv`.
 
 ```cpp
 polymorphic_value& operator=(polymorphic_value&& pv) noexcept;
@@ -739,7 +759,7 @@ polymorphic_value& operator=(polymorphic_value&& pv) noexcept;
 
 * _Returns_: `*this`.
 
-* _Ensures_: The state `*this` is equivalent to the original state of `pv`. 
+* _Postconditions_: The state `*this` is equivalent to the original state of `pv`. 
 `pv` is empty.
 
 [Note: move construction of an owned object may be used by an implementation to
@@ -760,7 +780,7 @@ const T& operator*() const;
 T& operator*();
 ```
 
-* _Expects_: `bool(*this)` is `true`.
+* _Preconditions_: `bool(*this)` is `true`.
 
 * _Returns_: A reference to the owned object.
 
@@ -769,7 +789,7 @@ const T* operator->() const;
 T* operator->();
 ```
 
-* _Expects_: `bool(*this)` is `true`.
+* _Preconditions_: `bool(*this)` is `true`.
 
 * _Returns_: A pointer to the owned object.
 
@@ -788,7 +808,7 @@ template <class T, class U=T, class ...Ts> polymorphic_value<T>
 
 * _Constraints_: `is_constructible_v<U, Ts...>` is true.
 
-* _Expects_: `U` meets the `Cpp17CopyConstructible` requirements.
+* _Preconditions_: `U` meets the `Cpp17CopyConstructible` requirements.
 
 * _Returns_: A `polymorphic_value<T>` owning an object of type `U`
   direct-non-list-initialized with `std::forward<Ts>(ts)...`.
