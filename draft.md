@@ -640,7 +640,7 @@ template <class U> explicit polymorphic_value(U&& u);
 
 Let `V` be `remove_cvref_t<U>`.
 
-* _Constraints_: `V*` is convertible to `T*`. `is_constructible_v<V, U>` is true.
+* _Constraints_: `is_convertible_v<V*, T*>` is true. `is_constructible_v<V, U>` is true.
 
 * _Preconditions_: `V` meets the `Cpp17CopyConstructible` requirements.
 
