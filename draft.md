@@ -2,13 +2,15 @@
 
 ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
 
-D0201R6.2
+P0201R6
 
 Working Group: Library Evolution, Library
 
-Date: 2019-07-19
+Date: 2022-10-11
 
 _Jonathan Coe \<jonathanbcoe@gmail.com\>_
+
+_Antony Peacock \<ant.peacock@gmail.com\>_
 
 _Sean Parent \<sparent@adobe.com\>_
 
