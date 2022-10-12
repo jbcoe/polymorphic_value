@@ -244,8 +244,8 @@ class polymorphic_value {
   friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
 
   template <class T_, class U, class A, class... Ts>
-  friend polymorphic_value<T_> make_polymorphic_value(std::allocator_arg_t,
-                                                      A& a, Ts&&... ts);
+  friend polymorphic_value<T_> allocate_polymorphic_value(std::allocator_arg_t,
+                                                          A& a, Ts&&... ts);
 
   T* ptr_ = nullptr;
   std::unique_ptr<detail::control_block<T>, detail::control_block_deleter> cb_;
@@ -469,8 +469,8 @@ polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
 }
 
 template <class T, class U = T, class A = std::allocator<U>, class... Ts>
-polymorphic_value<T> make_polymorphic_value(std::allocator_arg_t, A& a,
-                                            Ts&&... ts) {
+polymorphic_value<T> allocate_polymorphic_value(std::allocator_arg_t, A& a,
+                                                Ts&&... ts) {
   polymorphic_value<T> p;
   auto* u = detail::allocate_object<U>(a, std::forward<Ts>(ts)...);
   try {
