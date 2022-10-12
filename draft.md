@@ -1,36 +1,20 @@
 <pre class='metadata'>
-Title:  <code>indirect_value</code>: A Free-Store-Allocated Value Type For C++
-Shortname: P1950
-URL: https://wg21.link/P1950
+Title:  <code>polymorphic_value</code>: A polymorphic value-type for C++
+Shortname: P0201R6
+URL: https://wg21.link/P0201
 Revision: 1
 Audience: LEWG
 Status: P
 Group: WG21
-Issue Tracking: GitHub https://github.com/jbcoe/indirect_value/issues
-!Source: <a href="https://github.com/jbcoe/indirect_value/documentation/p1950.md">github.com/jbcoe/indirect_value/documentation/p1950.md</a>
+Issue Tracking: GitHub https://github.com/jbcoe/polymorphic_value/issues
+!Source: <a href="https://github.com/jbcoe/polymorphic_value/documentation/p1950.md">github.com/jbcoe/polymorphic_value/documentation/p0201.md</a>
 No Abstract: yes
 Markup Shorthands: markdown yes
 Markup Shorthands: biblio yes
 Editor: Jonathan B. Coe, jonathanbcoe@gmail.com
 Editor: Antony Peacock, ant.peacock@gmail.com
+Editor: Sean Parent, sparent@adobe.com
 </pre>
-
-
-# A polymorphic value-type for `C++`
-
-ISO/IEC JTC1 SC22 WG21 Programming Language `C++`
-
-P0201R6
-
-Working Group: Library Evolution, Library
-
-Date: 2022-10-11
-
-_Jonathan Coe \<jonathanbcoe@gmail.com\>_
-
-_Antony Peacock \<ant.peacock@gmail.com\>_
-
-_Sean Parent \<sparent@adobe.com\>_
 
 ## Change history
 
