@@ -52,9 +52,10 @@ struct copier_traits_deleter_base<U* (*)(V)> {
 class control_block_deleter {
  public:
   template <class T>
-  void operator()(T* t) const noexcept {
+  void operator()(T*& t) const noexcept {
     if (t != nullptr) {
       t->destroy();
+      t = nullptr;
     }
   }
 };
