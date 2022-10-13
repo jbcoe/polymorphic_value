@@ -188,7 +188,7 @@ TEST_CASE("polymorphic_value destructor", "[polymorphic_value.destructor]") {
         "destruction") {
       // begin and end scope to force destruction
       {
-        polymorphic_value<BaseType> tmp(new DerivedType());
+        polymorphic_value<BaseType> tmp(std::in_place_type<DerivedType>);
         REQUIRE(DerivedType::object_count == 1);
       }
       REQUIRE(DerivedType::object_count == 0);
@@ -208,12 +208,13 @@ TEST_CASE("polymorphic_value copy constructor",
   }
 
   GIVEN(
-      "A polymorphic_value copied from a pointer-constructed "
+      "A polymorphic_value copied from a in-place-constructed "
       "polymorphic_value") {
     REQUIRE(DerivedType::object_count == 0);
 
     int v = 7;
-    polymorphic_value<BaseType> original_cptr(new DerivedType(v));
+    polymorphic_value<BaseType> original_cptr(std::in_place_type<DerivedType>,
+                                              v);
     polymorphic_value<BaseType> cptr(original_cptr);
 
     THEN("values are distinct") {
@@ -227,11 +228,11 @@ TEST_CASE("polymorphic_value copy constructor",
     THEN("object count is two") { REQUIRE(DerivedType::object_count == 2); }
 
     WHEN("Changes are made to the original cloning pointer after copying") {
-      int new_value = 99;
-      original_cptr->set_value(new_value);
-      REQUIRE(original_cptr->value() == new_value);
+      int updated_value = 99;
+      original_cptr->set_value(updated_value);
+      REQUIRE(original_cptr->value() == updated_value);
       THEN("They are not reflected in the copy (copy is distinct)") {
-        REQUIRE(cptr->value() != new_value);
+        REQUIRE(cptr->value() != updated_value);
         REQUIRE(cptr->value() == v);
       }
     }
@@ -259,7 +260,8 @@ TEST_CASE("polymorphic_value move constructor",
       "A polymorphic_value move-constructed from a default-constructed "
       "polymorphic_value") {
     int v = 7;
-    polymorphic_value<BaseType> original_cptr(new DerivedType(v));
+    polymorphic_value<BaseType> original_cptr(std::in_place_type<DerivedType>,
+                                              v);
     auto original_pointer = original_cptr.operator->();
     CHECK(DerivedType::object_count == 1);
 
@@ -303,7 +305,7 @@ TEST_CASE("polymorphic_value assignment", "[polymorphic_value.assignment]") {
       "pointer-constructed polymorphic_value") {
     int v1 = 7;
 
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
+    polymorphic_value<BaseType> cptr1(std::in_place_type<DerivedType>, v1);
     const polymorphic_value<BaseType> cptr2;
 
     REQUIRE(DerivedType::object_count == 1);
@@ -316,12 +318,13 @@ TEST_CASE("polymorphic_value assignment", "[polymorphic_value.assignment]") {
   }
 
   GIVEN(
-      "A pointer-constructed polymorphic_value assigned to a "
-      "default-constructed polymorphic_value") {
+      "A default-constructed polymorphic_value assigned to an "
+      "in-place-constructed polymorphic_value") {
     int v1 = 7;
 
     polymorphic_value<BaseType> cptr1;
-    const polymorphic_value<BaseType> cptr2(new DerivedType(v1));
+    const polymorphic_value<BaseType> cptr2(std::in_place_type<DerivedType>,
+                                            v1);
     const auto p = cptr2.operator->();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -348,13 +351,14 @@ TEST_CASE("polymorphic_value assignment", "[polymorphic_value.assignment]") {
   }
 
   GIVEN(
-      "A pointer-constructed polymorphic_value assigned to a "
-      "pointer-constructed polymorphic_value") {
+      "An in-place-constructed polymorphic_value assigned to an "
+      "in-place-constructed polymorphic_value") {
     int v1 = 7;
     int v2 = 87;
 
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
-    const polymorphic_value<BaseType> cptr2(new DerivedType(v2));
+    polymorphic_value<BaseType> cptr1(std::in_place_type<DerivedType>, v1);
+    const polymorphic_value<BaseType> cptr2(std::in_place_type<DerivedType>,
+                                            v2);
     const auto p = cptr2.operator->();
 
     REQUIRE(DerivedType::object_count == 2);
@@ -380,10 +384,10 @@ TEST_CASE("polymorphic_value assignment", "[polymorphic_value.assignment]") {
     }
   }
 
-  GIVEN("A pointer-constructed polymorphic_value assigned to itself") {
+  GIVEN("An on-place-constructed polymorphic_value assigned to itself") {
     int v1 = 7;
 
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
+    polymorphic_value<BaseType> cptr1(std::in_place_type<DerivedType>, v1);
     const auto p = cptr1.operator->();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -419,10 +423,10 @@ TEST_CASE("polymorphic_value move-assignment",
 
   GIVEN(
       "A default-constructed polymorphic_value move-assigned to a "
-      "pointer-constructed polymorphic_value") {
+      "in-place-constructed polymorphic_value") {
     int v1 = 7;
 
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
+    polymorphic_value<BaseType> cptr1(std::in_place_type<DerivedType>, v1);
     polymorphic_value<BaseType> cptr2;
 
     REQUIRE(DerivedType::object_count == 1);
@@ -437,12 +441,12 @@ TEST_CASE("polymorphic_value move-assignment",
   }
 
   GIVEN(
-      "A pointer-constructed polymorphic_value move-assigned to a "
-      "default-constructed polymorphic_value") {
+      "A default-constructed polymorphic_value move-assigned to an "
+      "in-place-constructed polymorphic_value") {
     int v1 = 7;
 
     polymorphic_value<BaseType> cptr1;
-    polymorphic_value<BaseType> cptr2(new DerivedType(v1));
+    polymorphic_value<BaseType> cptr2(std::in_place_type<DerivedType>, v1);
     const auto p = cptr2.operator->();
 
     REQUIRE(DerivedType::object_count == 1);
@@ -461,13 +465,13 @@ TEST_CASE("polymorphic_value move-assignment",
   }
 
   GIVEN(
-      "A pointer-constructed polymorphic_value move-assigned to a "
-      "pointer-constructed polymorphic_value") {
+      "An in-place-constructed polymorphic_value move-assigned to a "
+      "in-place-constructed polymorphic_value") {
     int v1 = 7;
     int v2 = 87;
 
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
-    polymorphic_value<BaseType> cptr2(new DerivedType(v2));
+    polymorphic_value<BaseType> cptr1(std::in_place_type<DerivedType>, v1);
+    polymorphic_value<BaseType> cptr2(std::in_place_type<DerivedType>, v2);
     const auto p = cptr2.operator->();
 
     REQUIRE(DerivedType::object_count == 2);
@@ -486,11 +490,11 @@ TEST_CASE("polymorphic_value move-assignment",
   }
 
   GIVEN(
-      "Guard against self-assignment during move-assigned to a "
-      "pointer-constructed polymorphic_value") {
+      "Guard against self-assignment during move-assignment to an "
+      "in-place-constructed polymorphic_value") {
     int v1 = 7;
 
-    polymorphic_value<BaseType> cptr1(new DerivedType(v1));
+    polymorphic_value<BaseType> cptr1(std::in_place_type<DerivedType>, v1);
 
     REQUIRE(DerivedType::object_count == 1);
 
@@ -583,7 +587,8 @@ TEST_CASE("Gustafsson's dilemma: multiple (virtual) base classes",
           "[polymorphic_value.constructors]") {
   GIVEN("A value-constructed multiply-derived-class polymorphic_value") {
     int v = 7;
-    polymorphic_value<MultiplyDerived> cptr(new MultiplyDerived(v));
+    polymorphic_value<MultiplyDerived> cptr(std::in_place_type<MultiplyDerived>,
+                                            v);
 
     THEN(
         "When copied to a polymorphic_value to an intermediate base type, "
@@ -650,7 +655,7 @@ TEST_CASE("Exception safety: throw in copy constructor",
           "[polymorphic_value.exception_safety.copy]") {
   GIVEN("A value-constructed polymorphic_value to a ThrowsOnCopy") {
     const int v = 7;
-    polymorphic_value<ThrowsOnCopy> cptr(new ThrowsOnCopy(v));
+    polymorphic_value<ThrowsOnCopy> cptr(std::in_place_type<ThrowsOnCopy>, v);
 
     THEN(
         "When copying to another polymorphic_value, after an exception, the "
@@ -666,7 +671,8 @@ TEST_CASE("Exception safety: throw in copy constructor",
         "When copying to another polymorphic_value, after an exception, the "
         "destination is not changed") {
       const int v2 = 5;
-      polymorphic_value<ThrowsOnCopy> another(new ThrowsOnCopy(v2));
+      polymorphic_value<ThrowsOnCopy> another(std::in_place_type<ThrowsOnCopy>,
+                                              v2);
       Tracked::reset_counts();
       REQUIRE_THROWS_AS(another = cptr, std::runtime_error);
       REQUIRE(another->value_ == v2);
@@ -688,7 +694,7 @@ struct TrackedValue : Tracked {
 
 TEST_CASE("Exception safety: throw in copier",
           "[polymorphic_value.exception_safety.copier]") {
-  GIVEN("A value-constructed polymorphic_value") {
+  GIVEN("A pointer-constructed polymorphic_value") {
     const int v = 7;
     polymorphic_value<TrackedValue> cptr(new TrackedValue(v),
                                          throwing_copier<TrackedValue>{});
@@ -705,7 +711,8 @@ TEST_CASE("Exception safety: throw in copier",
         "When an exception occurs in the copier, the destination is "
         "unchanged") {
       const int v2 = 5;
-      polymorphic_value<TrackedValue> another(new TrackedValue(v2));
+      polymorphic_value<TrackedValue> another(std::in_place_type<TrackedValue>,
+                                              v2);
       Tracked::reset_counts();
       REQUIRE_THROWS_AS(another = cptr, std::bad_alloc);
       REQUIRE(another->value_ == v2);
