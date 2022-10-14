@@ -22,6 +22,8 @@ include(FetchContent)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+add_subdirectory(documentation)
+
 add_library(polymorphic_value INTERFACE)
 target_include_directories(polymorphic_value
     INTERFACE
