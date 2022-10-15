@@ -253,10 +253,12 @@ class polymorphic_value {
   friend class polymorphic_value;
 
   template <class T_, class U, class... Ts>
-  friend constexpr polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
+  friend ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value<T_>
+  make_polymorphic_value(Ts&&... ts);
 
   template <class T_, class U, class A, class... Ts>
-  friend constexpr polymorphic_value<T_> allocate_polymorphic_value(
+  friend ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value<T_>
+  allocate_polymorphic_value(
       std::allocator_arg_t, A& a, Ts&&... ts);
 
   T* ptr_ = nullptr;
