@@ -277,7 +277,8 @@ class polymorphic_value {
 
   template <class U, class C, class D,
             class = std::enable_if_t<std::is_convertible_v<U*, T*>>>
-  explicit constexpr polymorphic_value(U* u, C copier, D deleter) {
+  explicit ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value(U* u, C copier,
+                                                          D deleter) {
     if (!u) {
       return;
     }
@@ -313,7 +314,8 @@ class polymorphic_value {
 
   template <class U, class A,
             class = std::enable_if_t<std::is_convertible_v<U*, T*>>>
-  explicit constexpr polymorphic_value(U* u, std::allocator_arg_t,
+  ISOCPP_P0201_CONSTEXPR_CXX20 constexpr polymorphic_value(U* u,
+                                                           std::allocator_arg_t,
                                        const A& alloc) {
     if (!u) {
       return;
@@ -360,7 +362,8 @@ class polymorphic_value {
   template <class U,
             class V = std::enable_if_t<!std::is_same<T, U>::value &&
                                        std::is_convertible<U*, T*>::value>>
-  constexpr explicit polymorphic_value(const polymorphic_value<U>& p) {
+  ISOCPP_P0201_CONSTEXPR_CXX20 explicit polymorphic_value(
+      const polymorphic_value<U>& p) {
     polymorphic_value<U> tmp(p);
     ptr_ = tmp.ptr_;
     cb_ = std::unique_ptr<detail::delegating_control_block<T, U>,
@@ -371,7 +374,8 @@ class polymorphic_value {
   template <class U,
             class V = std::enable_if_t<!std::is_same<T, U>::value &&
                                        std::is_convertible<U*, T*>::value>>
-  constexpr explicit polymorphic_value(polymorphic_value<U>&& p) {
+  ISOCPP_P0201_CONSTEXPR_CXX20 explicit polymorphic_value(
+      polymorphic_value<U>&& p) {
     ptr_ = p.ptr_;
     cb_ = std::unique_ptr<detail::delegating_control_block<T, U>,
                           detail::control_block_deleter>(
@@ -388,7 +392,8 @@ class polymorphic_value {
                 std::is_convertible<std::decay_t<U>*, T*>::value &&
                 !is_polymorphic_value<std::decay_t<U>>::value>,
             class... Ts>
-  constexpr explicit polymorphic_value(std::in_place_type_t<U>, Ts&&... ts)
+  ISOCPP_P0201_CONSTEXPR_CXX20 explicit polymorphic_value(
+      std::in_place_type_t<U>, Ts&&... ts)
       : cb_(std::unique_ptr<detail::direct_control_block<T, U>,
                             detail::control_block_deleter>(
             new detail::direct_control_block<T, U>(std::forward<Ts>(ts)...))) {
@@ -472,7 +477,8 @@ class polymorphic_value {
 // polymorphic_value creation
 //
 template <class T, class U = T, class... Ts>
-constexpr polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
+ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value<T> make_polymorphic_value(
+    Ts&&... ts) {
   polymorphic_value<T> p;
   p.cb_ = std::unique_ptr<detail::direct_control_block<T, U>,
                           detail::control_block_deleter>(
@@ -482,7 +488,8 @@ constexpr polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
 }
 
 template <class T, class U = T, class A = std::allocator<U>, class... Ts>
-constexpr polymorphic_value<T> allocate_polymorphic_value(std::allocator_arg_t,
+ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value<T> allocate_polymorphic_value(
+    std::allocator_arg_t,
                                                           A& a, Ts&&... ts) {
   polymorphic_value<T> p;
   auto* u = detail::allocate_object<U>(a, std::forward<Ts>(ts)...);
