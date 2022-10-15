@@ -147,7 +147,7 @@ struct allocator_wrapper : A {
 };
 
 template <typename T, typename A, typename... Args>
-constexpr T* allocate_object(A& a, Args&&... args) {
+ISOCPP_P0201_CONSTEXPR_CXX20 T* allocate_object(A& a, Args&&... args) {
   using t_allocator =
       typename std::allocator_traits<A>::template rebind_alloc<T>;
   using t_traits = std::allocator_traits<t_allocator>;
@@ -181,11 +181,13 @@ class allocated_pointer_control_block : public control_block<T>,
   constexpr explicit allocated_pointer_control_block(U* u, A a)
       : allocator_wrapper<A>(a), p_(u) {}
 
-  constexpr ~allocated_pointer_control_block() {
+  ISOCPP_P0201_CONSTEXPR_CXX20 ~allocated_pointer_control_block() {
     detail::deallocate_object(this->get_allocator(), p_);
   }
 
-  constexpr std::unique_ptr<control_block<T>, control_block_deleter> clone()
+  ISOCPP_P0201_CONSTEXPR_CXX20
+      std::unique_ptr<control_block<T>, control_block_deleter>
+      clone()
       const override {
     assert(p_);
 
