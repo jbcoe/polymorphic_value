@@ -71,7 +71,7 @@ struct control_block {
 
   ISOCPP_P0201_CONSTEXPR_CXX20 virtual std::unique_ptr<control_block,
                                                        control_block_deleter>
-  clone() const = 0;
+  ISOCPP_P0201_CONSTEXPR_CXX20 clone() const = 0;
 
   ISOCPP_P0201_CONSTEXPR_CXX20 virtual T* ptr() = 0;
 
@@ -88,13 +88,15 @@ class direct_control_block : public control_block<T> {
   constexpr explicit direct_control_block(Ts&&... ts)
       : u_(U(std::forward<Ts>(ts)...)) {}
 
-  constexpr std::unique_ptr<control_block<T>, control_block_deleter> clone()
+  ISOCPP_P0201_CONSTEXPR_CXX20
+      std::unique_ptr<control_block<T>, control_block_deleter>
+      clone()
       const override {
     return std::unique_ptr<direct_control_block, control_block_deleter>(
         new direct_control_block(*this));
   }
 
-  constexpr T* ptr() override { return std::addressof(u_); }
+  ISOCPP_P0201_CONSTEXPR_CXX20 T* ptr() override { return std::addressof(u_); }
 };
 
 template <class T, class U, class C, class D>
@@ -108,7 +110,9 @@ class pointer_control_block : public control_block<T>, public C {
   constexpr explicit pointer_control_block(std::unique_ptr<U, D> p, C c)
       : C(std::move(c)), p_(std::move(p)) {}
 
-  constexpr std::unique_ptr<control_block<T>, control_block_deleter> clone()
+  ISOCPP_P0201_CONSTEXPR_CXX20
+      std::unique_ptr<control_block<T>, control_block_deleter>
+      clone()
       const override {
     assert(p_);
     return std::unique_ptr<pointer_control_block, control_block_deleter>(
@@ -117,7 +121,7 @@ class pointer_control_block : public control_block<T>, public C {
                                   p_.get_deleter()));
   }
 
-  constexpr T* ptr() override { return p_.get(); }
+  ISOCPP_P0201_CONSTEXPR_CXX20 T* ptr() override { return p_.get(); }
 };
 
 template <class T, class U>
@@ -129,13 +133,15 @@ class delegating_control_block : public control_block<T> {
       std::unique_ptr<control_block<U>, control_block_deleter> b)
       : delegate_(std::move(b)) {}
 
-  constexpr std::unique_ptr<control_block<T>, control_block_deleter> clone()
+  ISOCPP_P0201_CONSTEXPR_CXX20
+      std::unique_ptr<control_block<T>, control_block_deleter>
+      clone()
       const override {
     return std::unique_ptr<delegating_control_block, control_block_deleter>(
         new delegating_control_block(delegate_->clone()));
   }
 
-  constexpr T* ptr() override { return delegate_->ptr(); }
+  ISOCPP_P0201_CONSTEXPR_CXX20 T* ptr() override { return delegate_->ptr(); }
 };
 
 template <typename A>
