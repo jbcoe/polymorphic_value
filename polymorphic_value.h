@@ -69,12 +69,13 @@ template <class T>
 struct control_block {
   ISOCPP_P0201_CONSTEXPR_CXX20 virtual ~control_block() = default;
 
-  constexpr virtual std::unique_ptr<control_block, control_block_deleter>
+  ISOCPP_P0201_CONSTEXPR_CXX20 virtual std::unique_ptr<control_block,
+                                                       control_block_deleter>
   clone() const = 0;
 
-  constexpr virtual T* ptr() = 0;
+  ISOCPP_P0201_CONSTEXPR_CXX20 virtual T* ptr() = 0;
 
-  constexpr virtual void destroy() noexcept { delete this; }
+  ISOCPP_P0201_CONSTEXPR_CXX20 virtual void destroy() noexcept { delete this; }
 };
 
 template <class T, class U = T>
@@ -202,9 +203,9 @@ class allocated_pointer_control_block : public control_block<T>,
     }
   }
 
-  constexpr T* ptr() override { return p_; }
+  ISOCPP_P0201_CONSTEXPR_CXX20 T* ptr() override { return p_; }
 
-  constexpr void destroy() noexcept override {
+  ISOCPP_P0201_CONSTEXPR_CXX20 void destroy() noexcept override {
     detail::deallocate_object(this->get_allocator(), this);
   }
 };
