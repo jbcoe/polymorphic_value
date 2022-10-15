@@ -28,6 +28,12 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <typeinfo>
 #include <utility>
 
+#if (__cpp_constexpr >= 202002)
+#define ISOCPP_P0201_CONSTEXPR_CXX20 constexpr
+#else
+#define ISOCPP_P0201_CONSTEXPR_CXX20
+#endif
+
 namespace isocpp_p0201 {
 
 namespace detail {
@@ -61,7 +67,7 @@ class control_block_deleter {
 
 template <class T>
 struct control_block {
-  constexpr virtual ~control_block() = default;
+  ISOCPP_P0201_CONSTEXPR_CXX20 virtual ~control_block() = default;
 
   constexpr virtual std::unique_ptr<control_block, control_block_deleter>
   clone() const = 0;
@@ -258,7 +264,7 @@ class polymorphic_value {
   // Destructor
   //
 
-  constexpr ~polymorphic_value() = default;
+  ISOCPP_P0201_CONSTEXPR_CXX20 ~polymorphic_value() = default;
 
   //
   // Constructors
