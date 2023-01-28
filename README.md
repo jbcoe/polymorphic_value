@@ -6,40 +6,40 @@
 [![license][badge.license]][license]
 [![issues][badge.issues]][issues]
 
-[badge.conan]: https://repology.org/badge/version-for-repo/conancenter/polymorphic_value.svg
+[badge.conan]: https://repology.org/badge/version-for-repo/conancenter/polymorphic.svg
 [badge.language]: https://img.shields.io/badge/language-C%2B%2B14-yellow.svg
-[badge.codecov]: https://img.shields.io/codecov/c/github/jbcoe/polymorphic_value/master.svg?logo=codecov
+[badge.codecov]: https://img.shields.io/codecov/c/github/jbcoe/polymorphic/master.svg?logo=codecov
 [badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
-[badge.issues]: https://img.shields.io/github/issues/jbcoe/polymorphic_value.svg
+[badge.issues]: https://img.shields.io/github/issues/jbcoe/polymorphic.svg
 
-[conan]: https://conan.io/center/polymorphic_value
-[codecov]: https://codecov.io/gh/jbcoe/polymorphic_value
+[conan]: https://conan.io/center/polymorphic
+[codecov]: https://codecov.io/gh/jbcoe/polymorphic
 [language]: https://en.wikipedia.org/wiki/C%2B%2B14
 [license]: https://en.wikipedia.org/wiki/MIT_License
-[issues]: http://github.com/jbcoe/polymorphic_value/issues
+[issues]: http://github.com/jbcoe/polymorphic/issues
 
-The class template `polymorphic_value` is proposed for addition to the C++ Standard Library.
+The class template `polymorphic` is proposed for addition to the C++ Standard Library.
 
-The class template, `polymorphic_value`, confers value-like semantics on a free-store
-allocated object.  A `polymorphic_value<T>` may hold an object of a class publicly
-derived from T, and copying the polymorphic_value<T> will copy the object of the derived
+The class template, `polymorphic`, confers value-like semantics on a free-store
+allocated object.  A `polymorphic<T>` may hold an object of a class publicly
+derived from T, and copying the polymorphic<T> will copy the object of the derived
 type.
 
-Using `polymorphic_value` a copyable composite object with polymorphic components can be
+Using `polymorphic` a copyable composite object with polymorphic components can be
 written as:
 
 ~~~ {.cpp}
 // Copyable composite with mutable polymorphic components
 class CompositeObject {
-  std::polymorphic_value<IComponent1> c1_;
-  std::polymorphic_value<IComponent2> c2_;
+  std::polymorphic<IComponent1> c1_;
+  std::polymorphic<IComponent2> c2_;
 
  public:
-  CompositeObject(std::polymorphic_value<IComponent1> c1,
-                  std::polymorphic_value<IComponent2> c2) :
+  CompositeObject(std::polymorphic<IComponent1> c1,
+                  std::polymorphic<IComponent2> c2) :
                     c1_(std::move(c1)), c2_(std::move(c2)) {}
 
-  // `polymorphic_value` propagates constness so const methods call
+  // `polymorphic` propagates constness so const methods call
   // corresponding const methods of components
   void foo() const { c1_->foo(); }
   void bar() const { c2_->bar(); }
@@ -50,8 +50,8 @@ class CompositeObject {
 ~~~
 
 # ISO Standardisation
-`polymorphic_value` has been proposed for standardisation for C++20 in P0201: <http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0201r1.pdf>.
-The draft in this repository is more up to date than the paper linked above, in particular the class has been renamed from `indirect` to `polymorphic_value`.
+`polymorphic` has been proposed for standardisation for C++20 in P0201: <http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0201r1.pdf>.
+The draft in this repository is more up to date than the paper linked above, in particular the class has been renamed from `indirect` to `polymorphic`.
 
 # Contents
 - [Integration](#integration)
@@ -65,20 +65,20 @@ The draft in this repository is more up to date than the paper linked above, in 
 - [License](#license)
 
 # Integration
-Polymorphic value is shipped as a single header file, [`polymorphic_value.h`](https://github.com/jbcoe/polymorphic_value/blob/master/polymorphic_value.h) that can be directly included in your project or included via an official [release package](https://github.com/jbcoe/polymorphic_value/releases).
+Polymorphic value is shipped as a single header file, [`polymorphic.h`](https://github.com/jbcoe/polymorphic/blob/master/polymorphic.h) that can be directly included in your project or included via an official [release package](https://github.com/jbcoe/polymorphic/releases).
 
 ## CMake
-To include in your CMake build then add a dependency upon the interface target, `polymorphic_value::polymorphic_value`.  This provides the necessary include paths and C++ features required to include `polymorphic_value` into your project.
+To include in your CMake build then add a dependency upon the interface target, `polymorphic::polymorphic`.  This provides the necessary include paths and C++ features required to include `polymorphic` into your project.
 
 ### External
-To include `polymorphic_value` you will need use find package to locate the provided namespace imported targets from the generated package configuration.  The package configuration file, *polymorphic_value-config.cmake* can be included from the install location or directly out of the build tree.
+To include `polymorphic` you will need use find package to locate the provided namespace imported targets from the generated package configuration.  The package configuration file, *polymorphic-config.cmake* can be included from the install location or directly out of the build tree.
 ```cmake
 # CMakeLists.txt
-find_package(polymorphic_value 1.0.0 REQUIRED)
+find_package(polymorphic 1.0.0 REQUIRED)
 ...
 add_library(foo ...)
 ...
-target_link_libraries(foo PRIVATE polymorphic_value::polymorphic_value)
+target_link_libraries(foo PRIVATE polymorphic::polymorphic)
 ```
 # Building
 
@@ -129,8 +129,8 @@ The Polymorphic Value library is available for integration into your own project
 
 ## Conan
 
-Polymorphic Value is now available on the Conan Center Index: https://conan.io/center/polymorphic_value.  Just include the following dependency in your `conanfile.txt` or `conanfile.py` within your project, install via Conan and build using build system of choice.
+Polymorphic Value is now available on the Conan Center Index: https://conan.io/center/polymorphic.  Just include the following dependency in your `conanfile.txt` or `conanfile.py` within your project, install via Conan and build using build system of choice.
 
 ```bash
-polymorphic_value/1.3.0
+polymorphic/1.3.0
 ```

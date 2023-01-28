@@ -5,9 +5,9 @@ if(NOT DEFINED PROJECT_NAME)
   set(POLYMORPHIC_IS_NOT_SUBPROJECT ON)
 endif()
 
-set(POLYMOPHIC_VALUE_VERSION 1.3.0) # Revision 3, see paper p0201r3
+set(POLYMORPHIC_VERSION 1.3.0) # Revision 3, see paper p0201r3
 
-project(polymorphic_value LANGUAGES CXX  VERSION ${POLYMOPHIC_VALUE_VERSION})
+project(polymorphic LANGUAGES CXX  VERSION ${POLYMORPHIC_VERSION})
 
 if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
@@ -24,28 +24,28 @@ include(CMakePackageConfigHelpers)
 
 add_subdirectory(documentation)
 
-add_library(polymorphic_value INTERFACE)
-target_include_directories(polymorphic_value
+add_library(polymorphic INTERFACE)
+target_include_directories(polymorphic
     INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_sources(polymorphic_value
+target_sources(polymorphic
     INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic.h>
         # Only include natvis files in Visual Studio
-        $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.natvis>>
-        $<INSTALL_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}/polymorphic_value.natvis>>
+        $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:${CMAKE_CURRENT_SOURCE_DIR}/polymorphic.natvis>>
+        $<INSTALL_INTERFACE:$<$<CXX_COMPILER_ID:MSVC>:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}/polymorphic.natvis>>
 )
 
-target_compile_features(polymorphic_value
+target_compile_features(polymorphic
     INTERFACE
         cxx_std_17
 )
 
-# namespaced alias for users depending on polymorphic_value as a sub-project.
-add_library(polymorphic_value::polymorphic_value ALIAS polymorphic_value)
+# namespaced alias for users depending on polymorphic as a sub-project.
+add_library(polymorphic::polymorphic ALIAS polymorphic)
 
 if(POLYMORPHIC_IS_NOT_SUBPROJECT)
 
@@ -62,20 +62,20 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
             add_subdirectory(${catch2_SOURCE_DIR} ${catch2_BINARY_DIR})
         endif()
 
-        add_executable(polymorphic_value_test polymorphic_value_test.cpp)
-        target_link_libraries(polymorphic_value_test
+        add_executable(polymorphic_test polymorphic_test.cpp)
+        target_link_libraries(polymorphic_test
             PRIVATE
-                polymorphic_value::polymorphic_value
+                polymorphic::polymorphic
                 Catch2::Catch2
         )
 
-        target_compile_options(polymorphic_value_test
+        target_compile_options(polymorphic_test
             PRIVATE
                 $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
                 $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Werror;-Wall;-Wno-self-assign-overloaded;-Wno-unknown-warning-option>
         )
 
-        set_target_properties(polymorphic_value_test PROPERTIES
+        set_target_properties(polymorphic_test PROPERTIES
             CXX_STANDARD 14
             CXX_STANDARD_REQUIRED YES
             CXX_EXTENSIONS NO
@@ -95,7 +95,7 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
                     INTERFACE_COMPILE_OPTIONS "${SANITIZER_FLAGS_ASAN}"
                     INTERFACE_LINK_OPTIONS "${SANITIZER_FLAGS_ASAN}"
                 )
-                target_link_libraries(polymorphic_value_test
+                target_link_libraries(polymorphic_test
                     PRIVATE
                          asan
                 )
@@ -107,7 +107,7 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
                     INTERFACE_COMPILE_OPTIONS "${SANITIZER_FLAGS_UBSAN}"
                     INTERFACE_LINK_OPTIONS "${SANITIZER_FLAGS_UBSAN}"
                 )
-                target_link_libraries(polymorphic_value_test
+                target_link_libraries(polymorphic_test
                     PRIVATE
                          ubsan
                 )
@@ -116,14 +116,14 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
 
         enable_testing()
         add_test(
-            NAME polymorphic_value_test
-            COMMAND polymorphic_value_test
+            NAME polymorphic_test
+            COMMAND polymorphic_test
             WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
         )
 
         list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/contrib)
         include(Catch)
-        catch_discover_tests(polymorphic_value_test)
+        catch_discover_tests(polymorphic_test)
     endif(${BUILD_TESTING})
 
     if (APPLE)
@@ -145,15 +145,15 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
 
         set(ENABLE_COVERAGE ON CACHE BOOL "Enable coverage build." FORCE)
         find_package(codecov)
-        add_coverage(polymorphic_value_test)
+        add_coverage(polymorphic_test)
         list(APPEND LCOV_REMOVE_PATTERNS "'/usr/*'")
         coverage_evaluate()
     endif()
 
     install(
         FILES
-            "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.h"
-            "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic_value.natvis"
+            "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/polymorphic.natvis"
         DESTINATION
             ${CMAKE_INSTALL_INCLUDEDIR}
     )
@@ -162,43 +162,43 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
         FILES
             "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt"
         DESTINATION
-            "${CMAKE_INSTALL_DATAROOTDIR}/licenses/polymorphic_value"
+            "${CMAKE_INSTALL_DATAROOTDIR}/licenses/polymorphic"
     )
 
     install(
-        TARGETS polymorphic_value
-        EXPORT polymorphic_value-target
+        TARGETS polymorphic
+        EXPORT polymorphic-target
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
 
     install(
-        EXPORT polymorphic_value-target
-        NAMESPACE polymorphic_value::
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/polymorphic_value"
+        EXPORT polymorphic-target
+        NAMESPACE polymorphic::
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/polymorphic"
     )
 
     configure_package_config_file(
-        ${CMAKE_CURRENT_LIST_DIR}/polymorphic_value-config.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-config.cmake
+        ${CMAKE_CURRENT_LIST_DIR}/polymorphic-config.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/polymorphic-config.cmake
         INSTALL_DESTINATION
-            "${CMAKE_INSTALL_LIBDIR}/cmake/polymorphic_value"
+            "${CMAKE_INSTALL_LIBDIR}/cmake/polymorphic"
     )
 
     write_basic_package_version_file(
-        ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-version.cmake
-        VERSION ${POLYMOPHIC_VALUE_VERSION}
+        ${CMAKE_CURRENT_BINARY_DIR}/polymorphic-version.cmake
+        VERSION ${POLYMORPHIC_VERSION}
         COMPATIBILITY SameMajorVersion
         ARCH_INDEPENDENT
     )
 
     install(
         FILES
-            ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-config.cmake
-            ${CMAKE_CURRENT_BINARY_DIR}/polymorphic_value-version.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/polymorphic-config.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/polymorphic-version.cmake
         DESTINATION
-            "${CMAKE_INSTALL_LIBDIR}/cmake/polymorphic_value"
+            "${CMAKE_INSTALL_LIBDIR}/cmake/polymorphic"
     )
 endif(POLYMORPHIC_IS_NOT_SUBPROJECT)
 

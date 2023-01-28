@@ -3,7 +3,7 @@ import gdb.xmethod
 import re
 
 
-class polymorphic_value_print:
+class polymorphic_print:
     def __init__(self, val):
         self.val = val
 
@@ -12,22 +12,22 @@ class polymorphic_value_print:
 
 
 def build_pretty_printer():
-    pp = gdb.printing.RegexpCollectionPrettyPrinter("polymorphic_value")
+    pp = gdb.printing.RegexpCollectionPrettyPrinter("polymorphic")
     pp.add_printer(
-        "polymorphic_value",
-        "^isocpp_p0201::polymorphic_value<.*>$",
-        polymorphic_value_print,
+        "polymorphic",
+        "^isocpp_p0201::polymorphic<.*>$",
+        polymorphic_print,
     )
     return pp
 
 
-class polymorphic_value_method(gdb.xmethod.XMethod):
+class polymorphic_method(gdb.xmethod.XMethod):
     def __init__(self, method, worker_class):
         gdb.xmethod.XMethod.__init__(self, method)
         self.worker_class = worker_class
 
 
-class polymorphic_value_worker_get(gdb.xmethod.XMethodWorker):
+class polymorphic_worker_get(gdb.xmethod.XMethodWorker):
     def get_arg_types(self):
         return None
 
@@ -38,7 +38,7 @@ class polymorphic_value_worker_get(gdb.xmethod.XMethodWorker):
         return obj["ptr_"]
 
 
-class polymorphic_value_worker_dereference(gdb.xmethod.XMethodWorker):
+class polymorphic_worker_dereference(gdb.xmethod.XMethodWorker):
     def get_arg_types(self):
         return None
 
@@ -49,21 +49,21 @@ class polymorphic_value_worker_dereference(gdb.xmethod.XMethodWorker):
         return obj["ptr_"].dereference()
 
 
-class polymorphic_value_matcher(gdb.xmethod.XMethodMatcher):
+class polymorphic_matcher(gdb.xmethod.XMethodMatcher):
     def __init__(self):
-        gdb.xmethod.XMethodMatcher.__init__(self, "polymorphic_value")
+        gdb.xmethod.XMethodMatcher.__init__(self, "polymorphic")
         self._method_dict = {
-            "operator->": polymorphic_value_method(
-                "operator->", polymorphic_value_worker_get
+            "operator->": polymorphic_method(
+                "operator->", polymorphic_worker_get
             ),
-            "operator*": polymorphic_value_method(
-                "operator*", polymorphic_value_worker_dereference
+            "operator*": polymorphic_method(
+                "operator*", polymorphic_worker_dereference
             ),
         }
         self.methods = [self._method_dict[m] for m in self._method_dict]
 
     def match(self, class_type, method_name):
-        if not re.match("^isocpp_p0201::polymorphic_value<.*>$", class_type.tag):
+        if not re.match("^isocpp_p0201::polymorphic<.*>$", class_type.tag):
             return None
         method = self._method_dict.get(method_name)
         if method is None or not method.enabled:
@@ -72,4 +72,4 @@ class polymorphic_value_matcher(gdb.xmethod.XMethodMatcher):
 
 
 gdb.printing.register_pretty_printer(gdb.current_objfile(), build_pretty_printer())
-gdb.xmethod.register_xmethod_matcher(None, polymorphic_value_matcher())
+gdb.xmethod.register_xmethod_matcher(None, polymorphic_matcher())

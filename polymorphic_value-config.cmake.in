@@ -1,8 +1,0 @@
-@PACKAGE_INIT@
-
-check_required_components(polymorphic_value)
-
-if(NOT TARGET polymorphic_value::polymorphic_value)
-    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
-    include(${CMAKE_CURRENT_LIST_DIR}/polymorphic_value-target.cmake)
-endif()

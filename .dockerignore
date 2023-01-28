@@ -6,4 +6,4 @@ Dockerfile
 draft.*
 talks
 install_hooks.sh
-polymorphic_value.natvis
+polymorphic.natvis
