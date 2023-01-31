@@ -1,1 +1,1 @@
-build --cxxopt='-std=c++17' --cxxopt='-Wno-self-assign-overloaded'
+build -s --cxxopt='-std=c++20'
