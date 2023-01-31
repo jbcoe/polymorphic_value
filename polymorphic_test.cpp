@@ -25,6 +25,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <utility>
 
 #define CATCH_CONFIG_MAIN
+#undef CATCH_CONFIG_WINDOWS_SEH
 #include "catch2/catch.hpp"
 
 using namespace isocpp_p0201;
