@@ -28,6 +28,12 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <typeinfo>
 #include <utility>
 
+#if (__cpp_constexpr >= 202002)
+#define ISOCPP_P0201_CONSTEXPR_CXX20 constexpr
+#else
+#define ISOCPP_P0201_CONSTEXPR_CXX20
+#endif
+
 namespace isocpp_p0201 {
 
 namespace detail {
@@ -52,7 +58,7 @@ struct copier_traits_deleter_base<U* (*)(V)> {
 class control_block_deleter {
  public:
   template <class T>
-  void operator()(T*& t) const noexcept {
+  constexpr void operator()(T* t) const noexcept {
     if (t != nullptr) {
       t->destroy();
       t = nullptr;
@@ -62,14 +68,15 @@ class control_block_deleter {
 
 template <class T>
 struct control_block {
-  virtual ~control_block() = default;
+  ISOCPP_P0201_CONSTEXPR_CXX20 virtual ~control_block() = default;
 
-  virtual std::unique_ptr<control_block, control_block_deleter> clone()
-      const = 0;
+  ISOCPP_P0201_CONSTEXPR_CXX20 virtual std::unique_ptr<control_block,
+                                                       control_block_deleter>
+  ISOCPP_P0201_CONSTEXPR_CXX20 clone() const = 0;
 
-  virtual T* ptr() = 0;
+  ISOCPP_P0201_CONSTEXPR_CXX20 virtual T* ptr() = 0;
 
-  virtual void destroy() noexcept { delete this; }
+  ISOCPP_P0201_CONSTEXPR_CXX20 virtual void destroy() noexcept { delete this; }
 };
 
 template <class T, class U = T>
@@ -79,15 +86,18 @@ class direct_control_block : public control_block<T> {
 
  public:
   template <class... Ts>
-  explicit direct_control_block(Ts&&... ts) : u_(U(std::forward<Ts>(ts)...)) {}
+  constexpr explicit direct_control_block(Ts&&... ts)
+      : u_(U(std::forward<Ts>(ts)...)) {}
 
-  std::unique_ptr<control_block<T>, control_block_deleter> clone()
+  ISOCPP_P0201_CONSTEXPR_CXX20
+      std::unique_ptr<control_block<T>, control_block_deleter>
+      clone()
       const override {
     return std::unique_ptr<direct_control_block, control_block_deleter>(
         new direct_control_block(*this));
   }
 
-  T* ptr() override { return std::addressof(u_); }
+  ISOCPP_P0201_CONSTEXPR_CXX20 T* ptr() override { return std::addressof(u_); }
 };
 
 template <class T, class U, class C, class D>
@@ -95,13 +105,15 @@ class pointer_control_block : public control_block<T>, public C {
   std::unique_ptr<U, D> p_;
 
  public:
-  explicit pointer_control_block(U* u, C c, D d)
+  constexpr explicit pointer_control_block(U* u, C c, D d)
       : C(std::move(c)), p_(u, std::move(d)) {}
 
-  explicit pointer_control_block(std::unique_ptr<U, D> p, C c)
+  constexpr explicit pointer_control_block(std::unique_ptr<U, D> p, C c)
       : C(std::move(c)), p_(std::move(p)) {}
 
-  std::unique_ptr<control_block<T>, control_block_deleter> clone()
+  ISOCPP_P0201_CONSTEXPR_CXX20
+      std::unique_ptr<control_block<T>, control_block_deleter>
+      clone()
       const override {
     assert(p_);
     return std::unique_ptr<pointer_control_block, control_block_deleter>(
@@ -110,7 +122,7 @@ class pointer_control_block : public control_block<T>, public C {
                                   p_.get_deleter()));
   }
 
-  T* ptr() override { return p_.get(); }
+  ISOCPP_P0201_CONSTEXPR_CXX20 T* ptr() override { return p_.get(); }
 };
 
 template <class T, class U>
@@ -118,28 +130,32 @@ class delegating_control_block : public control_block<T> {
   std::unique_ptr<control_block<U>, control_block_deleter> delegate_;
 
  public:
-  explicit delegating_control_block(
+  constexpr explicit delegating_control_block(
       std::unique_ptr<control_block<U>, control_block_deleter> b)
       : delegate_(std::move(b)) {}
 
-  std::unique_ptr<control_block<T>, control_block_deleter> clone()
+  ISOCPP_P0201_CONSTEXPR_CXX20
+      std::unique_ptr<control_block<T>, control_block_deleter>
+      clone()
       const override {
     return std::unique_ptr<delegating_control_block, control_block_deleter>(
         new delegating_control_block(delegate_->clone()));
   }
 
-  T* ptr() override { return delegate_->ptr(); }
+  ISOCPP_P0201_CONSTEXPR_CXX20 T* ptr() override { return delegate_->ptr(); }
 };
 
 template <typename A>
 struct allocator_wrapper : A {
-  allocator_wrapper(A& a) : A(a) {}
+  constexpr allocator_wrapper(A& a) : A(a) {}
 
-  const A& get_allocator() const { return static_cast<const A&>(*this); }
+  constexpr const A& get_allocator() const {
+    return static_cast<const A&>(*this);
+  }
 };
 
 template <typename T, typename A, typename... Args>
-T* allocate_object(A& a, Args&&... args) {
+ISOCPP_P0201_CONSTEXPR_CXX20 T* allocate_object(A& a, Args&&... args) {
   using t_allocator =
       typename std::allocator_traits<A>::template rebind_alloc<T>;
   using t_traits = std::allocator_traits<t_allocator>;
@@ -155,7 +171,7 @@ T* allocate_object(A& a, Args&&... args) {
 }
 
 template <typename T, typename A>
-void deallocate_object(A& a, T* p) {
+constexpr void deallocate_object(A& a, T* p) {
   using t_allocator =
       typename std::allocator_traits<A>::template rebind_alloc<T>;
   using t_traits = std::allocator_traits<t_allocator>;
@@ -170,14 +186,16 @@ class allocated_pointer_control_block : public control_block<T>,
   U* p_;
 
  public:
-  explicit allocated_pointer_control_block(U* u, A a)
+  constexpr explicit allocated_pointer_control_block(U* u, A a)
       : allocator_wrapper<A>(a), p_(u) {}
 
-  ~allocated_pointer_control_block() {
+  ISOCPP_P0201_CONSTEXPR_CXX20 ~allocated_pointer_control_block() {
     detail::deallocate_object(this->get_allocator(), p_);
   }
 
-  std::unique_ptr<control_block<T>, control_block_deleter> clone()
+  ISOCPP_P0201_CONSTEXPR_CXX20
+      std::unique_ptr<control_block<T>, control_block_deleter>
+      clone()
       const override {
     assert(p_);
 
@@ -192,9 +210,9 @@ class allocated_pointer_control_block : public control_block<T>,
     }
   }
 
-  T* ptr() override { return p_; }
+  ISOCPP_P0201_CONSTEXPR_CXX20 T* ptr() override { return p_; }
 
-  void destroy() noexcept override {
+  ISOCPP_P0201_CONSTEXPR_CXX20 void destroy() noexcept override {
     detail::deallocate_object(this->get_allocator(), this);
   }
 };
@@ -204,7 +222,7 @@ class allocated_pointer_control_block : public control_block<T>,
 template <class T>
 struct default_copy {
   using deleter_type = std::default_delete<T>;
-  T* operator()(const T& t) const { return new T(t); }
+  constexpr T* operator()(const T& t) const { return new T(t); }
 };
 
 template <class T>
@@ -242,11 +260,13 @@ class polymorphic_value {
   friend class polymorphic_value;
 
   template <class T_, class U, class... Ts>
-  friend polymorphic_value<T_> make_polymorphic_value(Ts&&... ts);
+  friend ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value<T_>
+  make_polymorphic_value(Ts&&... ts);
 
   template <class T_, class U, class A, class... Ts>
-  friend polymorphic_value<T_> make_polymorphic_value(std::allocator_arg_t,
-                                                      A& a, Ts&&... ts);
+  friend ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value<T_>
+  allocate_polymorphic_value(
+      std::allocator_arg_t, A& a, Ts&&... ts);
 
   T* ptr_ = nullptr;
   std::unique_ptr<detail::control_block<T>, detail::control_block_deleter> cb_;
@@ -256,17 +276,18 @@ class polymorphic_value {
   // Destructor
   //
 
-  ~polymorphic_value() = default;
+  ISOCPP_P0201_CONSTEXPR_CXX20 ~polymorphic_value() = default;
 
   //
   // Constructors
   //
 
-  polymorphic_value() {}
+  constexpr polymorphic_value() {}
 
   template <class U, class C, class D,
-            class V = std::enable_if_t<std::is_convertible_v<U*, T*>>>
-  explicit polymorphic_value(U* u, C copier, D deleter) {
+            class = std::enable_if_t<std::is_convertible_v<U*, T*>>>
+  explicit ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value(U* u, C copier,
+                                                          D deleter) {
     if (!u) {
       return;
     }
@@ -289,20 +310,22 @@ class polymorphic_value {
             class V = std::enable_if_t<std::is_convertible_v<U*, T*> &&
                                        std::is_default_constructible_v<D> &&
                                        !std::is_pointer_v<D>>>
-  explicit polymorphic_value(U* u, C copier)
+  explicit constexpr polymorphic_value(U* u, C copier)
       : polymorphic_value(u, std::move(copier), D{}) {}
 
   template <
       class U, class C = default_copy<U>,
       class D = typename copier_traits<C>::deleter_type,
-      class V = std::enable_if_t<
+      class = std::enable_if_t<
           std::is_convertible_v<U*, T*> && std::is_default_constructible_v<C> &&
           std::is_default_constructible_v<D> && !std::is_pointer_v<D>>>
-  explicit polymorphic_value(U* u) : polymorphic_value(u, C{}, D{}) {}
+  explicit constexpr polymorphic_value(U* u) : polymorphic_value(u, C{}, D{}) {}
 
   template <class U, class A,
-            class V = std::enable_if_t<std::is_convertible_v<U*, T*>>>
-  explicit polymorphic_value(U* u, std::allocator_arg_t, const A& alloc) {
+            class = std::enable_if_t<std::is_convertible_v<U*, T*>>>
+  ISOCPP_P0201_CONSTEXPR_CXX20 constexpr polymorphic_value(U* u,
+                                                           std::allocator_arg_t,
+                                       const A& alloc) {
     if (!u) {
       return;
     }
@@ -322,7 +345,7 @@ class polymorphic_value {
   // Copy-constructors
   //
 
-  polymorphic_value(const polymorphic_value& p) {
+  constexpr polymorphic_value(const polymorphic_value& p) {
     if (!p) {
       return;
     }
@@ -335,7 +358,7 @@ class polymorphic_value {
   // Move-constructors
   //
 
-  polymorphic_value(polymorphic_value&& p) noexcept {
+  constexpr polymorphic_value(polymorphic_value&& p) noexcept {
     ptr_ = p.ptr_;
     cb_ = std::move(p.cb_);
     p.ptr_ = nullptr;
@@ -348,7 +371,8 @@ class polymorphic_value {
   template <class U,
             class V = std::enable_if_t<!std::is_same<T, U>::value &&
                                        std::is_convertible<U*, T*>::value>>
-  explicit polymorphic_value(const polymorphic_value<U>& p) {
+  ISOCPP_P0201_CONSTEXPR_CXX20 explicit polymorphic_value(
+      const polymorphic_value<U>& p) {
     polymorphic_value<U> tmp(p);
     ptr_ = tmp.ptr_;
     cb_ = std::unique_ptr<detail::delegating_control_block<T, U>,
@@ -359,7 +383,8 @@ class polymorphic_value {
   template <class U,
             class V = std::enable_if_t<!std::is_same<T, U>::value &&
                                        std::is_convertible<U*, T*>::value>>
-  explicit polymorphic_value(polymorphic_value<U>&& p) {
+  ISOCPP_P0201_CONSTEXPR_CXX20 explicit polymorphic_value(
+      polymorphic_value<U>&& p) {
     ptr_ = p.ptr_;
     cb_ = std::unique_ptr<detail::delegating_control_block<T, U>,
                           detail::control_block_deleter>(
@@ -376,7 +401,8 @@ class polymorphic_value {
                 std::is_convertible<std::decay_t<U>*, T*>::value &&
                 !is_polymorphic_value<std::decay_t<U>>::value>,
             class... Ts>
-  explicit polymorphic_value(std::in_place_type_t<U>, Ts&&... ts)
+  ISOCPP_P0201_CONSTEXPR_CXX20 explicit polymorphic_value(
+      std::in_place_type_t<U>, Ts&&... ts)
       : cb_(std::unique_ptr<detail::direct_control_block<T, U>,
                             detail::control_block_deleter>(
             new detail::direct_control_block<T, U>(std::forward<Ts>(ts)...))) {
@@ -387,7 +413,7 @@ class polymorphic_value {
   // Assignment
   //
 
-  polymorphic_value& operator=(const polymorphic_value& p) {
+  constexpr polymorphic_value& operator=(const polymorphic_value& p) {
     if (std::addressof(p) == this) {
       return *this;
     }
@@ -408,7 +434,7 @@ class polymorphic_value {
   // Move-assignment
   //
 
-  polymorphic_value& operator=(polymorphic_value&& p) noexcept {
+  constexpr polymorphic_value& operator=(polymorphic_value&& p) noexcept {
     if (std::addressof(p) == this) {
       return *this;
     }
@@ -423,7 +449,7 @@ class polymorphic_value {
   // Modifiers
   //
 
-  void swap(polymorphic_value& p) noexcept {
+  constexpr void swap(polymorphic_value& p) noexcept {
     using std::swap;
     swap(ptr_, p.ptr_);
     swap(cb_, p.cb_);
@@ -433,24 +459,24 @@ class polymorphic_value {
   // Observers
   //
 
-  explicit operator bool() const { return bool(cb_); }
+  constexpr explicit operator bool() const { return bool(cb_); }
 
-  const T* operator->() const {
+  constexpr const T* operator->() const {
     assert(ptr_);
     return ptr_;
   }
 
-  const T& operator*() const {
+  constexpr const T& operator*() const {
     assert(*this);
     return *ptr_;
   }
 
-  T* operator->() {
+  constexpr T* operator->() {
     assert(*this);
     return ptr_;
   }
 
-  T& operator*() {
+  constexpr T& operator*() {
     assert(*this);
     return *ptr_;
   }
@@ -460,7 +486,8 @@ class polymorphic_value {
 // polymorphic_value creation
 //
 template <class T, class U = T, class... Ts>
-polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
+ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value<T> make_polymorphic_value(
+    Ts&&... ts) {
   polymorphic_value<T> p;
   p.cb_ = std::unique_ptr<detail::direct_control_block<T, U>,
                           detail::control_block_deleter>(
@@ -470,8 +497,9 @@ polymorphic_value<T> make_polymorphic_value(Ts&&... ts) {
 }
 
 template <class T, class U = T, class A = std::allocator<U>, class... Ts>
-polymorphic_value<T> make_polymorphic_value(std::allocator_arg_t, A& a,
-                                            Ts&&... ts) {
+ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value<T> allocate_polymorphic_value(
+    std::allocator_arg_t,
+                                                          A& a, Ts&&... ts) {
   polymorphic_value<T> p;
   auto* u = detail::allocate_object<U>(a, std::forward<Ts>(ts)...);
   try {
@@ -491,7 +519,7 @@ polymorphic_value<T> make_polymorphic_value(std::allocator_arg_t, A& a,
 // non-member swap
 //
 template <class T>
-void swap(polymorphic_value<T>& t, polymorphic_value<T>& u) noexcept {
+constexpr void swap(polymorphic_value<T>& t, polymorphic_value<T>& u) noexcept {
   t.swap(u);
 }
 
