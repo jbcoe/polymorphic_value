@@ -283,7 +283,7 @@ class polymorphic_value {
 
   constexpr polymorphic_value() {}
 
-  constexpr polymorphic_value(nullptr_t) {}
+  constexpr polymorphic_value(std::nullptr_t) {}
 
   template <class U, class C, class D,
             class = std::enable_if_t<std::is_convertible_v<U*, T*>>>
