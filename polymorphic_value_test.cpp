@@ -131,6 +131,11 @@ TEST_CASE("Pointer constructor", "[polymorphic_value.constructors]") {
 
     THEN("operator bool returns true") { REQUIRE((bool)ccptr == false); }
   }
+  GIVEN("Ensure polymorphic supports construction from nullptr") {
+    const polymorphic_value<BaseType> ccptr(nullptr);
+
+    THEN("operator bool returns true") { REQUIRE((bool)ccptr == false); }
+  }
 }
 
 struct BaseCloneSelf {
