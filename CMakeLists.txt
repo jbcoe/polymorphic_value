@@ -53,7 +53,7 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
         FetchContent_Declare(
             catch2
             GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-            GIT_TAG v2.x
+            GIT_TAG v3.3.2
         )
 
         FetchContent_GetProperties(catch2)
@@ -66,7 +66,7 @@ if(POLYMORPHIC_IS_NOT_SUBPROJECT)
         target_link_libraries(polymorphic_value_test
             PRIVATE
                 polymorphic_value::polymorphic_value
-                Catch2::Catch2
+                Catch2::Catch2WithMain
         )
 
         target_compile_options(polymorphic_value_test
