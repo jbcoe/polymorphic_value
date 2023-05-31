@@ -12,6 +12,6 @@ cc_test(
     copts = ["-Iexternal/polymorphic_value/"],
     deps = [
         ":polymorphic_value",
-        "@catch2",
+        "@catch2//:catch2_main",
     ],
 )

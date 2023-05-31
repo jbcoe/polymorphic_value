@@ -24,8 +24,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <stdexcept>
 #include <utility>
 
-#define CATCH_CONFIG_MAIN
-#include "catch2/catch.hpp"
+#undef CATCH_CONFIG_WINDOWS_SEH
+#include "catch2/catch_test_macros.hpp"
 
 using namespace isocpp_p0201;
 
