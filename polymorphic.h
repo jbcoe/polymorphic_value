@@ -283,6 +283,8 @@ class polymorphic {
 
   constexpr polymorphic() {}
 
+  constexpr polymorphic(std::nullptr_t) {}
+
   template <class U, class C, class D,
             class = std::enable_if_t<std::is_convertible_v<U*, T*>>>
   explicit ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic(U* u, C copier,

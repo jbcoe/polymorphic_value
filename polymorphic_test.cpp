@@ -24,9 +24,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <stdexcept>
 #include <utility>
 
-#define CATCH_CONFIG_MAIN
 #undef CATCH_CONFIG_WINDOWS_SEH
-#include "catch2/catch.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 using namespace isocpp_p0201;
 
@@ -129,6 +128,11 @@ TEST_CASE("Pointer constructor", "[polymorphic.constructors]") {
       "to be default initialised") {
     DerivedType* null_derived_ptr = nullptr;
     const polymorphic<BaseType> ccptr(null_derived_ptr);
+
+    THEN("operator bool returns true") { REQUIRE((bool)ccptr == false); }
+  }
+  GIVEN("Ensure polymorphic supports construction from nullptr") {
+    const polymorphic<BaseType> ccptr(nullptr);
 
     THEN("operator bool returns true") { REQUIRE((bool)ccptr == false); }
   }
