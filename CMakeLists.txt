@@ -7,7 +7,7 @@ endif()
 
 set(POLYMORPHIC_VERSION 2.0.0)
 
-project(polymorphic LANGUAGES CXX  VERSION ${POLYMORPHIC_VERSION})
+project(polymorphic LANGUAGES CXX VERSION ${POLYMORPHIC_VERSION})
 
 if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
