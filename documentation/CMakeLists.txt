@@ -8,6 +8,6 @@ if (CURL)
         BYPRODUCTS
             draft.html
         COMMENT
-            "Generating ISO Paper P1950 revision 2"
+            "Generating ISO Paper P0201 ..."
     )
 endif ()
