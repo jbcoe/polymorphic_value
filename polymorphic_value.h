@@ -71,7 +71,7 @@ struct control_block {
 
   ISOCPP_P0201_CONSTEXPR_CXX20 virtual std::unique_ptr<control_block,
                                                        control_block_deleter>
-      ISOCPP_P0201_CONSTEXPR_CXX20 clone() const = 0;
+  clone() const = 0;
 
   ISOCPP_P0201_CONSTEXPR_CXX20 virtual T* ptr() = 0;
 
@@ -319,9 +319,8 @@ class polymorphic_value {
 
   template <class U, class A,
             class = std::enable_if_t<std::is_convertible_v<U*, T*>>>
-  ISOCPP_P0201_CONSTEXPR_CXX20 constexpr polymorphic_value(U* u,
-                                                           std::allocator_arg_t,
-                                                           const A& alloc) {
+  ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value(U* u, std::allocator_arg_t,
+                                                 const A& alloc) {
     if (!u) {
       return;
     }
