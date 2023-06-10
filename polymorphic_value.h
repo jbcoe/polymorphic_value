@@ -319,14 +319,8 @@ class polymorphic_value {
 
   template <class U, class A,
             class = std::enable_if_t<std::is_convertible_v<U*, T*>>>
-<<<<<<< HEAD
   ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value(U* u, std::allocator_arg_t,
                                                  const A& alloc) {
-=======
-  ISOCPP_P0201_CONSTEXPR_CXX20 constexpr polymorphic_value(U* u,
-                                                           std::allocator_arg_t,
-                                                           const A& alloc) {
->>>>>>> main
     if (!u) {
       return;
     }
