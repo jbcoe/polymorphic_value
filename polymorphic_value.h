@@ -71,7 +71,7 @@ struct control_block {
 
   ISOCPP_P0201_CONSTEXPR_CXX20 virtual std::unique_ptr<control_block,
                                                        control_block_deleter>
-  ISOCPP_P0201_CONSTEXPR_CXX20 clone() const = 0;
+  clone() const = 0;
 
   ISOCPP_P0201_CONSTEXPR_CXX20 virtual T* ptr() = 0;
 
@@ -89,8 +89,7 @@ class direct_control_block : public control_block<T> {
       : u_(U(std::forward<Ts>(ts)...)) {}
 
   ISOCPP_P0201_CONSTEXPR_CXX20
-      std::unique_ptr<control_block<T>, control_block_deleter>
-      clone()
+  std::unique_ptr<control_block<T>, control_block_deleter> clone()
       const override {
     return std::unique_ptr<direct_control_block, control_block_deleter>(
         new direct_control_block(*this));
@@ -111,8 +110,7 @@ class pointer_control_block : public control_block<T>, public C {
       : C(std::move(c)), p_(std::move(p)) {}
 
   ISOCPP_P0201_CONSTEXPR_CXX20
-      std::unique_ptr<control_block<T>, control_block_deleter>
-      clone()
+  std::unique_ptr<control_block<T>, control_block_deleter> clone()
       const override {
     assert(p_);
     return std::unique_ptr<pointer_control_block, control_block_deleter>(
@@ -134,8 +132,7 @@ class delegating_control_block : public control_block<T> {
       : delegate_(std::move(b)) {}
 
   ISOCPP_P0201_CONSTEXPR_CXX20
-      std::unique_ptr<control_block<T>, control_block_deleter>
-      clone()
+  std::unique_ptr<control_block<T>, control_block_deleter> clone()
       const override {
     return std::unique_ptr<delegating_control_block, control_block_deleter>(
         new delegating_control_block(delegate_->clone()));
@@ -193,8 +190,7 @@ class allocated_pointer_control_block : public control_block<T>,
   }
 
   ISOCPP_P0201_CONSTEXPR_CXX20
-      std::unique_ptr<control_block<T>, control_block_deleter>
-      clone()
+  std::unique_ptr<control_block<T>, control_block_deleter> clone()
       const override {
     assert(p_);
 
@@ -264,8 +260,7 @@ class polymorphic_value {
 
   template <class T_, class U, class A, class... Ts>
   friend ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value<T_>
-  allocate_polymorphic_value(
-      std::allocator_arg_t, A& a, Ts&&... ts);
+  allocate_polymorphic_value(std::allocator_arg_t, A& a, Ts&&... ts);
 
   T* ptr_ = nullptr;
   std::unique_ptr<detail::control_block<T>, detail::control_block_deleter> cb_;
@@ -324,9 +319,8 @@ class polymorphic_value {
 
   template <class U, class A,
             class = std::enable_if_t<std::is_convertible_v<U*, T*>>>
-  ISOCPP_P0201_CONSTEXPR_CXX20 constexpr polymorphic_value(U* u,
-                                                           std::allocator_arg_t,
-                                       const A& alloc) {
+  ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value(U* u, std::allocator_arg_t,
+                                                 const A& alloc) {
     if (!u) {
       return;
     }
@@ -499,8 +493,7 @@ ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value<T> make_polymorphic_value(
 
 template <class T, class U = T, class A = std::allocator<U>, class... Ts>
 ISOCPP_P0201_CONSTEXPR_CXX20 polymorphic_value<T> allocate_polymorphic_value(
-    std::allocator_arg_t,
-                                                          A& a, Ts&&... ts) {
+    std::allocator_arg_t, A& a, Ts&&... ts) {
   polymorphic_value<T> p;
   auto* u = detail::allocate_object<U>(a, std::forward<Ts>(ts)...);
   try {
