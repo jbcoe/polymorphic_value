@@ -61,6 +61,7 @@ class control_block_deleter {
   constexpr void operator()(T* t) const noexcept {
     if (t != nullptr) {
       t->destroy();
+      t = nullptr;
     }
   }
 };

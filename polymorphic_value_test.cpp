@@ -867,6 +867,43 @@ TEST_CASE("Copying object with allocator allocates") {
   CHECK(deallocs == 4);
 }
 
+TEST_CASE("Allocator used to construct with make_polymorphic") {
+  GIVEN("an alloator which tracks allocations") {
+    unsigned allocs = 0;
+    unsigned deallocs = 0;
+
+    tracking_allocator<int> alloc(&allocs, &deallocs);
+    WHEN("Constructing a type from the allocator") {
+      unsigned const value = 99;
+      auto p = make_polymorphic_value<DerivedType>(std::allocator_arg_t{},
+                                                   alloc, value);
+      THEN("Expect the allocation to be tracked") {
+        CHECK(allocs == 2);
+        CHECK(deallocs == 0);
+      }
+      AND_THEN("Expect the deallocation to be tracked") {
+        p.~polymorphic_value();
+        CHECK(allocs == 2);
+        CHECK(deallocs == 2);
+      }
+    }
+    WHEN("Constructing a type that throws on construction from the allocator") {
+      struct ThrowOnConstruction : DerivedType {
+        ThrowOnConstruction() { throw "I throw in my default constructor"; }
+      };
+
+      CHECK_THROWS(make_polymorphic_value<ThrowOnConstruction>(
+          std::allocator_arg_t{}, alloc));
+      THEN(
+          "Expect allocation and subsequent deallocation of the intial T to be "
+          "tracked after the throw (but not the control block's allocation)") {
+        CHECK(allocs == 1);
+        CHECK(deallocs == 1);
+      }
+    }
+  }
+}
+
 TEST_CASE("Allocator used to construct with allocate_polymorphic_value") {
   unsigned allocs = 0;
   unsigned deallocs = 0;
@@ -880,6 +917,4 @@ TEST_CASE("Allocator used to construct with allocate_polymorphic_value") {
     CHECK(allocs == 2);
     CHECK(deallocs == 0);
   }
-  CHECK(allocs == 2);
-  CHECK(deallocs == 2);
 }
